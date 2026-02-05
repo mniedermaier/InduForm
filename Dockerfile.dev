@@ -1,0 +1,46 @@
+# InduForm Development Dockerfile
+# Includes hot reload for both Python and React
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies and Node.js
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python package files
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+
+# Install Python dependencies with dev extras
+RUN pip install --no-cache-dir -e ".[dev]"
+
+# Copy web package files and install
+COPY web/package.json web/package-lock.json* ./web/
+WORKDIR /app/web
+RUN npm install
+
+# Copy web source
+COPY web/ ./
+
+WORKDIR /app
+
+# Create config and data directories
+RUN mkdir -p /config /data
+
+# Environment
+ENV INDUFORM_CONFIG=/config/induform.yaml
+ENV INDUFORM_DB=/data/induform.db
+
+# Volumes for persistent data
+VOLUME ["/config", "/data"]
+
+# Expose ports (API and Vite dev server)
+EXPOSE 8080 5173
+
+# Start both servers
+CMD ["sh", "-c", "cd /app/web && npm run dev -- --host 0.0.0.0 & induform serve --config /config/induform.yaml --host 0.0.0.0 --port 8080 --reload"]

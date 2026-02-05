@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Dark mode for React Flow */
+.dark .react-flow {
+  background-color: #1f2937;
+}
+
+.dark .react-flow__background {
+  background-color: #1f2937;
+}
+
+.dark .react-flow__minimap {
+  background-color: #374151;
+}
+
+.dark .react-flow__controls button {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+.dark .react-flow__controls button:hover {
+  background-color: #4b5563;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* React Flow customizations */
+.react-flow__node {
+  font-size: 12px;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+/* Security Level colors */
+.sl-1 { background-color: #22c55e; }
+.sl-2 { background-color: #eab308; }
+.sl-3 { background-color: #f97316; }
+.sl-4 { background-color: #ef4444; }
+
+.sl-badge-1 { @apply bg-green-500 text-white; }
+.sl-badge-2 { @apply bg-yellow-500 text-black; }
+.sl-badge-3 { @apply bg-orange-500 text-white; }
+.sl-badge-4 { @apply bg-red-500 text-white; }
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+/* Themed scrollbars — auto-switch with dark/light mode */
+
+/* Light mode scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Dark mode scrollbar */
+.dark * {
+  scrollbar-color: #475569 #1e293b;
+}
+
+.dark *::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Toast animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}

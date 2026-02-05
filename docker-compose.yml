@@ -1,0 +1,46 @@
+services:
+  induform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: induform
+    ports:
+      - "${INDUFORM_PORT:-8081}:8080"
+    volumes:
+      # Mount config directory for persistence
+      - ./config:/config
+      # Mount data directory for database persistence
+      - ./data:/data
+      # Mount examples for reference
+      - ./examples:/app/examples:ro
+    environment:
+      - INDUFORM_CONFIG=/config/induform.yaml
+      - INDUFORM_DB=/data/induform.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Development service with hot reload
+  induform-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: induform-dev
+    ports:
+      - "${INDUFORM_PORT:-8081}:8080"
+      - "${VITE_PORT:-5173}:5173"
+    volumes:
+      - ./src:/app/src
+      - ./web/src:/app/web/src
+      - ./config:/config
+      - ./data:/data
+      - ./examples:/app/examples
+    environment:
+      - INDUFORM_CONFIG=/config/induform.yaml
+      - INDUFORM_DB=/data/induform.db
+    profiles:
+      - dev

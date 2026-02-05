@@ -1,0 +1,91 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "induform"
+version = "0.2.0-alpha"
+description = "Industrial Terraform - Declarative IEC 62443 zone/conduit security for OT networks"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "InduForm Contributors" }
+]
+keywords = ["iec62443", "ot-security", "industrial", "scada", "zones", "conduits"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: System :: Networking",
+]
+dependencies = [
+    "pydantic>=2.0",
+    "email-validator>=2.0",
+    "typer>=0.9.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.23.0",
+    "pyyaml>=6.0",
+    "rich>=13.0.0",
+    # Authentication
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    # Database
+    "aiosqlite>=0.19.0",
+    "sqlalchemy[asyncio]>=2.0",
+    "alembic>=1.12.0",
+    # Nmap parsing
+    "python-libnmap>=0.7.3",
+    # Excel export
+    "openpyxl>=3.1.0",
+    # PDF generation
+    "reportlab>=4.0",
+    # Rate limiting
+    "slowapi>=0.1.9",
+]
+
+[project.optional-dependencies]
+postgres = [
+    "asyncpg>=0.29.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.24.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "types-PyYAML>=6.0",
+]
+
+[project.scripts]
+induform = "induform.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/induform/induform"
+Documentation = "https://induform.readthedocs.io"
+Repository = "https://github.com/induform/induform"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/induform"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

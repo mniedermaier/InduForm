@@ -1,0 +1,236 @@
+version: "1.0"
+project:
+  name: "Manufacturing Plant Alpha"
+  description: "Example IEC 62443 zone/conduit configuration for a manufacturing facility"
+  standard: "IEC62443"
+  version: "1.0.0"
+  author: "InduForm Example"
+
+zones:
+  # Level 4/5 - Enterprise Network
+  - id: enterprise
+    name: "Enterprise Network"
+    type: enterprise
+    security_level_target: 1
+    description: "Corporate IT network with business applications"
+    assets:
+      - id: erp_server
+        name: "ERP Server"
+        type: server
+        ip_address: "10.0.1.10"
+        vendor: "SAP"
+
+  # Level 3.5 - DMZ
+  - id: site_dmz
+    name: "Site DMZ"
+    type: dmz
+    security_level_target: 3
+    parent_zone: enterprise
+    description: "Demilitarized zone between enterprise and OT networks"
+    assets:
+      - id: historian
+        name: "Process Historian"
+        type: historian
+        ip_address: "10.1.1.10"
+        vendor: "OSIsoft"
+        model: "PI Server"
+      - id: jump_host
+        name: "Engineering Jump Host"
+        type: jump_host
+        ip_address: "10.1.1.20"
+        description: "Secure access point for remote engineering"
+
+  # Level 3 - Site Operations
+  - id: site_ops
+    name: "Site Operations"
+    type: site
+    security_level_target: 2
+    parent_zone: site_dmz
+    description: "Site-wide supervisory and operations systems"
+    assets:
+      - id: scada_server
+        name: "SCADA Server"
+        type: scada
+        ip_address: "10.2.1.10"
+        vendor: "Schneider Electric"
+        model: "ClearSCADA"
+      - id: engineering_ws
+        name: "Engineering Workstation"
+        type: engineering_workstation
+        ip_address: "10.2.1.20"
+        vendor: "Dell"
+
+  # Level 2 - Area Supervisory
+  - id: area_01
+    name: "Production Area 01"
+    type: area
+    security_level_target: 2
+    parent_zone: site_ops
+    description: "Assembly line supervisory control"
+    assets:
+      - id: area_hmi
+        name: "Area HMI Server"
+        type: hmi
+        ip_address: "10.3.1.10"
+        vendor: "Siemens"
+        model: "WinCC"
+
+  # Level 1 - Basic Control (Cell 01)
+  - id: cell_01
+    name: "Assembly Cell 01"
+    type: cell
+    security_level_target: 2
+    parent_zone: area_01
+    description: "Primary assembly line control systems"
+    assets:
+      - id: plc_01
+        name: "Main PLC"
+        type: plc
+        ip_address: "10.10.1.10"
+        vendor: "Siemens"
+        model: "S7-1500"
+        criticality: 5
+      - id: hmi_01
+        name: "Operator HMI"
+        type: hmi
+        ip_address: "10.10.1.20"
+        vendor: "Siemens"
+        model: "Comfort Panel"
+      - id: vfd_01
+        name: "Variable Frequency Drive"
+        type: other
+        ip_address: "10.10.1.30"
+        vendor: "ABB"
+        model: "ACS880"
+
+  # Level 1 - Basic Control (Cell 02)
+  - id: cell_02
+    name: "Packaging Cell"
+    type: cell
+    security_level_target: 2
+    parent_zone: area_01
+    description: "Packaging line control systems"
+    assets:
+      - id: plc_02
+        name: "Packaging PLC"
+        type: plc
+        ip_address: "10.10.2.10"
+        vendor: "Rockwell"
+        model: "ControlLogix 5580"
+        criticality: 4
+      - id: hmi_02
+        name: "Packaging HMI"
+        type: hmi
+        ip_address: "10.10.2.20"
+        vendor: "Rockwell"
+        model: "PanelView Plus"
+
+  # Safety Zone
+  - id: safety_zone
+    name: "Safety Instrumented System"
+    type: safety
+    security_level_target: 4
+    description: "Safety-critical emergency shutdown systems"
+    assets:
+      - id: safety_plc
+        name: "Safety PLC"
+        type: plc
+        ip_address: "10.20.1.10"
+        vendor: "Siemens"
+        model: "S7-1500F"
+        criticality: 5
+
+conduits:
+  # Enterprise to DMZ
+  - id: enterprise_to_dmz
+    name: "Enterprise-DMZ Conduit"
+    from_zone: enterprise
+    to_zone: site_dmz
+    flows:
+      - protocol: https
+        port: 443
+        direction: bidirectional
+        description: "Historian web interface access"
+      - protocol: ssh
+        port: 22
+        direction: outbound
+        description: "Jump host access from enterprise"
+    requires_inspection: true
+    description: "Controlled access from enterprise to DMZ"
+
+  # DMZ to Site Operations
+  - id: dmz_to_site_ops
+    name: "DMZ-Operations Conduit"
+    from_zone: site_dmz
+    to_zone: site_ops
+    flows:
+      - protocol: opcua
+        port: 4840
+        direction: inbound
+        description: "SCADA data to historian"
+      - protocol: https
+        port: 443
+        direction: bidirectional
+        description: "Engineering access"
+    description: "Data flow from operations to DMZ historian"
+
+  # Site Operations to Area
+  - id: site_ops_to_area
+    name: "Operations-Area Conduit"
+    from_zone: site_ops
+    to_zone: area_01
+    flows:
+      - protocol: opcua
+        port: 4840
+        direction: bidirectional
+        description: "SCADA-HMI communication"
+      - protocol: s7comm
+        port: 102
+        direction: outbound
+        description: "Engineering workstation to PLCs"
+    description: "Supervisory control communications"
+
+  # Area to Cell 01
+  - id: area_to_cell_01
+    name: "Area-Cell01 Conduit"
+    from_zone: area_01
+    to_zone: cell_01
+    flows:
+      - protocol: s7comm
+        port: 102
+        direction: bidirectional
+        description: "PLC communication"
+      - protocol: modbus_tcp
+        port: 502
+        direction: bidirectional
+        description: "VFD monitoring"
+    description: "Control communications to assembly cell"
+
+  # Area to Cell 02
+  - id: area_to_cell_02
+    name: "Area-Cell02 Conduit"
+    from_zone: area_01
+    to_zone: cell_02
+    flows:
+      - protocol: ethernet_ip
+        port: 44818
+        direction: bidirectional
+        description: "Rockwell PLC communication"
+      - protocol: cip
+        port: 2222
+        direction: bidirectional
+        description: "CIP protocol for configuration"
+    description: "Control communications to packaging cell"
+
+  # Safety Zone Conduit (very restricted)
+  - id: cell_01_to_safety
+    name: "Cell01-Safety Conduit"
+    from_zone: cell_01
+    to_zone: safety_zone
+    flows:
+      - protocol: profinet
+        direction: bidirectional
+        description: "Safety PLC integration"
+    requires_inspection: true
+    security_level_required: 4
+    description: "Safety-critical communications - highly restricted"
