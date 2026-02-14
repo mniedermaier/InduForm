@@ -100,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       return null;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refreshTokenInternal is a plain function that only uses localStorage; it has stable behavior across renders
   }, []);
 
   // Internal refresh token function
@@ -289,6 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- intentional: hook must be co-located with its context provider
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -297,7 +299,7 @@ export function useAuth() {
   return context;
 }
 
-// Helper function to get auth header for API calls
+// eslint-disable-next-line react-refresh/only-export-components -- intentional: utility function co-located with auth context
 export function getAuthHeader(): Record<string, string> {
   const token = localStorage.getItem(ACCESS_TOKEN_KEY);
   if (token) {
@@ -306,5 +308,4 @@ export function getAuthHeader(): Record<string, string> {
   return {};
 }
 
-// Export token key for use in API client
 export { ACCESS_TOKEN_KEY };

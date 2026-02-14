@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, CheckConstraint
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -15,6 +15,7 @@ def generate_uuid() -> str:
 
 class Base(DeclarativeBase):
     """Base class for all models."""
+
     pass
 
 
@@ -27,7 +28,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    display_name: Mapped[Optional[str]] = mapped_column(String(255))
+    display_name: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
@@ -50,8 +51,10 @@ class Team(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
-    created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -90,18 +93,20 @@ class ProjectDB(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
     standard: Mapped[str] = mapped_column(String(50), default="IEC62443")
-    compliance_standards: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    allowed_protocols: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    compliance_standards: Mapped[str | None] = mapped_column(Text, nullable=True)
+    allowed_protocols: Mapped[str | None] = mapped_column(Text, nullable=True)
     version: Mapped[str] = mapped_column(String(20), default="1.0")
-    owner_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    owner_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     # Relationships
     owner: Mapped["User"] = relationship(
@@ -133,10 +138,10 @@ class ProjectAccess(Base):
     project_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user_id: Mapped[Optional[str]] = mapped_column(
+    user_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    team_id: Mapped[Optional[str]] = mapped_column(
+    team_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("teams.id", ondelete="CASCADE"), index=True
     )
     permission: Mapped[str] = mapped_column(String(50), nullable=False)  # editor, viewer
@@ -171,12 +176,12 @@ class ZoneDB(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     security_level_target: Mapped[int] = mapped_column(Integer, nullable=False)
-    security_level_capability: Mapped[Optional[int]] = mapped_column(Integer)
-    description: Mapped[Optional[str]] = mapped_column(Text)
-    parent_zone_id: Mapped[Optional[str]] = mapped_column(String(100))
-    network_segment: Mapped[Optional[str]] = mapped_column(String(100))
-    x_position: Mapped[Optional[float]] = mapped_column(nullable=True)
-    y_position: Mapped[Optional[float]] = mapped_column(nullable=True)
+    security_level_capability: Mapped[int | None] = mapped_column(Integer)
+    description: Mapped[str | None] = mapped_column(Text)
+    parent_zone_id: Mapped[str | None] = mapped_column(String(100))
+    network_segment: Mapped[str | None] = mapped_column(String(100))
+    x_position: Mapped[float | None] = mapped_column(nullable=True)
+    y_position: Mapped[float | None] = mapped_column(nullable=True)
 
     __table_args__ = (
         # Unique constraint on (project_id, zone_id)
@@ -208,12 +213,12 @@ class AssetDB(Base):
     asset_id: Mapped[str] = mapped_column(String(100), nullable=False)  # User-defined ID
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     type: Mapped[str] = mapped_column(String(50), nullable=False)
-    ip_address: Mapped[Optional[str]] = mapped_column(String(45))
-    mac_address: Mapped[Optional[str]] = mapped_column(String(17))
-    vendor: Mapped[Optional[str]] = mapped_column(String(255))
-    model: Mapped[Optional[str]] = mapped_column(String(255))
-    firmware_version: Mapped[Optional[str]] = mapped_column(String(100))
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    mac_address: Mapped[str | None] = mapped_column(String(17))
+    vendor: Mapped[str | None] = mapped_column(String(255))
+    model: Mapped[str | None] = mapped_column(String(255))
+    firmware_version: Mapped[str | None] = mapped_column(String(100))
+    description: Mapped[str | None] = mapped_column(Text)
     criticality: Mapped[int] = mapped_column(Integer, default=3)
 
     # Relationships
@@ -230,16 +235,16 @@ class ConduitDB(Base):
         String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
     )
     conduit_id: Mapped[str] = mapped_column(String(100), nullable=False)  # User-defined ID
-    name: Mapped[Optional[str]] = mapped_column(String(255))
+    name: Mapped[str | None] = mapped_column(String(255))
     from_zone_db_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("zones.id"), nullable=False, index=True
     )
     to_zone_db_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("zones.id"), nullable=False, index=True
     )
-    security_level_required: Mapped[Optional[int]] = mapped_column(Integer)
+    security_level_required: Mapped[int | None] = mapped_column(Integer)
     requires_inspection: Mapped[bool] = mapped_column(Boolean, default=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
 
     # Relationships
     project: Mapped["ProjectDB"] = relationship("ProjectDB", back_populates="conduits")
@@ -264,9 +269,9 @@ class ProtocolFlowDB(Base):
         String(36), ForeignKey("conduits.id", ondelete="CASCADE"), nullable=False, index=True
     )
     protocol: Mapped[str] = mapped_column(String(100), nullable=False)
-    port: Mapped[Optional[int]] = mapped_column(Integer)
+    port: Mapped[int | None] = mapped_column(Integer)
     direction: Mapped[str] = mapped_column(String(20), default="bidirectional")
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
 
     # Relationships
     conduit: Mapped["ConduitDB"] = relationship("ConduitDB", back_populates="flows")
@@ -283,11 +288,13 @@ class Comment(Base):
     )
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)  # zone, conduit, asset
     entity_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    author_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    author_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
     text: Mapped[str] = mapped_column(Text, nullable=False)
     is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
-    resolved_by: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id"))
-    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    resolved_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -295,7 +302,9 @@ class Comment(Base):
 
     # Relationships
     project: Mapped["ProjectDB"] = relationship("ProjectDB", back_populates="comments")
-    author: Mapped["User"] = relationship("User", back_populates="comments", foreign_keys=[author_id])
+    author: Mapped["User"] = relationship(
+        "User", back_populates="comments", foreign_keys=[author_id]
+    )
     resolver: Mapped[Optional["User"]] = relationship("User", foreign_keys=[resolved_by])
 
 
@@ -308,9 +317,11 @@ class NmapScan(Base):
     project_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    uploaded_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    uploaded_by: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
-    scan_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    scan_date: Mapped[datetime | None] = mapped_column(DateTime)
     host_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -332,14 +343,12 @@ class NmapHost(Base):
         String(36), ForeignKey("nmap_scans.id", ondelete="CASCADE"), nullable=False, index=True
     )
     ip_address: Mapped[str] = mapped_column(String(45), nullable=False)
-    mac_address: Mapped[Optional[str]] = mapped_column(String(17))
-    hostname: Mapped[Optional[str]] = mapped_column(String(255))
-    os_detection: Mapped[Optional[str]] = mapped_column(Text)
+    mac_address: Mapped[str | None] = mapped_column(String(17))
+    hostname: Mapped[str | None] = mapped_column(String(255))
+    os_detection: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="up")
-    imported_as_asset_id: Mapped[Optional[str]] = mapped_column(
-        String(36), ForeignKey("assets.id")
-    )
-    ports_json: Mapped[Optional[str]] = mapped_column(Text)  # JSON array of open ports
+    imported_as_asset_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("assets.id"))
+    ports_json: Mapped[str | None] = mapped_column(Text)  # JSON array of open ports
 
     # Relationships
     scan: Mapped["NmapScan"] = relationship("NmapScan", back_populates="hosts")
@@ -353,9 +362,11 @@ class TemplateDB(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
-    category: Mapped[Optional[str]] = mapped_column(String(100))  # e.g., "manufacturing", "utility"
-    owner_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str | None] = mapped_column(String(100))  # e.g., "manufacturing", "utility"
+    owner_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
     project_json: Mapped[str] = mapped_column(Text, nullable=False)  # Serialized Project as JSON
     zone_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -379,12 +390,16 @@ class ActivityLog(Base):
     project_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    action: Mapped[str] = mapped_column(String(50), nullable=False)  # created, updated, deleted, shared, etc.
-    entity_type: Mapped[Optional[str]] = mapped_column(String(50))  # zone, asset, conduit, project
-    entity_id: Mapped[Optional[str]] = mapped_column(String(100))
-    entity_name: Mapped[Optional[str]] = mapped_column(String(255))
-    details: Mapped[Optional[str]] = mapped_column(Text)  # JSON with change details
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False, index=True
+    )
+    action: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # created, updated, deleted, shared, etc.
+    entity_type: Mapped[str | None] = mapped_column(String(50))  # zone, asset, conduit, project
+    entity_id: Mapped[str | None] = mapped_column(String(100))
+    entity_name: Mapped[str | None] = mapped_column(String(255))
+    details: Mapped[str | None] = mapped_column(Text)  # JSON with change details
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     # Relationships
@@ -401,12 +416,18 @@ class Notification(Base):
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    type: Mapped[str] = mapped_column(String(50), nullable=False)  # project_update, comment, mention, share
+    type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # project_update, comment, mention, share
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    message: Mapped[Optional[str]] = mapped_column(Text)
-    link: Mapped[Optional[str]] = mapped_column(String(500))  # URL to navigate to
-    project_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"))
-    actor_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id"))  # User who triggered
+    message: Mapped[str | None] = mapped_column(Text)
+    link: Mapped[str | None] = mapped_column(String(500))  # URL to navigate to
+    project_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("projects.id", ondelete="CASCADE")
+    )
+    actor_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id")
+    )  # User who triggered
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
@@ -422,7 +443,9 @@ class RevokedToken(Base):
     __tablename__ = "revoked_tokens"
 
     jti: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     revoked_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
 
@@ -433,7 +456,9 @@ class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     token_hash: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -452,7 +477,7 @@ class ProjectVersion(Base):
     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
     created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    description: Mapped[Optional[str]] = mapped_column(Text)  # Optional change description
+    description: Mapped[str | None] = mapped_column(Text)  # Optional change description
     snapshot: Mapped[str] = mapped_column(Text, nullable=False)  # Full project state as JSON
 
     __table_args__ = (

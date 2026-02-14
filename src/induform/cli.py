@@ -2,18 +2,18 @@
 
 import json
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from induform.models.project import Project, ProjectMetadata
-from induform.engine.validator import validate_project, validate_yaml_file, ValidationSeverity
 from induform.engine.policy import evaluate_policies
-from induform.generators.firewall import generate_firewall_rules, export_rules_json
-from induform.generators.vlan import generate_vlan_mapping, export_vlan_csv
+from induform.engine.validator import ValidationSeverity, validate_yaml_file
 from induform.generators.compliance import generate_compliance_report
+from induform.generators.firewall import export_rules_json, generate_firewall_rules
+from induform.generators.vlan import export_vlan_csv, generate_vlan_mapping
+from induform.models.project import Project, ProjectMetadata
 
 app = typer.Typer(
     name="induform",
@@ -27,9 +27,9 @@ console = Console()
 @app.command()
 def init(
     name: Annotated[str, typer.Option("--name", "-n", help="Project name")] = "My OT Project",
-    output: Annotated[
-        Path, typer.Option("--output", "-o", help="Output file path")
-    ] = Path("induform.yaml"),
+    output: Annotated[Path, typer.Option("--output", "-o", help="Output file path")] = Path(
+        "induform.yaml"
+    ),
     force: Annotated[bool, typer.Option("--force", "-f", help="Overwrite existing file")] = False,
 ) -> None:
     """Initialize a new InduForm project configuration."""
@@ -59,15 +59,13 @@ def init(
 
 @app.command()
 def validate(
-    config: Annotated[
-        Path, typer.Argument(help="Path to configuration file")
-    ] = Path("induform.yaml"),
+    config: Annotated[Path, typer.Argument(help="Path to configuration file")] = Path(
+        "induform.yaml"
+    ),
     strict: Annotated[
         bool, typer.Option("--strict", "-s", help="Treat warnings as errors")
     ] = False,
-    json_output: Annotated[
-        bool, typer.Option("--json", help="Output as JSON")
-    ] = False,
+    json_output: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
 ) -> None:
     """Validate a configuration file against schema and IEC 62443 policies."""
     if not config.exists():
@@ -126,15 +124,11 @@ def validate(
 
 @app.command()
 def generate(
-    generator: Annotated[
-        str, typer.Argument(help="Generator type: firewall, vlan, or report")
-    ],
+    generator: Annotated[str, typer.Argument(help="Generator type: firewall, vlan, or report")],
     config: Annotated[
         Path, typer.Option("--config", "-c", help="Path to configuration file")
     ] = Path("induform.yaml"),
-    output: Annotated[
-        Optional[Path], typer.Option("--output", "-o", help="Output file path")
-    ] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output file path")] = None,
     format: Annotated[
         str, typer.Option("--format", "-f", help="Output format (json, csv, md, iptables, cisco)")
     ] = "json",
@@ -158,6 +152,7 @@ def generate(
             content = json.dumps(export_rules_json(ruleset), indent=2)
         elif format == "iptables":
             from induform.generators.firewall import export_rules_iptables
+
             content = export_rules_iptables(ruleset)
         else:
             console.print(f"[red]Error:[/red] Unsupported format for firewall: {format}")
@@ -171,6 +166,7 @@ def generate(
             content = export_vlan_csv(mapping)
         elif format == "cisco":
             from induform.generators.vlan import export_vlan_cisco
+
             content = export_vlan_cisco(mapping)
         else:
             console.print(f"[red]Error:[/red] Unsupported format for vlan: {format}")
@@ -200,10 +196,10 @@ def schema(
     ] = "project",
 ) -> None:
     """Export JSON Schema for configuration validation."""
+    from induform.models.asset import Asset
+    from induform.models.conduit import Conduit
     from induform.models.project import Project
     from induform.models.zone import Zone
-    from induform.models.conduit import Conduit
-    from induform.models.asset import Asset
 
     models = {
         "project": Project,
@@ -224,15 +220,16 @@ def schema(
 @app.command()
 def serve(
     config: Annotated[
-        Optional[Path], typer.Option("--config", "-c", help="Path to configuration file")
+        Path | None, typer.Option("--config", "-c", help="Path to configuration file")
     ] = None,
     host: Annotated[str, typer.Option("--host", "-h", help="Host to bind to")] = "127.0.0.1",
     port: Annotated[int, typer.Option("--port", "-p", help="Port to listen on")] = 8080,
     reload: Annotated[bool, typer.Option("--reload", help="Enable auto-reload")] = False,
 ) -> None:
     """Start the InduForm web server."""
-    import uvicorn
     import os
+
+    import uvicorn
 
     # Use config from argument, environment variable, or default
     if config is None:
@@ -243,7 +240,7 @@ def serve(
     # Set config path for the API server
     os.environ["INDUFORM_CONFIG"] = str(config_path.absolute())
 
-    console.print(f"[green]Starting InduForm server[/green]")
+    console.print("[green]Starting InduForm server[/green]")
     console.print(f"  Config: {config_path}")
     console.print(f"  URL: http://{host}:{port}")
     console.print(f"  API Docs: http://{host}:{port}/docs")
@@ -264,9 +261,7 @@ app.add_typer(db_app, name="db")
 
 @db_app.command("migrate")
 def db_migrate(
-    db_path: Annotated[
-        Optional[Path], typer.Option("--db", "-d", help="Database file path")
-    ] = None,
+    db_path: Annotated[Path | None, typer.Option("--db", "-d", help="Database file path")] = None,
     revision: Annotated[str, typer.Option("--revision", "-r", help="Target revision")] = "head",
 ) -> None:
     """Run database migrations using Alembic."""
@@ -276,6 +271,7 @@ def db_migrate(
         _os.environ["INDUFORM_DB"] = str(db_path)
 
     from alembic.config import Config
+
     from alembic import command
 
     # Find alembic.ini relative to package
@@ -297,16 +293,15 @@ def db_migrate(
 
 @db_app.command("init")
 def db_init(
-    db_path: Annotated[
-        Optional[Path], typer.Option("--db", "-d", help="Database file path")
-    ] = None,
+    db_path: Annotated[Path | None, typer.Option("--db", "-d", help="Database file path")] = None,
     force: Annotated[bool, typer.Option("--force", "-f", help="Drop and recreate tables")] = False,
 ) -> None:
     """Initialize the database and create all tables."""
     import asyncio
     import os
-    from induform.db import init_db, close_db, Base
-    from induform.db.database import get_database_url, _engine
+
+    from induform.db import close_db, init_db
+    from induform.db.database import get_database_url
 
     if db_path:
         os.environ["INDUFORM_DB"] = str(db_path)
@@ -324,6 +319,7 @@ def db_init(
 
         # List created tables
         from induform.db.models import Base
+
         tables = list(Base.metadata.tables.keys())
         console.print(f"  Tables: {', '.join(tables)}")
 
@@ -334,17 +330,14 @@ def db_init(
 
 @db_app.command("backup")
 def db_backup(
-    db_path: Annotated[
-        Optional[Path], typer.Option("--db", "-d", help="Database file path")
-    ] = None,
-    output: Annotated[
-        Optional[Path], typer.Option("--output", "-o", help="Backup file path")
-    ] = None,
+    db_path: Annotated[Path | None, typer.Option("--db", "-d", help="Database file path")] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Backup file path")] = None,
 ) -> None:
     """Create a backup of the database."""
     import os
     import shutil
     from datetime import datetime as _dt
+
     from induform.db.database import get_database_url
 
     if db_path:
@@ -374,15 +367,15 @@ def db_backup(
 
 @db_app.command("status")
 def db_status(
-    db_path: Annotated[
-        Optional[Path], typer.Option("--db", "-d", help="Database file path")
-    ] = None,
+    db_path: Annotated[Path | None, typer.Option("--db", "-d", help="Database file path")] = None,
 ) -> None:
     """Show database status and statistics."""
     import asyncio
     import os
+
     from sqlalchemy import text
-    from induform.db import init_db, close_db
+
+    from induform.db import close_db, init_db
     from induform.db.database import get_database_url, get_engine
 
     if db_path:
@@ -428,12 +421,10 @@ def db_status(
 
 @app.command()
 def policies(
-    config: Annotated[
-        Path, typer.Argument(help="Path to configuration file")
-    ] = Path("induform.yaml"),
-    json_output: Annotated[
-        bool, typer.Option("--json", help="Output as JSON")
-    ] = False,
+    config: Annotated[Path, typer.Argument(help="Path to configuration file")] = Path(
+        "induform.yaml"
+    ),
+    json_output: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
 ) -> None:
     """Evaluate policy rules against a configuration."""
     if not config.exists():

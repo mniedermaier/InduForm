@@ -236,7 +236,7 @@ const PropertiesPanel = memo(({
     if (!project || !onQuickFix) return null;
 
     switch (violation.rule_id) {
-      case 'POL-002': // SL boundary protection
+      case 'POL-002': { // SL boundary protection
         const conduitId = violation.affected_entities.find(e =>
           project.conduits.some(c => c.id === e)
         );
@@ -248,7 +248,8 @@ const PropertiesPanel = memo(({
           };
         }
         break;
-      case 'POL-006': // Safety zone protection
+      }
+      case 'POL-006': { // Safety zone protection
         const zoneId = violation.affected_entities.find(e =>
           project.zones.some(z => z.id === e)
         );
@@ -260,6 +261,7 @@ const PropertiesPanel = memo(({
           };
         }
         break;
+      }
       case 'POL-001': { // Default deny
         const pol001ConduitId = violation.affected_entities.find(e =>
           project.conduits.some(c => c.id === e)

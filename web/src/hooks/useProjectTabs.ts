@@ -521,9 +521,9 @@ export function useProjectTabs(): UseProjectTabsResult {
       );
       setTabs(prev => [...prev, newTab]);
       setActiveTabId(newTab.id);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('New file error:', err);
-      alert(err.message || 'Failed to create file');
+      alert(err instanceof Error ? err.message : 'Failed to create file');
     } finally {
       setLoading(false);
     }
@@ -540,9 +540,9 @@ export function useProjectTabs(): UseProjectTabsResult {
         fileName: response.filename,
         originalProject: activeTab.project,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Save as error:', err);
-      alert(err.message || 'Failed to save file');
+      alert(err instanceof Error ? err.message : 'Failed to save file');
     } finally {
       setSaving(false);
     }

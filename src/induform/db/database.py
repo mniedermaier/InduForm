@@ -2,10 +2,9 @@
 
 import logging
 import os
-from pathlib import Path
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from induform.db.models import Base
@@ -87,9 +86,11 @@ async def _ensure_columns() -> None:
     if _engine is None:
         return
 
-    from sqlalchemy import text, inspect as sa_inspect
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy import text
 
     async with _engine.begin() as conn:
+
         def _get_columns(conn_sync):
             inspector = sa_inspect(conn_sync)
             proj_cols = {c["name"] for c in inspector.get_columns("projects")}
@@ -102,18 +103,20 @@ async def _ensure_columns() -> None:
             await conn.execute(text("ALTER TABLE projects ADD COLUMN compliance_standards TEXT"))
             logger.info("Added compliance_standards column to projects table")
 
-        await conn.execute(text(
-            "UPDATE projects SET compliance_standards = '[\"' || standard || '\"]' "
-            "WHERE compliance_standards IS NULL"
-        ))
+        await conn.execute(
+            text(
+                "UPDATE projects SET compliance_standards = '[\"' || standard || '\"]' "
+                "WHERE compliance_standards IS NULL"
+            )
+        )
 
         if "allowed_protocols" not in proj_cols:
             await conn.execute(text("ALTER TABLE projects ADD COLUMN allowed_protocols TEXT"))
             logger.info("Added allowed_protocols column to projects table")
 
-        await conn.execute(text(
-            "UPDATE projects SET allowed_protocols = '[]' WHERE allowed_protocols IS NULL"
-        ))
+        await conn.execute(
+            text("UPDATE projects SET allowed_protocols = '[]' WHERE allowed_protocols IS NULL")
+        )
 
         if "x_position" not in zone_cols:
             await conn.execute(text("ALTER TABLE zones ADD COLUMN x_position REAL"))

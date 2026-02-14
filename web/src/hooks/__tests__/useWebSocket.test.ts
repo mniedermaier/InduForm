@@ -25,6 +25,7 @@ class MockWebSocket {
     this.sent.push(data);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   close(code = 1000, _reason?: string) {
     this.readyState = MockWebSocket.CLOSED;
     this.onclose?.({ code });
@@ -32,6 +33,7 @@ class MockWebSocket {
 }
 
 // Assign mock to global
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const originalWebSocket = (globalThis as any).WebSocket;
 
 // Mock localStorage
@@ -50,15 +52,18 @@ describe('useProjectWebSocket', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as any).WebSocket = vi.fn((url: string) => {
       mockWs = new MockWebSocket(url);
       return mockWs;
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ((globalThis as any).WebSocket as any).OPEN = MockWebSocket.OPEN;
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as any).WebSocket = originalWebSocket;
   });
 

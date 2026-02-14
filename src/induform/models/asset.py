@@ -1,11 +1,11 @@
 """Asset model for OT devices."""
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class AssetType(str, Enum):
+class AssetType(StrEnum):
     """Types of OT assets."""
 
     PLC = "plc"

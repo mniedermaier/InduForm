@@ -1,13 +1,13 @@
 """Zone model for IEC 62443 security zones."""
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator
 
 from induform.models.asset import Asset
 
 
-class ZoneType(str, Enum):
+class ZoneType(StrEnum):
     """Types of security zones per IEC 62443."""
 
     ENTERPRISE = "enterprise"

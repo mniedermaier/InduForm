@@ -5,25 +5,29 @@ import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from induform.api.rate_limit import limiter
-from induform.db import get_db, User, NmapScan, NmapHost, AssetDB, ZoneDB
 from induform.api.auth.dependencies import get_current_user
-from induform.security.permissions import check_project_permission, Permission
-
-logger = logging.getLogger(__name__)
-from induform.api.nmap.parser import parse_nmap_xml, suggest_asset_type, suggest_asset_name
+from induform.api.nmap.parser import (
+    parse_nmap_xml,
+    suggest_asset_name,
+    suggest_asset_type,
+)
 from induform.api.nmap.schemas import (
-    NmapUploadRequest,
-    NmapScanResponse,
-    NmapScanDetailResponse,
+    ImportHostsRequest,
     NmapHostResponse,
     NmapPortInfo,
-    ImportHostsRequest,
+    NmapScanDetailResponse,
+    NmapScanResponse,
+    NmapUploadRequest,
 )
+from induform.api.rate_limit import limiter
+from induform.db import AssetDB, NmapHost, NmapScan, User, ZoneDB, get_db
+from induform.security.permissions import Permission, check_project_permission
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/nmap", tags=["Nmap"])
 
@@ -83,7 +87,10 @@ async def upload_nmap_scan(
 
     logger.info(
         "Nmap scan uploaded: file=%s hosts=%d project=%s user=%s",
-        upload_data.filename, parsed.host_count, project_id, current_user.username,
+        upload_data.filename,
+        parsed.host_count,
+        project_id,
+        current_user.username,
     )
 
     return NmapScanResponse(
@@ -254,9 +261,7 @@ async def import_hosts_as_assets(
     hosts_by_id = {h.id: h for h in scan.hosts}
 
     # Get zones for this project
-    result = await db.execute(
-        select(ZoneDB).where(ZoneDB.project_id == project_id)
-    )
+    result = await db.execute(select(ZoneDB).where(ZoneDB.project_id == project_id))
     zones = {z.zone_id: z for z in result.scalars().all()}
 
     imported_count = 0

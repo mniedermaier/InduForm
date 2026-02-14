@@ -5,6 +5,7 @@ import type { TabState } from '../useProjectTabs';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).fetch = mockFetch;
 
 // Mock localStorage

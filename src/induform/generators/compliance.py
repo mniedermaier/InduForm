@@ -1,12 +1,11 @@
 """Compliance report generator for IEC 62443."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from induform.engine.policy import evaluate_policies, PolicyViolation, PolicySeverity
+from induform.engine.policy import PolicySeverity, evaluate_policies
 from induform.engine.resolver import resolve_security_controls
-from induform.engine.validator import validate_project, ValidationSeverity
-from induform.iec62443.requirements import get_requirements_for_level, SECURITY_REQUIREMENTS
-from induform.iec62443.security_levels import SECURITY_LEVEL_DESCRIPTIONS
+from induform.engine.validator import ValidationSeverity, validate_project
+from induform.iec62443.requirements import get_requirements_for_level
 from induform.models.project import Project
 
 
@@ -28,14 +27,16 @@ def generate_compliance_report(
     lines = []
 
     # Header
-    lines.extend([
-        f"# IEC 62443 Compliance Report",
-        "",
-        f"**Project:** {project.project.name}",
-        f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
-        f"**Standard:** {', '.join(project.project.compliance_standards)}",
-        "",
-    ])
+    lines.extend(
+        [
+            "# IEC 62443 Compliance Report",
+            "",
+            f"**Project:** {project.project.name}",
+            f"**Generated:** {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            f"**Standard:** {', '.join(project.project.compliance_standards)}",
+            "",
+        ]
+    )
 
     # Executive Summary
     lines.extend(_generate_executive_summary(project))
@@ -83,8 +84,8 @@ def _generate_executive_summary(project: Project) -> list[str]:
     lines = [
         "## Executive Summary",
         "",
-        f"| Metric | Value |",
-        f"|--------|-------|",
+        "| Metric | Value |",
+        "|--------|-------|",
         f"| Overall Status | **{status}** ({status_icon}) |",
         f"| Zones | {zone_count} |",
         f"| Conduits | {conduit_count} |",
@@ -158,10 +159,12 @@ def _generate_validation_section(project: Project) -> list[str]:
         lines.append("")
 
     if validation.results:
-        lines.extend([
-            "| Severity | Code | Message | Location |",
-            "|----------|------|---------|----------|",
-        ])
+        lines.extend(
+            [
+                "| Severity | Code | Message | Location |",
+                "|----------|------|---------|----------|",
+            ]
+        )
 
         for result in validation.results:
             severity_icon = {
@@ -172,9 +175,7 @@ def _generate_validation_section(project: Project) -> list[str]:
 
             location = result.location or "-"
             message = result.message.replace("|", "/")  # Escape pipes
-            lines.append(
-                f"| {severity_icon} | {result.code} | {message} | {location} |"
-            )
+            lines.append(f"| {severity_icon} | {result.code} | {message} | {location} |")
 
         lines.append("")
 
@@ -195,12 +196,14 @@ def _generate_policy_section(project: Project) -> list[str]:
         lines.append("")
         return lines
 
-    lines.extend([
-        f"**{len(violations)} policy violations found.**",
-        "",
-        "| Severity | Rule | Message | Affected Entities |",
-        "|----------|------|---------|-------------------|",
-    ])
+    lines.extend(
+        [
+            f"**{len(violations)} policy violations found.**",
+            "",
+            "| Severity | Rule | Message | Affected Entities |",
+            "|----------|------|---------|-------------------|",
+        ]
+    )
 
     for violation in violations:
         entities = ", ".join(violation.affected_entities[:3])
@@ -209,8 +212,7 @@ def _generate_policy_section(project: Project) -> list[str]:
         message = violation.message.replace("|", "/")
 
         lines.append(
-            f"| {violation.severity.value.upper()} | {violation.rule_id} | "
-            f"{message} | {entities} |"
+            f"| {violation.severity.value.upper()} | {violation.rule_id} | {message} | {entities} |"
         )
 
     lines.append("")
@@ -228,7 +230,7 @@ def _generate_requirements_section(project: Project) -> list[str]:
         f"Based on maximum Security Level Target (SL-T) of **{max_sl}**, "
         f"the following security requirements apply:",
         "",
-        "| Requirement | Name | SL-{} Detail |".format(max_sl),
+        f"| Requirement | Name | SL-{max_sl} Detail |",
         "|-------------|------|-------------|",
     ]
 
@@ -257,10 +259,12 @@ def _generate_controls_section(project: Project) -> list[str]:
         lines.append(f"  - {control['description']}")
         lines.append("")
 
-    lines.extend([
-        "### Conduit-Specific Controls",
-        "",
-    ])
+    lines.extend(
+        [
+            "### Conduit-Specific Controls",
+            "",
+        ]
+    )
 
     for profile in controls["conduit_profiles"]:
         lines.append(f"#### Conduit: {profile['conduit_id']}")

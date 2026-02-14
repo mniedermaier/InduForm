@@ -1,13 +1,13 @@
 """Risk scoring engine for IEC 62443 security zones."""
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 from induform.models.project import Project
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     """Risk level classification."""
 
     CRITICAL = "critical"
@@ -204,9 +204,7 @@ def calculate_zone_risk(project: Project, zone_id: str) -> ZoneRisk:
     )
 
 
-def generate_recommendations(
-    project: Project, zone_risks: dict[str, ZoneRisk]
-) -> list[str]:
+def generate_recommendations(project: Project, zone_risks: dict[str, ZoneRisk]) -> list[str]:
     """Generate risk mitigation recommendations based on assessment.
 
     Args:
@@ -222,18 +220,18 @@ def generate_recommendations(
     critical_zones = [
         zone_id for zone_id, risk in zone_risks.items() if risk.level == RiskLevel.CRITICAL
     ]
-    high_zones = [
-        zone_id for zone_id, risk in zone_risks.items() if risk.level == RiskLevel.HIGH
-    ]
+    high_zones = [zone_id for zone_id, risk in zone_risks.items() if risk.level == RiskLevel.HIGH]
 
     if critical_zones:
         recommendations.append(
-            f"URGENT: Zones with critical risk level require immediate attention: {', '.join(critical_zones)}"
+            "URGENT: Zones with critical risk level require"
+            f" immediate attention: {', '.join(critical_zones)}"
         )
 
     if high_zones:
         recommendations.append(
-            f"Zones with high risk level should be prioritized for security improvements: {', '.join(high_zones)}"
+            "Zones with high risk level should be prioritized for"
+            f" security improvements: {', '.join(high_zones)}"
         )
 
     # Check for SL-1 zones with high exposure
@@ -269,17 +267,13 @@ def generate_recommendations(
 
     # General recommendations based on overall risk
     overall_risk_avg = (
-        sum(r.score for r in zone_risks.values()) / len(zone_risks)
-        if zone_risks
-        else 0
+        sum(r.score for r in zone_risks.values()) / len(zone_risks) if zone_risks else 0
     )
     if overall_risk_avg >= 60:
         recommendations.append(
             "Consider implementing defense-in-depth strategies across all zones."
         )
-        recommendations.append(
-            "Review and restrict conduit flows to essential protocols only."
-        )
+        recommendations.append("Review and restrict conduit flows to essential protocols only.")
 
     return recommendations
 
@@ -309,9 +303,7 @@ def assess_risk(project: Project) -> RiskAssessment:
             zone = project.get_zone(zone_id)
             if zone and zone.assets:
                 # Zone weight based on total asset criticality
-                zone_weight = sum(
-                    getattr(asset, "criticality", 3) for asset in zone.assets
-                )
+                zone_weight = sum(getattr(asset, "criticality", 3) for asset in zone.assets)
             else:
                 zone_weight = 1.0  # Default weight for empty zones
 

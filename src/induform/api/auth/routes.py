@@ -6,33 +6,33 @@ from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from induform.api.rate_limit import limiter
-from induform.db import get_db, User, RevokedToken, PasswordResetToken
-from induform.db.repositories import UserRepository
-from induform.security.password import hash_password, verify_password
-from induform.security.jwt import (
-    create_access_token,
-    create_refresh_token,
-    create_password_reset_token,
-    decode_token,
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
-)
+from induform.api.auth.dependencies import get_current_user
 from induform.api.auth.schemas import (
+    ForgotPasswordRequest,
+    PasswordChangeRequest,
+    RefreshTokenRequest,
+    ResetPasswordRequest,
+    TokenResponse,
     UserCreate,
     UserLogin,
     UserResponse,
-    TokenResponse,
-    RefreshTokenRequest,
-    PasswordChangeRequest,
     UserUpdate,
-    ForgotPasswordRequest,
-    ResetPasswordRequest,
 )
-from induform.api.auth.dependencies import get_current_user
+from induform.api.rate_limit import limiter
+from induform.db import PasswordResetToken, RevokedToken, User, get_db
+from induform.db.repositories import UserRepository
+from induform.security.jwt import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
+    create_access_token,
+    create_password_reset_token,
+    create_refresh_token,
+    decode_token,
+)
+from induform.security.password import hash_password, verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,6 @@ async def logout(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
     """Revoke the current access token (logout)."""
-    from fastapi.security import HTTPBearer
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return
@@ -201,9 +200,7 @@ async def refresh_token(
 
     # Check if refresh token is revoked
     if token_data.jti:
-        result = await db.execute(
-            select(RevokedToken).where(RevokedToken.jti == token_data.jti)
-        )
+        result = await db.execute(select(RevokedToken).where(RevokedToken.jti == token_data.jti))
         if result.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -354,7 +351,7 @@ async def reset_password(
     result = await db.execute(
         select(PasswordResetToken).where(
             PasswordResetToken.token_hash == token_hash,
-            PasswordResetToken.used == False,
+            PasswordResetToken.used == False,  # noqa: E712
             PasswordResetToken.expires_at > datetime.utcnow(),
         )
     )
@@ -400,7 +397,6 @@ async def list_users(
 ) -> list[User]:
     """List all active users (excluding current user)."""
     user_repo = UserRepository(db)
-    users = await user_repo.search("", limit=limit, exclude_user_id=current_user.id)
     # search with empty string won't match ilike, so use list_all and filter
     all_users = await user_repo.list_all(limit=limit)
     return [u for u in all_users if u.id != current_user.id]

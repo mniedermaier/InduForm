@@ -5,21 +5,21 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from induform.db import get_db, User, ProjectDB, ProjectVersion, ActivityLog
-from induform.db.repositories import ProjectRepository
 from induform.api.auth.dependencies import get_current_user
 from induform.api.rate_limit import limiter
-from induform.security.permissions import check_project_permission, Permission
-
+from induform.db import ActivityLog, ProjectVersion, User, get_db
+from induform.db.repositories import ProjectRepository
+from induform.security.permissions import Permission, check_project_permission
 
 router = APIRouter(prefix="/projects/{project_id}/versions", tags=["Versions"])
 
 
 class VersionSummary(BaseModel):
     """Summary of a project version."""
+
     id: str
     version_number: int
     created_by: str
@@ -30,6 +30,7 @@ class VersionSummary(BaseModel):
 
 class VersionDetail(BaseModel):
     """Full version detail with snapshot."""
+
     id: str
     version_number: int
     created_by: str
@@ -41,11 +42,13 @@ class VersionDetail(BaseModel):
 
 class CreateVersionRequest(BaseModel):
     """Request to create a manual version snapshot."""
+
     description: str | None = None
 
 
 class VersionDiff(BaseModel):
     """Diff between two versions."""
+
     zones: dict
     assets: dict
     conduits: dict
@@ -298,6 +301,7 @@ async def restore_version(
 
     # Restore project from version snapshot
     from induform.models.project import Project
+
     restored_project = Project.model_validate(json.loads(version_to_restore.snapshot))
     await project_repo.from_pydantic(restored_project, project_db)
 
@@ -319,10 +323,12 @@ async def restore_version(
         entity_type="project",
         entity_id=project_id,
         entity_name=f"Restored to version {version_to_restore.version_number}",
-        details=json.dumps({
-            "restored_from_version": version_to_restore.version_number,
-            "new_version": max_version + 2,
-        }),
+        details=json.dumps(
+            {
+                "restored_from_version": version_to_restore.version_number,
+                "new_version": max_version + 2,
+            }
+        ),
     )
     db.add(log)
 
@@ -391,20 +397,24 @@ async def compare_versions(
     for zone_id in set(zones_a.keys()) | set(zones_b.keys()):
         if zone_id not in zones_a:
             z = zones_b[zone_id]
-            added_zones.append({
-                "id": zone_id,
-                "name": z.get("name"),
-                "type": z.get("type"),
-                "security_level_target": z.get("security_level_target"),
-            })
+            added_zones.append(
+                {
+                    "id": zone_id,
+                    "name": z.get("name"),
+                    "type": z.get("type"),
+                    "security_level_target": z.get("security_level_target"),
+                }
+            )
         elif zone_id not in zones_b:
             z = zones_a[zone_id]
-            removed_zones.append({
-                "id": zone_id,
-                "name": z.get("name"),
-                "type": z.get("type"),
-                "security_level_target": z.get("security_level_target"),
-            })
+            removed_zones.append(
+                {
+                    "id": zone_id,
+                    "name": z.get("name"),
+                    "type": z.get("type"),
+                    "security_level_target": z.get("security_level_target"),
+                }
+            )
         else:
             za = zones_a[zone_id]
             zb = zones_b[zone_id]
@@ -413,11 +423,13 @@ async def compare_versions(
                 if za.get(key) != zb.get(key):
                     changes[key] = {"from": za.get(key), "to": zb.get(key)}
             if changes:
-                modified_zones.append({
-                    "id": zone_id,
-                    "name": zb.get("name"),
-                    "changes": changes,
-                })
+                modified_zones.append(
+                    {
+                        "id": zone_id,
+                        "name": zb.get("name"),
+                        "changes": changes,
+                    }
+                )
 
     # Compare conduits
     conduits_a = {c["id"]: c for c in snapshot_a.get("conduits", [])}
@@ -430,18 +442,22 @@ async def compare_versions(
     for conduit_id in set(conduits_a.keys()) | set(conduits_b.keys()):
         if conduit_id not in conduits_a:
             c = conduits_b[conduit_id]
-            added_conduits.append({
-                "id": conduit_id,
-                "from_zone": c.get("from_zone"),
-                "to_zone": c.get("to_zone"),
-            })
+            added_conduits.append(
+                {
+                    "id": conduit_id,
+                    "from_zone": c.get("from_zone"),
+                    "to_zone": c.get("to_zone"),
+                }
+            )
         elif conduit_id not in conduits_b:
             c = conduits_a[conduit_id]
-            removed_conduits.append({
-                "id": conduit_id,
-                "from_zone": c.get("from_zone"),
-                "to_zone": c.get("to_zone"),
-            })
+            removed_conduits.append(
+                {
+                    "id": conduit_id,
+                    "from_zone": c.get("from_zone"),
+                    "to_zone": c.get("to_zone"),
+                }
+            )
         else:
             ca = conduits_a[conduit_id]
             cb = conduits_b[conduit_id]
@@ -450,10 +466,12 @@ async def compare_versions(
                 if ca.get(key) != cb.get(key):
                     changes[key] = {"from": ca.get(key), "to": cb.get(key)}
             if changes:
-                modified_conduits.append({
-                    "id": conduit_id,
-                    "changes": changes,
-                })
+                modified_conduits.append(
+                    {
+                        "id": conduit_id,
+                        "changes": changes,
+                    }
+                )
 
     # Compare assets
     all_assets_a = {}
@@ -472,20 +490,24 @@ async def compare_versions(
     for asset_key in set(all_assets_a.keys()) | set(all_assets_b.keys()):
         if asset_key not in all_assets_a:
             zone_id, asset = all_assets_b[asset_key]
-            added_assets.append({
-                "zone_id": zone_id,
-                "id": asset.get("id"),
-                "name": asset.get("name"),
-                "type": asset.get("type"),
-            })
+            added_assets.append(
+                {
+                    "zone_id": zone_id,
+                    "id": asset.get("id"),
+                    "name": asset.get("name"),
+                    "type": asset.get("type"),
+                }
+            )
         elif asset_key not in all_assets_b:
             zone_id, asset = all_assets_a[asset_key]
-            removed_assets.append({
-                "zone_id": zone_id,
-                "id": asset.get("id"),
-                "name": asset.get("name"),
-                "type": asset.get("type"),
-            })
+            removed_assets.append(
+                {
+                    "zone_id": zone_id,
+                    "id": asset.get("id"),
+                    "name": asset.get("name"),
+                    "type": asset.get("type"),
+                }
+            )
         else:
             zone_id_a, aa = all_assets_a[asset_key]
             zone_id_b, ab = all_assets_b[asset_key]
@@ -494,12 +516,14 @@ async def compare_versions(
                 if aa.get(key) != ab.get(key):
                     changes[key] = {"from": aa.get(key), "to": ab.get(key)}
             if changes:
-                modified_assets.append({
-                    "zone_id": zone_id_b,
-                    "id": ab.get("id"),
-                    "name": ab.get("name"),
-                    "changes": changes,
-                })
+                modified_assets.append(
+                    {
+                        "zone_id": zone_id_b,
+                        "id": ab.get("id"),
+                        "name": ab.get("name"),
+                        "changes": changes,
+                    }
+                )
 
     return VersionDiff(
         zones={
@@ -551,10 +575,14 @@ async def create_auto_version(
 
     # Check if a recent version already exists (throttle)
     cutoff = datetime.utcnow() - timedelta(seconds=_AUTO_VERSION_MIN_INTERVAL_SECONDS)
-    recent_query = select(ProjectVersion).where(
-        ProjectVersion.project_id == project_id,
-        ProjectVersion.created_at > cutoff,
-    ).limit(1)
+    recent_query = (
+        select(ProjectVersion)
+        .where(
+            ProjectVersion.project_id == project_id,
+            ProjectVersion.created_at > cutoff,
+        )
+        .limit(1)
+    )
     result = await db.execute(recent_query)
     if result.scalar_one_or_none() is not None:
         return None  # Too soon, skip

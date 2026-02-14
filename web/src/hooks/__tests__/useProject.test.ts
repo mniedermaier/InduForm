@@ -4,6 +4,7 @@ import { useProject } from '../useProject';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).fetch = mockFetch;
 
 // Mock localStorage
@@ -203,6 +204,7 @@ describe('useProject', () => {
     expect(result.current.selectedZone).toBeUndefined();
 
     act(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       result.current.selectZone(MOCK_PROJECT.zones[0] as any);
     });
 

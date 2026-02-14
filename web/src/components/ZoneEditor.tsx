@@ -593,6 +593,7 @@ function ZoneEditorInner({
         })
       );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onZonePositionsChange is a parent callback whose identity changes on every render; adding it would cause infinite node resets
   }, [zoneIds, conduitIds, rearrangeKey, storedPositionsKey, createNodes, createEdges, setNodes, setEdges, project.zones, selectedZone, onSelectZone, onEditZone, validationResults, policyViolations, zoneRisks, riskOverlayEnabled, remoteSelections]);
 
   // Update edges when conduits change or selection changes

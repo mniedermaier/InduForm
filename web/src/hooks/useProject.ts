@@ -115,6 +115,7 @@ export function useProject(projectId: string | null, onSaved?: () => void): UseP
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- validateProject is a plain function that uses only state setters and getToken; adding it would cause infinite reloads
   }, [projectId]);
 
   // Validate project
@@ -309,6 +310,7 @@ export function useProject(projectId: string | null, onSaved?: () => void): UseP
     if (projectState) {
       await validateProject(projectState.current);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- validateProject is a plain function with stable behavior; projectState is intentionally included to get latest state
   }, [projectState]);
 
   // Reload project without unmounting (no loading spinner)
@@ -344,15 +346,17 @@ export function useProject(projectId: string | null, onSaved?: () => void): UseP
   }, [loadProject]);
 
   // Validate on project change (debounced)
+  const currentProject = projectState?.current;
   useEffect(() => {
-    if (!projectState) return;
+    if (!currentProject) return;
 
     const timeout = setTimeout(() => {
-      validateProject(projectState.current);
+      validateProject(currentProject);
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [projectState?.current]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- validateProject is a plain function with stable behavior; only re-validate when the current project data changes
+  }, [currentProject]);
 
   // Cleanup on unmount
   useEffect(() => {

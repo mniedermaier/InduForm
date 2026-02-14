@@ -45,6 +45,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
   // Notify collaborators after each successful save
   const handleSaved = useCallback(() => {
     ws.sendEdit('project', 'update', {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ws is an object that changes every render; ws.sendEdit is stable via useCallback in the hook
   }, [ws.sendEdit]);
 
   const projectHook = useProject(projectId, handleSaved);
@@ -139,6 +140,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
     if (lastUndoRedoMessage) {
       toast.info(lastUndoRedoMessage, 2500);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- toast is a context object that changes every render; only fire when the message changes
   }, [lastUndoRedoMessage]);
 
   // Auto-open properties panel on mobile when something is selected
@@ -152,6 +154,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
   useEffect(() => {
     const entityId = selectedZone?.id ?? selectedConduit?.id ?? null;
     ws.sendSelection(entityId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ws is an object that changes every render; ws.sendSelection is stable via useCallback in the hook
   }, [selectedZone, selectedConduit, ws.sendSelection]);
 
   // Reload project when a remote collaborator makes an edit
@@ -159,6 +162,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
     if (ws.lastEdit) {
       projectHook.reload();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- projectHook is a new object every render; reload is stable. Only trigger on new remote edits.
   }, [ws.lastEdit]);
 
   // Rearrange layout

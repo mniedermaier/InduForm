@@ -87,9 +87,7 @@ class Project(BaseModel):
 
     def get_conduits_for_zone(self, zone_id: str) -> list[Conduit]:
         """Get all conduits connected to a zone."""
-        return [
-            c for c in self.conduits if c.from_zone == zone_id or c.to_zone == zone_id
-        ]
+        return [c for c in self.conduits if c.from_zone == zone_id or c.to_zone == zone_id]
 
     @classmethod
     def from_yaml(cls, path: Path | str) -> "Project":

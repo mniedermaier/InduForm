@@ -4,11 +4,11 @@ import logging
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from induform.db import get_db, User, RevokedToken
+from induform.db import RevokedToken, User, get_db
 from induform.db.repositories import UserRepository
 from induform.security.jwt import decode_token
 
@@ -22,9 +22,7 @@ async def _is_token_revoked(db: AsyncSession, jti: str | None) -> bool:
     """Check if a token's JTI is in the revocation list."""
     if not jti:
         return False
-    result = await db.execute(
-        select(RevokedToken).where(RevokedToken.jti == jti)
-    )
+    result = await db.execute(select(RevokedToken).where(RevokedToken.jti == jti))
     return result.scalar_one_or_none() is not None
 
 
@@ -62,7 +60,9 @@ async def get_current_user(
 
     # Check if token has been revoked
     if await _is_token_revoked(db, token_data.jti):
-        logger.warning("Revoked token used for user_id=%s jti=%s", token_data.user_id, token_data.jti)
+        logger.warning(
+            "Revoked token used for user_id=%s jti=%s", token_data.user_id, token_data.jti
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",

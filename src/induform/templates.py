@@ -4,10 +4,10 @@ This module provides ready-to-use templates based on IEC 62443 for common
 industrial control system architectures.
 """
 
+from induform.models.asset import Asset, AssetType
+from induform.models.conduit import Conduit, ConduitDirection, ProtocolFlow
 from induform.models.project import Project, ProjectMetadata
 from induform.models.zone import Zone, ZoneType
-from induform.models.conduit import Conduit, ProtocolFlow, ConduitDirection
-from induform.models.asset import Asset, AssetType
 
 
 def _create_purdue_model() -> Project:
@@ -258,7 +258,9 @@ def _create_purdue_model() -> Project:
             description="SCADA and HMI communication",
             flows=[
                 ProtocolFlow(protocol="opcua", port=4840, direction=ConduitDirection.BIDIRECTIONAL),
-                ProtocolFlow(protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL),
+                ProtocolFlow(
+                    protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL
+                ),
             ],
         ),
         Conduit(
@@ -268,8 +270,12 @@ def _create_purdue_model() -> Project:
             to_zone="level1-control",
             description="HMI to PLC communication",
             flows=[
-                ProtocolFlow(protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL),
-                ProtocolFlow(protocol="ethernet_ip", port=44818, direction=ConduitDirection.BIDIRECTIONAL),
+                ProtocolFlow(
+                    protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL
+                ),
+                ProtocolFlow(
+                    protocol="ethernet_ip", port=44818, direction=ConduitDirection.BIDIRECTIONAL
+                ),
             ],
         ),
         Conduit(
@@ -279,7 +285,9 @@ def _create_purdue_model() -> Project:
             to_zone="level0-process",
             description="PLC to field device communication",
             flows=[
-                ProtocolFlow(protocol="profinet", port=34964, direction=ConduitDirection.BIDIRECTIONAL),
+                ProtocolFlow(
+                    protocol="profinet", port=34964, direction=ConduitDirection.BIDIRECTIONAL
+                ),
             ],
         ),
     ]
@@ -472,8 +480,12 @@ def _create_manufacturing_plant() -> Project:
             to_zone="cell1",
             description="SCADA communication to production cell 1",
             flows=[
-                ProtocolFlow(protocol="ethernet_ip", port=44818, direction=ConduitDirection.BIDIRECTIONAL),
-                ProtocolFlow(protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL),
+                ProtocolFlow(
+                    protocol="ethernet_ip", port=44818, direction=ConduitDirection.BIDIRECTIONAL
+                ),
+                ProtocolFlow(
+                    protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL
+                ),
             ],
         ),
         Conduit(
@@ -483,8 +495,12 @@ def _create_manufacturing_plant() -> Project:
             to_zone="cell2",
             description="SCADA communication to production cell 2",
             flows=[
-                ProtocolFlow(protocol="ethernet_ip", port=44818, direction=ConduitDirection.BIDIRECTIONAL),
-                ProtocolFlow(protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL),
+                ProtocolFlow(
+                    protocol="ethernet_ip", port=44818, direction=ConduitDirection.BIDIRECTIONAL
+                ),
+                ProtocolFlow(
+                    protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL
+                ),
             ],
         ),
     ]
@@ -712,8 +728,12 @@ def _create_water_treatment() -> Project:
             to_zone="treatment-process",
             description="SCADA communication to treatment PLCs",
             flows=[
-                ProtocolFlow(protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL),
-                ProtocolFlow(protocol="ethernet_ip", port=44818, direction=ConduitDirection.BIDIRECTIONAL),
+                ProtocolFlow(
+                    protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL
+                ),
+                ProtocolFlow(
+                    protocol="ethernet_ip", port=44818, direction=ConduitDirection.BIDIRECTIONAL
+                ),
             ],
         ),
         Conduit(
@@ -724,7 +744,9 @@ def _create_water_treatment() -> Project:
             description="SCADA communication to remote RTUs",
             flows=[
                 ProtocolFlow(protocol="dnp3", port=20000, direction=ConduitDirection.BIDIRECTIONAL),
-                ProtocolFlow(protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL),
+                ProtocolFlow(
+                    protocol="modbus_tcp", port=502, direction=ConduitDirection.BIDIRECTIONAL
+                ),
             ],
         ),
     ]
@@ -919,7 +941,9 @@ def _create_power_substation() -> Project:
             requires_inspection=True,
             flows=[
                 ProtocolFlow(protocol="dnp3", port=20000, direction=ConduitDirection.BIDIRECTIONAL),
-                ProtocolFlow(protocol="iec61850_mms", port=102, direction=ConduitDirection.BIDIRECTIONAL),
+                ProtocolFlow(
+                    protocol="iec61850_mms", port=102, direction=ConduitDirection.BIDIRECTIONAL
+                ),
                 ProtocolFlow(protocol="ssh", port=22, direction=ConduitDirection.OUTBOUND),
             ],
         ),
@@ -930,11 +954,19 @@ def _create_power_substation() -> Project:
             to_zone="switchyard",
             description="Station bus to process bus communication",
             flows=[
-                ProtocolFlow(protocol="iec61850_goose", direction=ConduitDirection.BIDIRECTIONAL,
-                             description="GOOSE multicast (Layer 2)"),
-                ProtocolFlow(protocol="iec61850_mms", port=102, direction=ConduitDirection.BIDIRECTIONAL),
-                ProtocolFlow(protocol="iec61850_sv", direction=ConduitDirection.INBOUND,
-                             description="Sampled Values from merging units (Layer 2)"),
+                ProtocolFlow(
+                    protocol="iec61850_goose",
+                    direction=ConduitDirection.BIDIRECTIONAL,
+                    description="GOOSE multicast (Layer 2)",
+                ),
+                ProtocolFlow(
+                    protocol="iec61850_mms", port=102, direction=ConduitDirection.BIDIRECTIONAL
+                ),
+                ProtocolFlow(
+                    protocol="iec61850_sv",
+                    direction=ConduitDirection.INBOUND,
+                    description="Sampled Values from merging units (Layer 2)",
+                ),
             ],
         ),
     ]

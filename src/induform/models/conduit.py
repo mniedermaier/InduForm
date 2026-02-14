@@ -1,11 +1,11 @@
 """Conduit model for inter-zone communication paths."""
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
 
 
-class ConduitDirection(str, Enum):
+class ConduitDirection(StrEnum):
     """Direction of traffic flow in a conduit."""
 
     INBOUND = "inbound"

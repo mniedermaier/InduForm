@@ -411,13 +411,18 @@ function ConduitConnection({
       ? '#60a5fa'
       : dark ? '#94a3b8' : '#9ca3af';
 
+  // Extract individual coordinates for stable useMemo dependencies
+  const fx = fromPos[0], fy = fromPos[1], fz = fromPos[2];
+  const mx = mid[0], my = mid[1], mz = mid[2];
+  const tx = toPos[0], ty = toPos[1], tz = toPos[2];
+
   const curve = useMemo(() => {
     return new THREE.QuadraticBezierCurve3(
-      new THREE.Vector3(...fromPos),
-      new THREE.Vector3(...mid),
-      new THREE.Vector3(...toPos)
+      new THREE.Vector3(fx, fy, fz),
+      new THREE.Vector3(mx, my, mz),
+      new THREE.Vector3(tx, ty, tz)
     );
-  }, [fromPos[0], fromPos[1], fromPos[2], mid[0], mid[1], mid[2], toPos[0], toPos[1], toPos[2]]);
+  }, [fx, fy, fz, mx, my, mz, tx, ty, tz]);
 
   const particleColor = conduit.requires_inspection ? '#fbbf24' : '#60a5fa';
 

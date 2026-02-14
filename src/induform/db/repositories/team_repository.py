@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from induform.db.models import Team, TeamMember, User
+from induform.db.models import Team, TeamMember
 
 
 class TeamRepository:

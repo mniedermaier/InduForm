@@ -6,18 +6,34 @@ from datetime import datetime
 from typing import Annotated
 
 import yaml
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from induform.db import get_db, User, ProjectDB, ActivityLog
-from induform.db.repositories import ProjectRepository
 from induform.api.auth.dependencies import get_current_user
-from induform.security.permissions import check_project_permission, get_user_permission, Permission
-from induform.models.project import Project
+from induform.api.projects.schemas import (
+    ComparisonResult,
+    CsvImportResult,
+    GrantAccessRequest,
+    ImportYamlRequest,
+    ProjectAccessInfo,
+    ProjectCreate,
+    ProjectDetail,
+    ProjectSummary,
+    ProjectUpdate,
+)
+from induform.db import ActivityLog, ProjectDB, User, get_db
+from induform.db.repositories import ProjectRepository
+from induform.engine.policy import PolicySeverity, evaluate_policies
 from induform.engine.risk import assess_risk
-from induform.engine.policy import evaluate_policies, PolicySeverity
+from induform.models.project import Project
+from induform.security.permissions import (
+    Permission,
+    check_project_permission,
+    get_user_permission,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_compliance_standards(project_db: ProjectDB) -> list[str]:
@@ -39,18 +55,6 @@ def _parse_allowed_protocols(project_db: ProjectDB) -> list[str]:
             pass
     return []
 
-logger = logging.getLogger(__name__)
-from induform.api.projects.schemas import (
-    ProjectCreate,
-    ProjectUpdate,
-    ProjectSummary,
-    ProjectDetail,
-    ProjectAccessInfo,
-    GrantAccessRequest,
-    ImportYamlRequest,
-    CsvImportResult,
-    ComparisonResult,
-)
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -70,7 +74,7 @@ async def list_projects(
     result = []
     for project_db in projects:
         # Filter out archived projects if not requested
-        if not include_archived and getattr(project_db, 'is_archived', False):
+        if not include_archived and getattr(project_db, "is_archived", False):
             continue
 
         permission = await get_user_permission(db, project_db.id, current_user.id)
@@ -112,7 +116,7 @@ async def list_projects(
 
                 # Zone types breakdown
                 for zone in project.zones:
-                    zone_type = zone.type.value if hasattr(zone.type, 'value') else str(zone.type)
+                    zone_type = zone.type.value if hasattr(zone.type, "value") else str(zone.type)
                     zone_types[zone_type] = zone_types.get(zone_type, 0) + 1
 
                 # Asset count
@@ -141,8 +145,8 @@ async def list_projects(
                 risk_level=risk_level,
                 compliance_score=compliance_score,
                 zone_types=zone_types if zone_types else None,
-                is_archived=getattr(project_db, 'is_archived', False),
-                archived_at=getattr(project_db, 'archived_at', None),
+                is_archived=getattr(project_db, "is_archived", False),
+                archived_at=getattr(project_db, "archived_at", None),
             )
         )
 
@@ -290,16 +294,22 @@ async def update_project(
     for zid in added_zones:
         zone = next((z for z in project_data.zones if z.id == zid), None)
         log = ActivityLog(
-            project_id=project_id, user_id=current_user.id,
-            action="zone_added", entity_type="zone", entity_id=zid,
+            project_id=project_id,
+            user_id=current_user.id,
+            action="zone_added",
+            entity_type="zone",
+            entity_id=zid,
             entity_name=zone.name if zone else zid,
         )
         db.add(log)
 
     for zid in removed_zones:
         log = ActivityLog(
-            project_id=project_id, user_id=current_user.id,
-            action="zone_deleted", entity_type="zone", entity_id=zid,
+            project_id=project_id,
+            user_id=current_user.id,
+            action="zone_deleted",
+            entity_type="zone",
+            entity_id=zid,
             entity_name=zid,
         )
         db.add(log)
@@ -307,31 +317,41 @@ async def update_project(
     for cid in added_conduits:
         conduit = next((c for c in project_data.conduits if c.id == cid), None)
         log = ActivityLog(
-            project_id=project_id, user_id=current_user.id,
-            action="conduit_added", entity_type="conduit", entity_id=cid,
+            project_id=project_id,
+            user_id=current_user.id,
+            action="conduit_added",
+            entity_type="conduit",
+            entity_id=cid,
             entity_name=conduit.name or cid if conduit else cid,
         )
         db.add(log)
 
     for cid in removed_conduits:
         log = ActivityLog(
-            project_id=project_id, user_id=current_user.id,
-            action="conduit_deleted", entity_type="conduit", entity_id=cid,
+            project_id=project_id,
+            user_id=current_user.id,
+            action="conduit_deleted",
+            entity_type="conduit",
+            entity_id=cid,
             entity_name=cid,
         )
         db.add(log)
 
     if asset_diff > 0:
         log = ActivityLog(
-            project_id=project_id, user_id=current_user.id,
-            action="asset_added", entity_type="asset",
+            project_id=project_id,
+            user_id=current_user.id,
+            action="asset_added",
+            entity_type="asset",
             entity_name=f"{asset_diff} asset(s) added",
         )
         db.add(log)
     elif asset_diff < 0:
         log = ActivityLog(
-            project_id=project_id, user_id=current_user.id,
-            action="asset_deleted", entity_type="asset",
+            project_id=project_id,
+            user_id=current_user.id,
+            action="asset_deleted",
+            entity_type="asset",
             entity_name=f"{abs(asset_diff)} asset(s) removed",
         )
         db.add(log)
@@ -341,8 +361,11 @@ async def update_project(
     if structural_changes or asset_diff != 0:
         try:
             from induform.api.notifications.routes import create_notification
+
             access_list = await project_repo.list_access(project_id)
-            collaborator_ids = {a.user_id for a in access_list if a.user_id and a.user_id != current_user.id}
+            collaborator_ids = {
+                a.user_id for a in access_list if a.user_id and a.user_id != current_user.id
+            }
             if project_db.owner_id != current_user.id:
                 collaborator_ids.add(project_db.owner_id)
             parts = []
@@ -361,11 +384,14 @@ async def update_project(
             change_summary = ", ".join(parts)
             for uid in collaborator_ids:
                 await create_notification(
-                    db, user_id=uid, type="project_update",
+                    db,
+                    user_id=uid,
+                    type="project_update",
                     title=f"Project updated: {project_db.name}",
                     message=f"{current_user.username} made changes: {change_summary}",
                     link=f"/projects/{project_id}",
-                    project_id=project_id, actor_id=current_user.id,
+                    project_id=project_id,
+                    actor_id=current_user.id,
                 )
         except Exception as e:
             logger.warning("Failed to create notifications for project %s: %s", project_id, e)
@@ -373,6 +399,7 @@ async def update_project(
     # Create automatic version snapshot
     try:
         from induform.api.versions.routes import create_auto_version
+
         await create_auto_version(db, project_id, current_user.id, "Auto-save")
     except Exception as e:
         logger.warning("Failed to create auto-version for project %s: %s", project_id, e)
@@ -432,8 +459,11 @@ async def update_project_metadata(
         # Log metadata update
         changed_keys = list(update_fields.keys())
         log = ActivityLog(
-            project_id=project_id, user_id=current_user.id,
-            action="updated", entity_type="project", entity_id=project_id,
+            project_id=project_id,
+            user_id=current_user.id,
+            action="updated",
+            entity_type="project",
+            entity_id=project_id,
             entity_name=project_db.name,
             details=json.dumps({"fields": changed_keys}),
         )
@@ -498,8 +528,11 @@ async def delete_project(
 
     # Log before deletion
     log = ActivityLog(
-        project_id=project_id, user_id=current_user.id,
-        action="deleted", entity_type="project", entity_id=project_id,
+        project_id=project_id,
+        user_id=current_user.id,
+        action="deleted",
+        entity_type="project",
+        entity_id=project_id,
         entity_name=project_db.name,
     )
     db.add(log)
@@ -510,7 +543,10 @@ async def delete_project(
 
 # Duplication endpoint
 
-@router.post("/{project_id}/duplicate", response_model=ProjectSummary, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/{project_id}/duplicate", response_model=ProjectSummary, status_code=status.HTTP_201_CREATED
+)
 async def duplicate_project(
     project_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -574,6 +610,7 @@ async def duplicate_project(
 
 # Access control endpoints
 
+
 @router.get("/{project_id}/access", response_model=list[ProjectAccessInfo])
 async def list_project_access(
     project_id: str,
@@ -616,7 +653,9 @@ async def list_project_access(
     ]
 
 
-@router.post("/{project_id}/access", response_model=ProjectAccessInfo, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{project_id}/access", response_model=ProjectAccessInfo, status_code=status.HTTP_201_CREATED
+)
 async def grant_project_access(
     project_id: str,
     access_data: GrantAccessRequest,
@@ -657,10 +696,18 @@ async def grant_project_access(
 
     # Log sharing
     log = ActivityLog(
-        project_id=project_id, user_id=current_user.id,
-        action="shared", entity_type="access",
+        project_id=project_id,
+        user_id=current_user.id,
+        action="shared",
+        entity_type="access",
         entity_name=f"Shared as {access_data.permission}",
-        details=json.dumps({"user_id": access_data.user_id, "team_id": access_data.team_id, "permission": access_data.permission}),
+        details=json.dumps(
+            {
+                "user_id": access_data.user_id,
+                "team_id": access_data.team_id,
+                "permission": access_data.permission,
+            }
+        ),
     )
     db.add(log)
 
@@ -668,12 +715,19 @@ async def grant_project_access(
     if access_data.user_id:
         try:
             from induform.api.notifications.routes import create_notification
+
             await create_notification(
-                db, user_id=access_data.user_id, type="share",
+                db,
+                user_id=access_data.user_id,
+                type="share",
                 title=f"Project shared with you: {project_db.name}",
-                message=f"{current_user.username} shared a project with you ({access_data.permission} access)",
+                message=(
+                    f"{current_user.username} shared a project with you"
+                    f" ({access_data.permission} access)"
+                ),
                 link=f"/projects/{project_id}",
-                project_id=project_id, actor_id=current_user.id,
+                project_id=project_id,
+                actor_id=current_user.id,
             )
         except Exception as e:
             logger.warning("Failed to create share notification: %s", e)
@@ -718,7 +772,9 @@ async def revoke_project_access(
 
     # Look up the access record to get the affected user before revoking
     from sqlalchemy import select as sa_select
+
     from induform.db.models import ProjectAccess
+
     access_query = sa_select(ProjectAccess).where(ProjectAccess.id == access_id)
     access_result = await db.execute(access_query)
     access_record = access_result.scalar_one_or_none()
@@ -733,8 +789,10 @@ async def revoke_project_access(
 
     # Log access revocation
     log = ActivityLog(
-        project_id=project_id, user_id=current_user.id,
-        action="access_revoked", entity_type="access",
+        project_id=project_id,
+        user_id=current_user.id,
+        action="access_revoked",
+        entity_type="access",
         entity_name="Access revoked",
     )
     db.add(log)
@@ -743,17 +801,22 @@ async def revoke_project_access(
     if revoked_user_id and revoked_user_id != current_user.id:
         try:
             from induform.api.notifications.routes import create_notification
+
             await create_notification(
-                db, user_id=revoked_user_id, type="access_revoked",
+                db,
+                user_id=revoked_user_id,
+                type="access_revoked",
                 title=f"Access revoked: {project_db.name}",
                 message=f"{current_user.username} removed your access to this project",
-                project_id=project_id, actor_id=current_user.id,
+                project_id=project_id,
+                actor_id=current_user.id,
             )
         except Exception as e:
             logger.warning("Failed to create revoke notification: %s", e)
 
 
 # YAML import/export endpoints
+
 
 @router.post("/{project_id}/export/yaml")
 async def export_project_yaml(
@@ -851,6 +914,7 @@ async def import_project_yaml(
 
 
 # Archive/Restore endpoints
+
 
 @router.post("/{project_id}/archive")
 async def archive_project(
@@ -950,14 +1014,17 @@ async def restore_project(
 
 # Bulk operations
 
+
 class BulkOperationRequest(BaseModel):
     """Bulk operation request."""
+
     project_ids: list[str]
     operation: str  # "archive", "restore", "delete", "export"
 
 
 class BulkOperationResult(BaseModel):
     """Bulk operation result."""
+
     success: list[str]
     failed: list[dict]
 
@@ -981,7 +1048,9 @@ async def bulk_operation(
                 failed.append({"id": project_id, "error": "Project not found"})
                 continue
 
-            has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+            has_access = await check_project_permission(
+                db, project_id, current_user.id, Permission.EDITOR
+            )
             if not has_access:
                 failed.append({"id": project_id, "error": "No permission"})
                 continue
@@ -1007,7 +1076,9 @@ async def bulk_operation(
                 success.append(project_id)
 
             else:
-                failed.append({"id": project_id, "error": f"Unknown operation: {request.operation}"})
+                failed.append(
+                    {"id": project_id, "error": f"Unknown operation: {request.operation}"}
+                )
 
         except Exception as e:
             failed.append({"id": project_id, "error": str(e)})
@@ -1042,13 +1113,14 @@ async def export_project_json(
     project = await project_repo.to_pydantic(project_db)
     return {
         "json": project.model_dump(mode="json", exclude_none=True),
-        "filename": f"{project_db.name.lower().replace(' ', '_')}.json"
+        "filename": f"{project_db.name.lower().replace(' ', '_')}.json",
     }
 
 
 # CSV Import endpoint
 class CsvImportRequest(BaseModel):
     """Request to import assets from CSV."""
+
     csv_content: str
     zone_id: str
 
@@ -1131,7 +1203,9 @@ async def import_assets_csv(
                 continue
 
             if asset_id in existing_ids:
-                errors.append({"row": str(row_num), "error": f"Asset ID '{asset_id}' already exists"})
+                errors.append(
+                    {"row": str(row_num), "error": f"Asset ID '{asset_id}' already exists"}
+                )
                 skipped += 1
                 continue
 
@@ -1181,14 +1255,14 @@ async def import_assets_csv(
             entity_type="zone",
             entity_id=request.zone_id,
             entity_name=f"{imported} assets imported",
-            details=json.dumps({"zone_id": request.zone_id, "count": imported})
+            details=json.dumps({"zone_id": request.zone_id, "count": imported}),
         )
         db.add(log)
 
     return CsvImportResult(
         imported=imported,
         skipped=skipped,
-        errors=errors[:10]  # Limit errors to first 10
+        errors=errors[:10],  # Limit errors to first 10
     )
 
 
@@ -1210,8 +1284,9 @@ async def export_project_excel(
     """
     import base64
     import io
+
     from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
     project_repo = ProjectRepository(db)
 
@@ -1238,10 +1313,10 @@ async def export_project_excel(
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
     thin_border = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin"),
     )
 
     def style_header(ws, row=1, cols=None):
@@ -1252,7 +1327,7 @@ async def export_project_excel(
             cell.font = header_font
             cell.fill = header_fill
             cell.border = thin_border
-            cell.alignment = Alignment(horizontal='center')
+            cell.alignment = Alignment(horizontal="center")
 
     # Summary sheet
     ws_summary = wb.active
@@ -1260,7 +1335,10 @@ async def export_project_excel(
     summary_data = [
         ["Project Name", project_db.name],
         ["Description", project_db.description or ""],
-        ["Standard", ", ".join(project.project.compliance_standards) if project.project else "IEC62443"],
+        [
+            "Standard",
+            ", ".join(project.project.compliance_standards) if project.project else "IEC62443",
+        ],
         ["Version", project.version],
         ["Total Zones", len(project.zones)],
         ["Total Conduits", len(project.conduits)],
@@ -1268,69 +1346,103 @@ async def export_project_excel(
     ]
     for row in summary_data:
         ws_summary.append(row)
-    ws_summary.column_dimensions['A'].width = 20
-    ws_summary.column_dimensions['B'].width = 50
+    ws_summary.column_dimensions["A"].width = 20
+    ws_summary.column_dimensions["B"].width = 50
 
     # Zones sheet
     ws_zones = wb.create_sheet("Zones")
-    zone_headers = ["ID", "Name", "Type", "Security Level Target", "Parent Zone", "Description", "Assets Count"]
+    zone_headers = [
+        "ID",
+        "Name",
+        "Type",
+        "Security Level Target",
+        "Parent Zone",
+        "Description",
+        "Assets Count",
+    ]
     ws_zones.append(zone_headers)
     style_header(ws_zones)
 
     for zone in project.zones:
-        ws_zones.append([
-            zone.id,
-            zone.name,
-            zone.type,
-            zone.security_level_target,
-            zone.parent_zone or "",
-            zone.description or "",
-            len(zone.assets),
-        ])
+        ws_zones.append(
+            [
+                zone.id,
+                zone.name,
+                zone.type,
+                zone.security_level_target,
+                zone.parent_zone or "",
+                zone.description or "",
+                len(zone.assets),
+            ]
+        )
 
     for col_num, width in enumerate([15, 25, 15, 20, 15, 40, 15], 1):
         ws_zones.column_dimensions[chr(64 + col_num)].width = width
 
     # Assets sheet
     ws_assets = wb.create_sheet("Assets")
-    asset_headers = ["Zone ID", "Asset ID", "Name", "Type", "IP Address", "Vendor", "Model", "Criticality", "Description"]
+    asset_headers = [
+        "Zone ID",
+        "Asset ID",
+        "Name",
+        "Type",
+        "IP Address",
+        "Vendor",
+        "Model",
+        "Criticality",
+        "Description",
+    ]
     ws_assets.append(asset_headers)
     style_header(ws_assets)
 
     for zone in project.zones:
         for asset in zone.assets:
-            ws_assets.append([
-                zone.id,
-                asset.id,
-                asset.name,
-                asset.type,
-                asset.ip_address or "",
-                asset.vendor or "",
-                asset.model or "",
-                asset.criticality,
-                asset.description or "",
-            ])
+            ws_assets.append(
+                [
+                    zone.id,
+                    asset.id,
+                    asset.name,
+                    asset.type,
+                    asset.ip_address or "",
+                    asset.vendor or "",
+                    asset.model or "",
+                    asset.criticality,
+                    asset.description or "",
+                ]
+            )
 
     for col_num, width in enumerate([15, 15, 25, 20, 15, 15, 15, 12, 40], 1):
         ws_assets.column_dimensions[chr(64 + col_num)].width = width
 
     # Conduits sheet
     ws_conduits = wb.create_sheet("Conduits")
-    conduit_headers = ["ID", "Name", "From Zone", "To Zone", "Security Level Required", "Requires Inspection", "Protocols"]
+    conduit_headers = [
+        "ID",
+        "Name",
+        "From Zone",
+        "To Zone",
+        "Security Level Required",
+        "Requires Inspection",
+        "Protocols",
+    ]
     ws_conduits.append(conduit_headers)
     style_header(ws_conduits)
 
     for conduit in project.conduits:
-        protocols = ", ".join([f"{f.protocol}:{f.port}" if f.port else f.protocol for f in conduit.flows])
-        ws_conduits.append([
-            conduit.id,
-            conduit.name or "",
-            conduit.from_zone,
-            conduit.to_zone,
-            conduit.security_level_required or "",
-            "Yes" if conduit.requires_inspection else "No",
-            protocols,
-        ])
+        protocols = ", ".join(
+            [f"{f.protocol}:{f.port}" if f.port else f.protocol for f in conduit.flows]
+        )
+        ws_conduits.append(
+            [
+                conduit.id,
+                conduit.name or "",
+                conduit.from_zone,
+                conduit.to_zone,
+                conduit.security_level_required or "",
+                "Yes" if conduit.requires_inspection else "No",
+                protocols,
+            ]
+        )
 
     for col_num, width in enumerate([15, 25, 15, 15, 22, 18, 40], 1):
         ws_conduits.column_dimensions[chr(64 + col_num)].width = width
@@ -1341,13 +1453,10 @@ async def export_project_excel(
     output.seek(0)
 
     # Return as base64 encoded string
-    excel_data = base64.b64encode(output.getvalue()).decode('utf-8')
+    excel_data = base64.b64encode(output.getvalue()).decode("utf-8")
     filename = f"{project_db.name.lower().replace(' ', '_')}.xlsx"
 
-    return {
-        "excel_base64": excel_data,
-        "filename": filename
-    }
+    return {"excel_base64": excel_data, "filename": filename}
 
 
 # PDF Report endpoint
@@ -1374,12 +1483,14 @@ async def export_project_pdf(
     import base64
     import io
     from datetime import datetime as dt
+
     from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
     from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table as RLTable, TableStyle, PageBreak
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, TableStyle
+    from reportlab.platypus import Table as RLTable
 
     from induform.engine.resolver import resolve_security_controls
     from induform.engine.validator import validate_project
@@ -1432,53 +1543,94 @@ async def export_project_pdf(
         canvas.setFont("Helvetica", 8)
         canvas.setFillColor(colors.HexColor("#64748b"))
         page_num = canvas.getPageNumber()
-        canvas.drawRightString(
-            letter[0] - 0.75 * inch, 0.5 * inch, f"Page {page_num}"
-        )
-        canvas.drawString(
-            0.75 * inch, 0.5 * inch, f"InduForm - {project_db.name}"
-        )
+        canvas.drawRightString(letter[0] - 0.75 * inch, 0.5 * inch, f"Page {page_num}")
+        canvas.drawString(0.75 * inch, 0.5 * inch, f"InduForm - {project_db.name}")
         canvas.restoreState()
 
     # Create PDF
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.75*inch, bottomMargin=0.75*inch)
+    doc = SimpleDocTemplate(
+        buffer, pagesize=letter, topMargin=0.75 * inch, bottomMargin=0.75 * inch
+    )
     story = []
 
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=24, spaceAfter=20, alignment=TA_CENTER)
-    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=14, spaceAfter=10, textColor=colors.HexColor('#1e40af'))
-    subheading_style = ParagraphStyle('CustomSubheading', parent=styles['Heading3'], fontSize=11, spaceAfter=6, textColor=colors.HexColor('#334155'))
-    normal_style = styles['Normal']
+    title_style = ParagraphStyle(
+        "CustomTitle", parent=styles["Heading1"], fontSize=24, spaceAfter=20, alignment=TA_CENTER
+    )
+    heading_style = ParagraphStyle(
+        "CustomHeading",
+        parent=styles["Heading2"],
+        fontSize=14,
+        spaceAfter=10,
+        textColor=colors.HexColor("#1e40af"),
+    )
+    subheading_style = ParagraphStyle(
+        "CustomSubheading",
+        parent=styles["Heading3"],
+        fontSize=11,
+        spaceAfter=6,
+        textColor=colors.HexColor("#334155"),
+    )
+    normal_style = styles["Normal"]
 
     # Standard table style
-    def make_table_style(header_color='#1e40af', alt_row_color='#f8fafc'):
-        return TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(header_color)),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#94a3b8')),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor(alt_row_color)]),
-            ('TOPPADDING', (0, 1), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 5),
-        ])
+    def make_table_style(header_color="#1e40af", alt_row_color="#f8fafc"):
+        return TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(header_color)),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#94a3b8")),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.white, colors.HexColor(alt_row_color)],
+                ),
+                ("TOPPADDING", (0, 1), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
+            ]
+        )
 
     # --- Title Page ---
-    story.append(Spacer(1, 2*inch))
+    story.append(Spacer(1, 2 * inch))
     story.append(Paragraph("Security Assessment Report", title_style))
-    story.append(Paragraph(f"<b>{project_db.name}</b>", ParagraphStyle('ProjectName', parent=styles['Heading2'], fontSize=18, alignment=TA_CENTER)))
-    story.append(Spacer(1, 0.5*inch))
-    story.append(Paragraph(f"Generated: {dt.now().strftime('%Y-%m-%d %H:%M')}", ParagraphStyle('Date', parent=normal_style, alignment=TA_CENTER)))
-    story.append(Paragraph("Standard: IEC 62443", ParagraphStyle('Standard', parent=normal_style, alignment=TA_CENTER)))
-    story.append(Paragraph(f"Maximum Security Level Target: SL-{max_sl}", ParagraphStyle('SLInfo', parent=normal_style, alignment=TA_CENTER)))
+    story.append(
+        Paragraph(
+            f"<b>{project_db.name}</b>",
+            ParagraphStyle(
+                "ProjectName", parent=styles["Heading2"], fontSize=18, alignment=TA_CENTER
+            ),
+        )
+    )
+    story.append(Spacer(1, 0.5 * inch))
+    story.append(
+        Paragraph(
+            f"Generated: {dt.now().strftime('%Y-%m-%d %H:%M')}",
+            ParagraphStyle("Date", parent=normal_style, alignment=TA_CENTER),
+        )
+    )
+    story.append(
+        Paragraph(
+            "Standard: IEC 62443",
+            ParagraphStyle("Standard", parent=normal_style, alignment=TA_CENTER),
+        )
+    )
+    story.append(
+        Paragraph(
+            f"Maximum Security Level Target: SL-{max_sl}",
+            ParagraphStyle("SLInfo", parent=normal_style, alignment=TA_CENTER),
+        )
+    )
     story.append(PageBreak())
 
     # --- Table of Contents ---
     story.append(Paragraph("Table of Contents", heading_style))
-    story.append(Spacer(1, 0.2*inch))
+    story.append(Spacer(1, 0.2 * inch))
     toc_items = [
         "1. Executive Summary",
         "2. Zone Inventory",
@@ -1490,12 +1642,19 @@ async def export_project_pdf(
         "8. Policy Violations",
     ]
     for item in toc_items:
-        story.append(Paragraph(item, ParagraphStyle('TOCItem', parent=normal_style, fontSize=11, spaceAfter=6, leftIndent=20)))
+        story.append(
+            Paragraph(
+                item,
+                ParagraphStyle(
+                    "TOCItem", parent=normal_style, fontSize=11, spaceAfter=6, leftIndent=20
+                ),
+            )
+        )
     story.append(PageBreak())
 
     # --- 1. Executive Summary ---
     story.append(Paragraph("1. Executive Summary", heading_style))
-    story.append(Spacer(1, 0.2*inch))
+    story.append(Spacer(1, 0.2 * inch))
 
     summary_data = [
         ["Metric", "Value"],
@@ -1511,73 +1670,87 @@ async def export_project_pdf(
         ["Validation Warnings", str(validation_report.warning_count)],
     ]
 
-    t = RLTable(summary_data, colWidths=[3*inch, 2*inch])
-    t.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f1f5f9')),
-        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cbd5e1')),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-    ]))
+    t = RLTable(summary_data, colWidths=[3 * inch, 2 * inch])
+    t.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e40af")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 12),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#f1f5f9")),
+                ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#cbd5e1")),
+                ("FONTSIZE", (0, 1), (-1, -1), 10),
+                ("TOPPADDING", (0, 1), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+            ]
+        )
+    )
     story.append(t)
-    story.append(Spacer(1, 0.3*inch))
+    story.append(Spacer(1, 0.3 * inch))
 
     if project_db.description:
         story.append(Paragraph(f"<b>Description:</b> {project_db.description}", normal_style))
-        story.append(Spacer(1, 0.2*inch))
+        story.append(Spacer(1, 0.2 * inch))
 
     # --- 2. Zone Inventory ---
     story.append(Paragraph("2. Zone Inventory", heading_style))
-    story.append(Spacer(1, 0.2*inch))
+    story.append(Spacer(1, 0.2 * inch))
 
     if project.zones:
         zone_data = [["Zone ID", "Name", "Type", "SL-T", "Assets"]]
         for zone in project.zones:
-            zone_type = zone.type.value if hasattr(zone.type, 'value') else str(zone.type)
-            zone_data.append([
-                zone.id,
-                zone.name[:25] + "..." if len(zone.name) > 25 else zone.name,
-                zone_type,
-                str(zone.security_level_target),
-                str(len(zone.assets)),
-            ])
+            zone_type = zone.type.value if hasattr(zone.type, "value") else str(zone.type)
+            zone_data.append(
+                [
+                    zone.id,
+                    zone.name[:25] + "..." if len(zone.name) > 25 else zone.name,
+                    zone_type,
+                    str(zone.security_level_target),
+                    str(len(zone.assets)),
+                ]
+            )
 
-        zt = RLTable(zone_data, colWidths=[1.2*inch, 2*inch, 1.2*inch, 0.6*inch, 0.8*inch])
+        zt = RLTable(
+            zone_data, colWidths=[1.2 * inch, 2 * inch, 1.2 * inch, 0.6 * inch, 0.8 * inch]
+        )
         zt.setStyle(make_table_style())
         story.append(zt)
     else:
         story.append(Paragraph("No zones defined.", normal_style))
 
-    story.append(Spacer(1, 0.3*inch))
+    story.append(Spacer(1, 0.3 * inch))
 
     # --- 3. Asset Inventory ---
     story.append(Paragraph("3. Asset Inventory", heading_style))
-    story.append(Spacer(1, 0.2*inch))
+    story.append(Spacer(1, 0.2 * inch))
 
     all_assets = []
     for zone in project.zones:
         for asset in zone.assets:
-            asset_type = asset.type.value if hasattr(asset.type, 'value') else str(asset.type)
-            all_assets.append((zone.id, asset.name, asset_type, asset.ip_address or "-", asset.criticality))
+            asset_type = asset.type.value if hasattr(asset.type, "value") else str(asset.type)
+            all_assets.append(
+                (zone.id, asset.name, asset_type, asset.ip_address or "-", asset.criticality)
+            )
 
     if all_assets:
         asset_data = [["Zone", "Asset Name", "Type", "IP Address", "Criticality"]]
         for zone_id, name, atype, ip, crit in all_assets[:30]:
-            asset_data.append([
-                zone_id,
-                name[:20] + "..." if len(name) > 20 else name,
-                atype,
-                ip,
-                str(crit),
-            ])
+            asset_data.append(
+                [
+                    zone_id,
+                    name[:20] + "..." if len(name) > 20 else name,
+                    atype,
+                    ip,
+                    str(crit),
+                ]
+            )
 
-        at = RLTable(asset_data, colWidths=[1.1*inch, 1.6*inch, 1*inch, 1.2*inch, 0.8*inch])
+        at = RLTable(
+            asset_data, colWidths=[1.1 * inch, 1.6 * inch, 1 * inch, 1.2 * inch, 0.8 * inch]
+        )
         at.setStyle(make_table_style())
         story.append(at)
         if len(all_assets) > 30:
@@ -1585,64 +1758,78 @@ async def export_project_pdf(
     else:
         story.append(Paragraph("No assets defined.", normal_style))
 
-    story.append(Spacer(1, 0.3*inch))
+    story.append(Spacer(1, 0.3 * inch))
 
     # --- 4. Conduit Summary ---
     story.append(Paragraph("4. Conduit Summary", heading_style))
-    story.append(Spacer(1, 0.2*inch))
+    story.append(Spacer(1, 0.2 * inch))
 
     if project.conduits:
         conduit_data = [["ID", "From", "To", "SL-R", "Inspection"]]
         for conduit in project.conduits[:20]:
-            conduit_data.append([
-                conduit.id[:15] + "..." if len(conduit.id) > 15 else conduit.id,
-                conduit.from_zone,
-                conduit.to_zone,
-                str(conduit.security_level_required or "-"),
-                "Yes" if conduit.requires_inspection else "No",
-            ])
+            conduit_data.append(
+                [
+                    conduit.id[:15] + "..." if len(conduit.id) > 15 else conduit.id,
+                    conduit.from_zone,
+                    conduit.to_zone,
+                    str(conduit.security_level_required or "-"),
+                    "Yes" if conduit.requires_inspection else "No",
+                ]
+            )
 
-        ct = RLTable(conduit_data, colWidths=[1.3*inch, 1.3*inch, 1.3*inch, 0.6*inch, 0.9*inch])
+        ct = RLTable(
+            conduit_data, colWidths=[1.3 * inch, 1.3 * inch, 1.3 * inch, 0.6 * inch, 0.9 * inch]
+        )
         ct.setStyle(make_table_style())
         story.append(ct)
         if len(project.conduits) > 20:
-            story.append(Paragraph(f"<i>Showing 20 of {len(project.conduits)} conduits</i>", normal_style))
+            story.append(
+                Paragraph(f"<i>Showing 20 of {len(project.conduits)} conduits</i>", normal_style)
+            )
     else:
         story.append(Paragraph("No conduits defined.", normal_style))
 
-    story.append(Spacer(1, 0.3*inch))
+    story.append(Spacer(1, 0.3 * inch))
 
     # --- 5. IEC 62443-3-3 Applicable Requirements ---
     story.append(PageBreak())
     story.append(Paragraph("5. IEC 62443-3-3 Applicable Requirements", heading_style))
-    story.append(Spacer(1, 0.1*inch))
-    story.append(Paragraph(
-        f"Based on the maximum Security Level Target (SL-{max_sl}) in this project, "
-        f"the following {len(applicable_requirements)} requirements from IEC 62443-3-3 apply:",
-        normal_style,
-    ))
-    story.append(Spacer(1, 0.2*inch))
+    story.append(Spacer(1, 0.1 * inch))
+    story.append(
+        Paragraph(
+            f"Based on the maximum Security Level Target (SL-{max_sl}) in this project, "
+            f"the following {len(applicable_requirements)} requirements from IEC 62443-3-3 apply:",
+            normal_style,
+        )
+    )
+    story.append(Spacer(1, 0.2 * inch))
 
     if applicable_requirements:
         req_data = [["SR ID", "Name", "FR Category", "Min SL"]]
         for req in applicable_requirements:
-            fr_short = req.foundational_requirement.split(" - ")[0] if " - " in req.foundational_requirement else req.foundational_requirement
-            req_data.append([
-                req.id,
-                req.name[:30] + "..." if len(req.name) > 30 else req.name,
-                fr_short,
-                f"SL-{req.minimum_sl}",
-            ])
+            fr_short = (
+                req.foundational_requirement.split(" - ")[0]
+                if " - " in req.foundational_requirement
+                else req.foundational_requirement
+            )
+            req_data.append(
+                [
+                    req.id,
+                    req.name[:30] + "..." if len(req.name) > 30 else req.name,
+                    fr_short,
+                    f"SL-{req.minimum_sl}",
+                ]
+            )
 
-        rt = RLTable(req_data, colWidths=[0.7*inch, 2.5*inch, 1.5*inch, 0.6*inch])
-        rt.setStyle(make_table_style('#0f766e'))
+        rt = RLTable(req_data, colWidths=[0.7 * inch, 2.5 * inch, 1.5 * inch, 0.6 * inch])
+        rt.setStyle(make_table_style("#0f766e"))
         story.append(rt)
 
-    story.append(Spacer(1, 0.3*inch))
+    story.append(Spacer(1, 0.3 * inch))
 
     # --- 6. Recommended Security Controls ---
     story.append(Paragraph("6. Recommended Security Controls", heading_style))
-    story.append(Spacer(1, 0.2*inch))
+    story.append(Spacer(1, 0.2 * inch))
 
     # Global controls
     global_controls = security_controls.get("global_controls", [])
@@ -1650,16 +1837,20 @@ async def export_project_pdf(
         story.append(Paragraph("Project-Wide Controls", subheading_style))
         gc_data = [["Control", "Description", "Priority"]]
         for ctrl in global_controls:
-            gc_data.append([
-                ctrl["control"],
-                ctrl["description"][:45] + "..." if len(ctrl["description"]) > 45 else ctrl["description"],
-                str(ctrl["priority"]),
-            ])
+            gc_data.append(
+                [
+                    ctrl["control"],
+                    ctrl["description"][:45] + "..."
+                    if len(ctrl["description"]) > 45
+                    else ctrl["description"],
+                    str(ctrl["priority"]),
+                ]
+            )
 
-        gt = RLTable(gc_data, colWidths=[1.5*inch, 3.5*inch, 0.7*inch])
-        gt.setStyle(make_table_style('#7c3aed'))
+        gt = RLTable(gc_data, colWidths=[1.5 * inch, 3.5 * inch, 0.7 * inch])
+        gt.setStyle(make_table_style("#7c3aed"))
         story.append(gt)
-        story.append(Spacer(1, 0.2*inch))
+        story.append(Spacer(1, 0.2 * inch))
 
     # Zone-level control summary
     zone_profiles = security_controls.get("zone_profiles", [])
@@ -1668,23 +1859,25 @@ async def export_project_pdf(
         zp_data = [["Zone", "SL-T", "Requirements", "Top Controls"]]
         for zp in zone_profiles[:15]:
             top_controls = [c["requirement_id"] for c in zp.get("recommended_controls", [])[:3]]
-            zp_data.append([
-                zp["zone_id"],
-                f"SL-{zp['security_level_target']}",
-                str(len(zp.get("applicable_requirements", []))),
-                ", ".join(top_controls) if top_controls else "-",
-            ])
+            zp_data.append(
+                [
+                    zp["zone_id"],
+                    f"SL-{zp['security_level_target']}",
+                    str(len(zp.get("applicable_requirements", []))),
+                    ", ".join(top_controls) if top_controls else "-",
+                ]
+            )
 
-        zpt = RLTable(zp_data, colWidths=[1.2*inch, 0.6*inch, 1*inch, 2.8*inch])
-        zpt.setStyle(make_table_style('#7c3aed'))
+        zpt = RLTable(zp_data, colWidths=[1.2 * inch, 0.6 * inch, 1 * inch, 2.8 * inch])
+        zpt.setStyle(make_table_style("#7c3aed"))
         story.append(zpt)
 
-    story.append(Spacer(1, 0.3*inch))
+    story.append(Spacer(1, 0.3 * inch))
 
     # --- 7. Validation Results ---
     story.append(PageBreak())
     story.append(Paragraph("7. Validation Results", heading_style))
-    story.append(Spacer(1, 0.2*inch))
+    story.append(Spacer(1, 0.2 * inch))
 
     if validation_report.results:
         val_summary = (
@@ -1693,30 +1886,40 @@ async def export_project_pdf(
             f"<b>{validation_report.info_count}</b> informational finding(s)."
         )
         story.append(Paragraph(val_summary, normal_style))
-        story.append(Spacer(1, 0.15*inch))
+        story.append(Spacer(1, 0.15 * inch))
 
         val_data = [["Severity", "Code", "Message"]]
         for r in validation_report.results[:20]:
-            val_data.append([
-                r.severity.value.upper(),
-                r.code,
-                r.message[:55] + "..." if len(r.message) > 55 else r.message,
-            ])
+            val_data.append(
+                [
+                    r.severity.value.upper(),
+                    r.code,
+                    r.message[:55] + "..." if len(r.message) > 55 else r.message,
+                ]
+            )
 
-        vrt = RLTable(val_data, colWidths=[0.8*inch, 1.8*inch, 3.1*inch])
-        err_style = make_table_style('#b91c1c', '#fef2f2')
+        vrt = RLTable(val_data, colWidths=[0.8 * inch, 1.8 * inch, 3.1 * inch])
+        err_style = make_table_style("#b91c1c", "#fef2f2")
         vrt.setStyle(err_style)
         story.append(vrt)
         if len(validation_report.results) > 20:
-            story.append(Paragraph(f"<i>Showing 20 of {len(validation_report.results)} findings</i>", normal_style))
+            story.append(
+                Paragraph(
+                    f"<i>Showing 20 of {len(validation_report.results)} findings</i>", normal_style
+                )
+            )
     else:
-        story.append(Paragraph("<b>No validation issues found.</b> Configuration passes all checks.", normal_style))
+        story.append(
+            Paragraph(
+                "<b>No validation issues found.</b> Configuration passes all checks.", normal_style
+            )
+        )
 
-    story.append(Spacer(1, 0.3*inch))
+    story.append(Spacer(1, 0.3 * inch))
 
     # --- 8. Policy Violations ---
     story.append(Paragraph("8. Policy Violations", heading_style))
-    story.append(Spacer(1, 0.2*inch))
+    story.append(Spacer(1, 0.2 * inch))
 
     if violations:
         viol_data = [["Severity", "Rule", "Affected", "Message"]]
@@ -1724,38 +1927,42 @@ async def export_project_pdf(
             affected = ", ".join(v.affected_entities[:2])
             if len(v.affected_entities) > 2:
                 affected += "..."
-            viol_data.append([
-                v.severity.value.upper(),
-                v.rule_id,
-                affected or "-",
-                v.message[:40] + "..." if len(v.message) > 40 else v.message,
-            ])
+            viol_data.append(
+                [
+                    v.severity.value.upper(),
+                    v.rule_id,
+                    affected or "-",
+                    v.message[:40] + "..." if len(v.message) > 40 else v.message,
+                ]
+            )
 
-        vt = RLTable(viol_data, colWidths=[0.7*inch, 0.8*inch, 1.3*inch, 2.9*inch])
-        vt.setStyle(make_table_style('#dc2626', '#fef2f2'))
+        vt = RLTable(viol_data, colWidths=[0.7 * inch, 0.8 * inch, 1.3 * inch, 2.9 * inch])
+        vt.setStyle(make_table_style("#dc2626", "#fef2f2"))
         story.append(vt)
         if len(violations) > 15:
-            story.append(Paragraph(f"<i>Showing 15 of {len(violations)} violations</i>", normal_style))
+            story.append(
+                Paragraph(f"<i>Showing 15 of {len(violations)} violations</i>", normal_style)
+            )
     else:
-        story.append(Paragraph("<b>No policy violations found.</b> All policy rules pass.", normal_style))
+        story.append(
+            Paragraph("<b>No policy violations found.</b> All policy rules pass.", normal_style)
+        )
 
     # Build PDF with page numbers
     doc.build(story, onFirstPage=add_page_number, onLaterPages=add_page_number)
     buffer.seek(0)
 
     # Return as base64 encoded string
-    pdf_data = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    pdf_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
     filename = f"{project_db.name.lower().replace(' ', '_')}_report.pdf"
 
-    return {
-        "pdf_base64": pdf_data,
-        "filename": filename
-    }
+    return {"pdf_base64": pdf_data, "filename": filename}
 
 
 # Project comparison endpoint
 class CompareProjectsRequest(BaseModel):
     """Request to compare two projects."""
+
     project_a_id: str
     project_b_id: str
 
@@ -1778,8 +1985,12 @@ async def compare_projects(
     project_repo = ProjectRepository(db)
 
     # Check access to both projects
-    has_access_a = await check_project_permission(db, request.project_a_id, current_user.id, Permission.VIEWER)
-    has_access_b = await check_project_permission(db, request.project_b_id, current_user.id, Permission.VIEWER)
+    has_access_a = await check_project_permission(
+        db, request.project_a_id, current_user.id, Permission.VIEWER
+    )
+    has_access_b = await check_project_permission(
+        db, request.project_b_id, current_user.id, Permission.VIEWER
+    )
 
     if not has_access_a or not has_access_b:
         raise HTTPException(
@@ -1810,20 +2021,24 @@ async def compare_projects(
     for zone_id in set(zones_a.keys()) | set(zones_b.keys()):
         if zone_id not in zones_a:
             z = zones_b[zone_id]
-            added_zones.append({
-                "id": zone_id,
-                "name": z.name,
-                "type": z.type,
-                "security_level_target": z.security_level_target,
-            })
+            added_zones.append(
+                {
+                    "id": zone_id,
+                    "name": z.name,
+                    "type": z.type,
+                    "security_level_target": z.security_level_target,
+                }
+            )
         elif zone_id not in zones_b:
             z = zones_a[zone_id]
-            removed_zones.append({
-                "id": zone_id,
-                "name": z.name,
-                "type": z.type,
-                "security_level_target": z.security_level_target,
-            })
+            removed_zones.append(
+                {
+                    "id": zone_id,
+                    "name": z.name,
+                    "type": z.type,
+                    "security_level_target": z.security_level_target,
+                }
+            )
         else:
             za = zones_a[zone_id]
             zb = zones_b[zone_id]
@@ -1833,16 +2048,21 @@ async def compare_projects(
             if za.type != zb.type:
                 changes["type"] = {"from": za.type, "to": zb.type}
             if za.security_level_target != zb.security_level_target:
-                changes["security_level_target"] = {"from": za.security_level_target, "to": zb.security_level_target}
+                changes["security_level_target"] = {
+                    "from": za.security_level_target,
+                    "to": zb.security_level_target,
+                }
             if len(za.assets) != len(zb.assets):
                 changes["asset_count"] = {"from": len(za.assets), "to": len(zb.assets)}
 
             if changes:
-                modified_zones.append({
-                    "id": zone_id,
-                    "name": zb.name,
-                    "changes": changes,
-                })
+                modified_zones.append(
+                    {
+                        "id": zone_id,
+                        "name": zb.name,
+                        "changes": changes,
+                    }
+                )
 
     # Compare conduits
     conduits_a = {c.id: c for c in project_a.conduits}
@@ -1855,18 +2075,22 @@ async def compare_projects(
     for conduit_id in set(conduits_a.keys()) | set(conduits_b.keys()):
         if conduit_id not in conduits_a:
             c = conduits_b[conduit_id]
-            added_conduits.append({
-                "id": conduit_id,
-                "from_zone": c.from_zone,
-                "to_zone": c.to_zone,
-            })
+            added_conduits.append(
+                {
+                    "id": conduit_id,
+                    "from_zone": c.from_zone,
+                    "to_zone": c.to_zone,
+                }
+            )
         elif conduit_id not in conduits_b:
             c = conduits_a[conduit_id]
-            removed_conduits.append({
-                "id": conduit_id,
-                "from_zone": c.from_zone,
-                "to_zone": c.to_zone,
-            })
+            removed_conduits.append(
+                {
+                    "id": conduit_id,
+                    "from_zone": c.from_zone,
+                    "to_zone": c.to_zone,
+                }
+            )
         else:
             ca = conduits_a[conduit_id]
             cb = conduits_b[conduit_id]
@@ -1876,15 +2100,20 @@ async def compare_projects(
             if ca.to_zone != cb.to_zone:
                 changes["to_zone"] = {"from": ca.to_zone, "to": cb.to_zone}
             if ca.security_level_required != cb.security_level_required:
-                changes["security_level_required"] = {"from": ca.security_level_required, "to": cb.security_level_required}
+                changes["security_level_required"] = {
+                    "from": ca.security_level_required,
+                    "to": cb.security_level_required,
+                }
             if len(ca.flows) != len(cb.flows):
                 changes["flow_count"] = {"from": len(ca.flows), "to": len(cb.flows)}
 
             if changes:
-                modified_conduits.append({
-                    "id": conduit_id,
-                    "changes": changes,
-                })
+                modified_conduits.append(
+                    {
+                        "id": conduit_id,
+                        "changes": changes,
+                    }
+                )
 
     # Compare assets across all zones
     all_assets_a = {}
@@ -1903,20 +2132,24 @@ async def compare_projects(
     for asset_key in set(all_assets_a.keys()) | set(all_assets_b.keys()):
         if asset_key not in all_assets_a:
             zone_id, asset = all_assets_b[asset_key]
-            added_assets.append({
-                "zone_id": zone_id,
-                "id": asset.id,
-                "name": asset.name,
-                "type": asset.type,
-            })
+            added_assets.append(
+                {
+                    "zone_id": zone_id,
+                    "id": asset.id,
+                    "name": asset.name,
+                    "type": asset.type,
+                }
+            )
         elif asset_key not in all_assets_b:
             zone_id, asset = all_assets_a[asset_key]
-            removed_assets.append({
-                "zone_id": zone_id,
-                "id": asset.id,
-                "name": asset.name,
-                "type": asset.type,
-            })
+            removed_assets.append(
+                {
+                    "zone_id": zone_id,
+                    "id": asset.id,
+                    "name": asset.name,
+                    "type": asset.type,
+                }
+            )
         else:
             zone_id_a, aa = all_assets_a[asset_key]
             zone_id_b, ab = all_assets_b[asset_key]
@@ -1931,12 +2164,14 @@ async def compare_projects(
                 changes["criticality"] = {"from": aa.criticality, "to": ab.criticality}
 
             if changes:
-                modified_assets.append({
-                    "zone_id": zone_id_b,
-                    "id": ab.id,
-                    "name": ab.name,
-                    "changes": changes,
-                })
+                modified_assets.append(
+                    {
+                        "zone_id": zone_id_b,
+                        "id": ab.id,
+                        "name": ab.name,
+                        "changes": changes,
+                    }
+                )
 
     return ComparisonResult(
         zones={

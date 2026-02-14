@@ -1,6 +1,6 @@
 """Schema and IEC 62443 validation engine."""
 
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -9,7 +9,7 @@ from induform.models.project import Project
 from induform.models.zone import ZoneType
 
 
-class ValidationSeverity(str, Enum):
+class ValidationSeverity(StrEnum):
     """Severity levels for validation findings."""
 
     ERROR = "error"
@@ -74,7 +74,8 @@ def validate_project(
     if enabled_standards:
         standards_set = set(enabled_standards)
         results = [
-            r for r in results
+            r
+            for r in results
             if standards_set & VALIDATION_CHECK_STANDARDS.get(r.code, standards_set)
         ]
 
@@ -100,7 +101,6 @@ def validate_project(
 def _validate_zone_hierarchy(project: Project) -> list[ValidationResult]:
     """Validate zone parent relationships form a valid hierarchy."""
     results = []
-    zone_ids = {z.id for z in project.zones}
 
     for zone in project.zones:
         # Check for circular references
@@ -150,9 +150,13 @@ def _validate_conduit_security_levels(project: Project) -> list[ValidationResult
                         severity=ValidationSeverity.ERROR,
                         code="CONDUIT_SL_INSUFFICIENT",
                         message=(
-                            f"Conduit '{conduit.id}' has security_level_required={conduit.security_level_required} "
-                            f"but connects zones with SL-T {from_zone.security_level_target} and "
-                            f"{to_zone.security_level_target} (requires at least {required_sl})"
+                            f"Conduit '{conduit.id}' has "
+                            f"security_level_required="
+                            f"{conduit.security_level_required} "
+                            f"but connects zones with SL-T "
+                            f"{from_zone.security_level_target} and "
+                            f"{to_zone.security_level_target} "
+                            f"(requires at least {required_sl})"
                         ),
                         location=f"conduits[{conduit.id}].security_level_required",
                         recommendation=f"Set security_level_required to at least {required_sl}",
@@ -167,8 +171,10 @@ def _validate_conduit_security_levels(project: Project) -> list[ValidationResult
                     severity=ValidationSeverity.WARNING,
                     code="CONDUIT_INSPECTION_RECOMMENDED",
                     message=(
-                        f"Conduit '{conduit.id}' spans SL difference of {sl_diff} "
-                        f"(SL-T {from_zone.security_level_target} to {to_zone.security_level_target}). "
+                        f"Conduit '{conduit.id}' spans SL difference"
+                        f" of {sl_diff} "
+                        f"(SL-T {from_zone.security_level_target} to "
+                        f"{to_zone.security_level_target}). "
                         "Deep packet inspection is recommended."
                     ),
                     location=f"conduits[{conduit.id}].requires_inspection",
@@ -258,9 +264,8 @@ def _validate_dmz_requirement(project: Project) -> list[ValidationResult]:
     # Check for direct enterprise-to-cell conduits
     for conduit in project.conduits:
         is_enterprise_to_cell = (
-            (conduit.from_zone in enterprise_zones and conduit.to_zone in cell_zones)
-            or (conduit.from_zone in cell_zones and conduit.to_zone in enterprise_zones)
-        )
+            conduit.from_zone in enterprise_zones and conduit.to_zone in cell_zones
+        ) or (conduit.from_zone in cell_zones and conduit.to_zone in enterprise_zones)
 
         if is_enterprise_to_cell:
             # Check if there's a DMZ in between (simplified check)
@@ -275,7 +280,9 @@ def _validate_dmz_requirement(project: Project) -> list[ValidationResult]:
                             "bypassing the DMZ"
                         ),
                         location=f"conduits[{conduit.id}]",
-                        recommendation="Route traffic through DMZ zone for proper security boundary",
+                        recommendation=(
+                            "Route traffic through DMZ zone for proper security boundary"
+                        ),
                     )
                 )
             else:
@@ -526,7 +533,8 @@ def _validate_cip_esp(project: Project) -> list[ValidationResult]:
 
     dmz_zones = [z for z in project.zones if z.type == ZoneType.DMZ]
     critical_zones = [
-        z for z in project.zones
+        z
+        for z in project.zones
         if z.type in (ZoneType.CELL, ZoneType.SAFETY) and z.security_level_target >= 3
     ]
 
@@ -541,7 +549,9 @@ def _validate_cip_esp(project: Project) -> list[ValidationResult]:
                     "NERC CIP requires an Electronic Security Perimeter (ESP)."
                 ),
                 location="project",
-                recommendation="Add a DMZ zone to establish an Electronic Security Perimeter boundary",
+                recommendation=(
+                    "Add a DMZ zone to establish an Electronic Security Perimeter boundary"
+                ),
             )
         )
 

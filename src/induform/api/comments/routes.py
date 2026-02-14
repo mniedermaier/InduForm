@@ -6,18 +6,18 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from induform.db import get_db, User
-from induform.db.repositories import CommentRepository, ProjectRepository
 from induform.api.auth.dependencies import get_current_user
-from induform.security.permissions import check_project_permission, Permission
+from induform.api.comments.schemas import (
+    CommentCountResponse,
+    CommentCreate,
+    CommentResponse,
+    CommentUpdate,
+)
+from induform.db import User, get_db
+from induform.db.repositories import CommentRepository, ProjectRepository
+from induform.security.permissions import Permission, check_project_permission
 
 logger = logging.getLogger(__name__)
-from induform.api.comments.schemas import (
-    CommentCreate,
-    CommentUpdate,
-    CommentResponse,
-    CommentCountResponse,
-)
 
 router = APIRouter(prefix="/projects/{project_id}/comments", tags=["Comments"])
 
@@ -76,7 +76,7 @@ async def list_comments(
 
     # Apply pagination
     start = (page - 1) * page_size
-    comments = comments[start:start + page_size]
+    comments = comments[start : start + page_size]
 
     return [_comment_to_response(c) for c in comments]
 
@@ -136,16 +136,22 @@ async def create_comment(
     # Notify project owner of new comment
     try:
         from induform.api.notifications.routes import create_notification
+
         project_repo = ProjectRepository(db)
         project_db = await project_repo.get_by_id(project_id, load_relations=False)
         if project_db and project_db.owner_id != current_user.id:
-            text_preview = comment_data.text[:80] + "..." if len(comment_data.text) > 80 else comment_data.text
+            text_preview = (
+                comment_data.text[:80] + "..." if len(comment_data.text) > 80 else comment_data.text
+            )
             await create_notification(
-                db, user_id=project_db.owner_id, type="comment",
+                db,
+                user_id=project_db.owner_id,
+                type="comment",
                 title=f"New comment on {project_db.name}",
                 message=f"{current_user.username} commented: {text_preview}",
                 link=f"/projects/{project_id}",
-                project_id=project_id, actor_id=current_user.id,
+                project_id=project_id,
+                actor_id=current_user.id,
             )
     except Exception as e:
         logger.warning("Failed to create comment notification: %s", e)
@@ -288,7 +294,9 @@ async def resolve_comment(
     # Check if user can resolve (author or editor)
     can_resolve = comment.author_id == current_user.id
     if not can_resolve:
-        can_resolve = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+        can_resolve = await check_project_permission(
+            db, project_id, current_user.id, Permission.EDITOR
+        )
 
     if not can_resolve:
         raise HTTPException(
@@ -302,15 +310,19 @@ async def resolve_comment(
     if comment.author_id != current_user.id:
         try:
             from induform.api.notifications.routes import create_notification
+
             project_repo = ProjectRepository(db)
             project_db = await project_repo.get_by_id(project_id, load_relations=False)
             project_name = project_db.name if project_db else "a project"
             await create_notification(
-                db, user_id=comment.author_id, type="comment_resolved",
+                db,
+                user_id=comment.author_id,
+                type="comment_resolved",
                 title=f"Comment resolved on {project_name}",
                 message=f"{current_user.username} resolved your comment",
                 link=f"/projects/{project_id}",
-                project_id=project_id, actor_id=current_user.id,
+                project_id=project_id,
+                actor_id=current_user.id,
             )
         except Exception as e:
             logger.warning("Failed to create resolve notification: %s", e)
@@ -349,7 +361,9 @@ async def unresolve_comment(
     # Check if user can unresolve (author or editor)
     can_unresolve = comment.author_id == current_user.id
     if not can_unresolve:
-        can_unresolve = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+        can_unresolve = await check_project_permission(
+            db, project_id, current_user.id, Permission.EDITOR
+        )
 
     if not can_unresolve:
         raise HTTPException(

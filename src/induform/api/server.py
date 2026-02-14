@@ -2,12 +2,11 @@
 
 import logging
 import os
-import secrets
-from pathlib import Path
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,21 +14,21 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from induform.api.rate_limit import limiter
-from induform.api.routes import router
+from induform.api.activity import activity_router
 from induform.api.auth import auth_router
 from induform.api.auth.routes import users_router
-from induform.api.projects import projects_router
-from induform.api.teams import teams_router
 from induform.api.comments import comments_router
 from induform.api.nmap import nmap_router
-from induform.api.templates import templates_router
-from induform.api.activity import activity_router
 from induform.api.notifications import notifications_router
 from induform.api.presence import presence_router
+from induform.api.projects import projects_router
+from induform.api.rate_limit import limiter
+from induform.api.routes import router
+from induform.api.teams import teams_router
+from induform.api.templates import templates_router
 from induform.api.versions import versions_router
 from induform.api.websocket import websocket_router
-from induform.db import init_db, close_db
+from induform.db import close_db, init_db
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +111,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="InduForm API",
-    description="Industrial Terraform - Declarative IEC 62443 zone/conduit security for OT networks",
+    description=(
+        "Industrial Terraform - Declarative IEC 62443 zone/conduit security for OT networks"
+    ),
     version="0.2.0",
     lifespan=lifespan,
 )
@@ -149,33 +150,42 @@ async def health_check():
 async def readiness_check():
     """Readiness check - verifies database is accessible."""
     from induform.db.database import get_engine
+
     engine = get_engine()
     if engine is None:
-        return JSONResponse(status_code=503, content={"status": "not ready", "reason": "database not initialized"})
+        return JSONResponse(
+            status_code=503, content={"status": "not ready", "reason": "database not initialized"}
+        )
     try:
         from sqlalchemy import text
+
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         return {"status": "ready"}
     except Exception as e:
         logger.error("Readiness check failed: %s", e)
-        return JSONResponse(status_code=503, content={"status": "not ready", "reason": "database error"})
+        return JSONResponse(
+            status_code=503, content={"status": "not ready", "reason": "database error"}
+        )
 
 
 @app.get("/metrics")
 async def metrics():
     """Basic application metrics endpoint."""
     import sys
+
     from induform.api.websocket.manager import manager
     from induform.db.database import get_engine
 
     engine = get_engine()
     pool_status = {}
-    if engine and hasattr(engine.sync_engine, 'pool'):
+    if engine and hasattr(engine.sync_engine, "pool"):
         pool = engine.sync_engine.pool
         pool_status = {
-            "pool_size": getattr(pool, 'size', lambda: 0)() if callable(getattr(pool, 'size', None)) else getattr(pool, '_pool', {}).get('size', 0),
-            "checked_out": pool.checkedout() if hasattr(pool, 'checkedout') else 0,
+            "pool_size": getattr(pool, "size", lambda: 0)()
+            if callable(getattr(pool, "size", None))
+            else getattr(pool, "_pool", {}).get("size", 0),
+            "checked_out": pool.checkedout() if hasattr(pool, "checkedout") else 0,
         }
 
     ws_connections = sum(len(users) for users in manager.active_connections.values())

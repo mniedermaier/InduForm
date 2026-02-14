@@ -125,6 +125,7 @@ const NmapImportDialog = memo(
           setLoading(false);
         }
       },
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- loadScanDetails is defined below; adding it would create a circular dependency between useCallbacks
       [projectId]
     );
 

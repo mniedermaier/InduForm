@@ -1,6 +1,6 @@
 """Generic firewall rule generator."""
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -9,7 +9,7 @@ from induform.models.conduit import ConduitDirection
 from induform.models.project import Project
 
 
-class FirewallAction(str, Enum):
+class FirewallAction(StrEnum):
     """Firewall rule action."""
 
     ALLOW = "allow"
@@ -210,7 +210,7 @@ def export_rules_iptables(ruleset: FirewallRuleset) -> str:
             cmd_parts.append(f"--dport {rule.port}")
 
         if rule.log:
-            lines.append(f"{' '.join(cmd_parts)} -j LOG --log-prefix \"{rule.id}: \"")
+            lines.append(f'{" ".join(cmd_parts)} -j LOG --log-prefix "{rule.id}: "')
 
         cmd_parts.append(f"-j {action}")
 

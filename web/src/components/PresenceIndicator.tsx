@@ -49,4 +49,5 @@ const PresenceIndicator = memo(({ viewers, isConnected }: PresenceIndicatorProps
 PresenceIndicator.displayName = 'PresenceIndicator';
 
 export default PresenceIndicator;
+// eslint-disable-next-line react-refresh/only-export-components -- intentional: utility functions used by other components alongside the default export
 export { getUserColor, getInitials };

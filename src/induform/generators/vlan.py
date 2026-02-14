@@ -85,9 +85,7 @@ def generate_vlan_mapping(
 
             # Ensure we don't exceed range
             if vlan_id > zone_range[1]:
-                raise ValueError(
-                    f"Exceeded VLAN range for zone type {zone.type}: {zone_range}"
-                )
+                raise ValueError(f"Exceeded VLAN range for zone type {zone.type}: {zone_range}")
 
             assignment = _create_assignment(zone, vlan_id)
             assignments.append(assignment)
@@ -124,7 +122,7 @@ def export_vlan_csv(mapping: VLANMapping) -> str:
             f"{assignment.vlan_id},"
             f"{assignment.vlan_name},"
             f"{assignment.zone_id},"
-            f"\"{assignment.zone_name}\","
+            f'"{assignment.zone_name}",'
             f"{assignment.zone_type.value},"
             f"{assignment.security_level},"
             f"{assignment.network_segment or ''}"

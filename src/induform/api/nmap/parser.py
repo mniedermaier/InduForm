@@ -1,11 +1,10 @@
 """Nmap XML parser using python-libnmap."""
 
-import json
 from datetime import datetime
 from typing import Any
 
+from libnmap.objects import NmapReport
 from libnmap.parser import NmapParser
-from libnmap.objects import NmapReport, NmapHost
 
 
 class ParsedHost:
@@ -104,7 +103,7 @@ def parse_nmap_xml(xml_content: str) -> ParsedScan:
 
         # Get MAC address
         mac_address = None
-        if hasattr(host, 'mac') and host.mac:
+        if hasattr(host, "mac") and host.mac:
             mac_address = host.mac
 
         # Get hostname
@@ -116,7 +115,7 @@ def parse_nmap_xml(xml_content: str) -> ParsedScan:
         os_detection = None
         if host.os_fingerprinted and host.os_match_results():
             top_match = host.os_match_results()[0]
-            os_detection = top_match.name if hasattr(top_match, 'name') else str(top_match)
+            os_detection = top_match.name if hasattr(top_match, "name") else str(top_match)
 
         # Get open ports
         open_ports = []
@@ -145,8 +144,8 @@ def parse_nmap_xml(xml_content: str) -> ParsedScan:
     return ParsedScan(
         scan_date=scan_date,
         hosts=hosts,
-        command_line=report.commandline if hasattr(report, 'commandline') else None,
-        scan_type=report.scan_type if hasattr(report, 'scan_type') else None,
+        command_line=report.commandline if hasattr(report, "commandline") else None,
+        scan_type=report.scan_type if hasattr(report, "scan_type") else None,
     )
 
 
@@ -197,9 +196,7 @@ def suggest_asset_type(host: ParsedHost) -> str:
             return "hmi"
 
         # Historian ports
-        if port in (1433, 3306, 5432) and any(
-            p.get("port") == 80 for p in host.open_ports
-        ):
+        if port in (1433, 3306, 5432) and any(p.get("port") == 80 for p in host.open_ports):
             return "historian"
 
         # HTTP/HTTPS with SSH - likely server

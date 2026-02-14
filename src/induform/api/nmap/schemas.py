@@ -1,7 +1,6 @@
 """Pydantic schemas for Nmap API."""
 
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -9,7 +8,9 @@ from pydantic import BaseModel, Field
 class NmapUploadRequest(BaseModel):
     """Request to upload Nmap XML data."""
 
-    xml_content: str = Field(..., max_length=10_000_000, description="Nmap XML output content (max 10MB)")
+    xml_content: str = Field(
+        ..., max_length=10_000_000, description="Nmap XML output content (max 10MB)"
+    )
     filename: str = Field(default="scan.xml", max_length=255, description="Original filename")
 
 

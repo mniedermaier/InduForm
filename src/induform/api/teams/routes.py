@@ -5,18 +5,18 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from induform.db import get_db, User
-from induform.db.repositories import TeamRepository, UserRepository
 from induform.api.auth.dependencies import get_current_user
 from induform.api.teams.schemas import (
+    AddMemberRequest,
     TeamCreate,
-    TeamUpdate,
-    TeamSummary,
     TeamDetail,
     TeamMemberInfo,
-    AddMemberRequest,
+    TeamSummary,
+    TeamUpdate,
     UpdateMemberRoleRequest,
 )
+from induform.db import User, get_db
+from induform.db.repositories import TeamRepository, UserRepository
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
@@ -192,7 +192,10 @@ async def delete_team(
 
 # Member management endpoints
 
-@router.post("/{team_id}/members", response_model=TeamMemberInfo, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/{team_id}/members", response_model=TeamMemberInfo, status_code=status.HTTP_201_CREATED
+)
 async def add_team_member(
     team_id: str,
     member_data: AddMemberRequest,

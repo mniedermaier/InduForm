@@ -38,9 +38,7 @@ class CommentRepository:
     async def get_by_id(self, comment_id: str) -> Comment | None:
         """Get a comment by ID."""
         result = await self.session.execute(
-            select(Comment)
-            .options(selectinload(Comment.author))
-            .where(Comment.id == comment_id)
+            select(Comment).options(selectinload(Comment.author)).where(Comment.id == comment_id)
         )
         return result.scalar_one_or_none()
 
@@ -57,7 +55,7 @@ class CommentRepository:
         )
 
         if not include_resolved:
-            query = query.where(Comment.is_resolved == False)
+            query = query.where(Comment.is_resolved == False)  # noqa: E712
 
         query = query.order_by(Comment.created_at.desc())
 
@@ -83,7 +81,7 @@ class CommentRepository:
         )
 
         if not include_resolved:
-            query = query.where(Comment.is_resolved == False)
+            query = query.where(Comment.is_resolved == False)  # noqa: E712
 
         query = query.order_by(Comment.created_at.desc())
 
@@ -121,10 +119,9 @@ class CommentRepository:
     async def count_unresolved(self, project_id: str) -> int:
         """Count unresolved comments for a project."""
         result = await self.session.execute(
-            select(Comment)
-            .where(
+            select(Comment).where(
                 Comment.project_id == project_id,
-                Comment.is_resolved == False,
+                Comment.is_resolved == False,  # noqa: E712
             )
         )
         return len(result.scalars().all())
@@ -137,8 +134,7 @@ class CommentRepository:
     ) -> int:
         """Count comments for a specific entity."""
         result = await self.session.execute(
-            select(Comment)
-            .where(
+            select(Comment).where(
                 Comment.project_id == project_id,
                 Comment.entity_type == entity_type,
                 Comment.entity_id == entity_id,

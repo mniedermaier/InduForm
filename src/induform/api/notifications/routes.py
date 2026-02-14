@@ -1,19 +1,16 @@
 """API routes for notifications."""
 
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from induform.api.auth.dependencies import get_current_user, get_db
 from induform.api.notifications.schemas import (
-    NotificationOut,
     NotificationList,
     NotificationMarkRead,
+    NotificationOut,
 )
-from induform.db.models import User, Notification
-
+from induform.db.models import Notification, User
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -55,23 +52,21 @@ async def list_notifications(
     query = select(Notification).where(Notification.user_id == current_user.id)
 
     if unread_only:
-        query = query.where(Notification.is_read == False)
+        query = query.where(Notification.is_read == False)  # noqa: E712
 
     query = query.order_by(Notification.created_at.desc()).limit(limit)
     result = await db.execute(query)
     notifications = result.scalars().all()
 
     # Get total count
-    count_query = select(func.count(Notification.id)).where(
-        Notification.user_id == current_user.id
-    )
+    count_query = select(func.count(Notification.id)).where(Notification.user_id == current_user.id)
     count_result = await db.execute(count_query)
     total = count_result.scalar() or 0
 
     # Get unread count
     unread_query = select(func.count(Notification.id)).where(
         Notification.user_id == current_user.id,
-        Notification.is_read == False,
+        Notification.is_read == False,  # noqa: E712
     )
     unread_result = await db.execute(unread_query)
     unread_count = unread_result.scalar() or 0
@@ -128,9 +123,7 @@ async def mark_notifications_read(
     else:
         # Mark all as read
         stmt = (
-            update(Notification)
-            .where(Notification.user_id == current_user.id)
-            .values(is_read=True)
+            update(Notification).where(Notification.user_id == current_user.id).values(is_read=True)
         )
 
     await db.execute(stmt)

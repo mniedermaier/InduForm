@@ -7,10 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from induform.db import get_db, User
 from induform.api.auth.dependencies import get_current_user
-from induform.security.permissions import check_project_permission, Permission
-
+from induform.db import User, get_db
+from induform.security.permissions import Permission, check_project_permission
 
 router = APIRouter(prefix="/presence", tags=["Presence"])
 
@@ -26,11 +25,13 @@ PRESENCE_TIMEOUT = timedelta(seconds=60)
 
 class PresenceUpdate(BaseModel):
     """Presence update request."""
+
     project_id: str
 
 
 class UserPresence(BaseModel):
     """User presence information."""
+
     user_id: str
     username: str
     display_name: str | None
@@ -39,6 +40,7 @@ class UserPresence(BaseModel):
 
 class ProjectPresence(BaseModel):
     """Presence information for a project."""
+
     project_id: str
     viewers: list[UserPresence]
 
@@ -67,7 +69,9 @@ async def update_presence(
     Should be called periodically (e.g., every 30 seconds).
     """
     # Verify access to project
-    has_access = await check_project_permission(db, request.project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, request.project_id, current_user.id, Permission.VIEWER
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -109,18 +113,19 @@ async def get_project_presence(
     cleanup_stale_presence()
 
     viewers = []
-    now = datetime.utcnow()
 
     if project_id in _presence_store:
         for user_id, data in _presence_store[project_id].items():
             # Exclude current user from the list
             if user_id != current_user.id:
-                viewers.append(UserPresence(
-                    user_id=user_id,
-                    username=data["username"],
-                    display_name=data.get("display_name"),
-                    last_seen=data["last_seen"],
-                ))
+                viewers.append(
+                    UserPresence(
+                        user_id=user_id,
+                        username=data["username"],
+                        display_name=data.get("display_name"),
+                        last_seen=data["last_seen"],
+                    )
+                )
 
     return ProjectPresence(
         project_id=project_id,

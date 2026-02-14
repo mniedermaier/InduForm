@@ -2,7 +2,6 @@
 
 import logging
 import os
-import secrets
 import uuid
 from datetime import datetime, timedelta
 from typing import Any
@@ -20,7 +19,7 @@ if _configured_secret:
 elif _env == "production":
     raise RuntimeError(
         "INDUFORM_SECRET_KEY must be set in production. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+        'Generate one with: python -c "import secrets; print(secrets.token_urlsafe(64))"'
     )
 else:
     SECRET_KEY = "development-secret-key-DO-NOT-USE-IN-PRODUCTION"

@@ -2,23 +2,23 @@
 
 import json
 
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from induform.db.models import (
-    ProjectDB,
-    ProjectAccess,
-    ZoneDB,
     AssetDB,
     ConduitDB,
+    ProjectAccess,
+    ProjectDB,
     ProtocolFlowDB,
     TeamMember,
+    ZoneDB,
 )
-from induform.models.project import Project, ProjectMetadata
-from induform.models.zone import Zone
 from induform.models.asset import Asset
 from induform.models.conduit import Conduit, ProtocolFlow
+from induform.models.project import Project, ProjectMetadata
+from induform.models.zone import Zone
 
 
 class ProjectRepository:

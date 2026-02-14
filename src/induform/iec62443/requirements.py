@@ -125,8 +125,7 @@ SECURITY_REQUIREMENTS: dict[str, SecurityRequirement] = {
         id="SR 3.2",
         name="Malicious code protection",
         description=(
-            "The control system shall provide the capability to protect against "
-            "malicious code."
+            "The control system shall provide the capability to protect against malicious code."
         ),
         foundational_requirement="FR 3 - System Integrity",
         minimum_sl=1,
@@ -159,8 +158,7 @@ SECURITY_REQUIREMENTS: dict[str, SecurityRequirement] = {
         id="SR 5.1",
         name="Network segmentation",
         description=(
-            "The control system shall provide the capability to logically segment "
-            "networks."
+            "The control system shall provide the capability to logically segment networks."
         ),
         foundational_requirement="FR 5 - Restricted Data Flow",
         minimum_sl=1,

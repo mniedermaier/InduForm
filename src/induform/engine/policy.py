@@ -1,7 +1,7 @@
 """IEC 62443 policy rules engine."""
 
-from enum import Enum
-from typing import Callable
+from collections.abc import Callable
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -9,7 +9,7 @@ from induform.models.project import Project
 from induform.models.zone import ZoneType
 
 
-class PolicySeverity(str, Enum):
+class PolicySeverity(StrEnum):
     """Severity of policy rule violations."""
 
     CRITICAL = "critical"
@@ -174,12 +174,14 @@ def _check_default_deny(project: Project) -> list[PolicyViolation]:
                         f"Conduit '{conduit.id}' between "
                         f"'{from_zone.name if from_zone else conduit.from_zone}' and "
                         f"'{to_zone.name if to_zone else conduit.to_zone}' has no protocol "
-                        "flows defined — traffic is implicitly undefined rather than explicitly denied"
+                        "flows defined — traffic is implicitly undefined "
+                        "rather than explicitly denied"
                     ),
                     affected_entities=[conduit.id, conduit.from_zone, conduit.to_zone],
                     remediation=(
                         "Define explicit protocol flows on this conduit to enforce "
-                        "default-deny. Only explicitly allowed traffic should traverse zone boundaries."
+                        "default-deny. Only explicitly allowed traffic "
+                        "should traverse zone boundaries."
                     ),
                 )
             )
@@ -285,9 +287,7 @@ def _check_cell_isolation(project: Project) -> list[PolicyViolation]:
                         f"between '{conduit.from_zone}' and '{conduit.to_zone}'"
                     ),
                     affected_entities=[conduit.id, conduit.from_zone, conduit.to_zone],
-                    remediation=(
-                        "Route cell-to-cell traffic through a supervisory zone or DMZ"
-                    ),
+                    remediation=("Route cell-to-cell traffic through a supervisory zone or DMZ"),
                 )
             )
 
@@ -307,9 +307,8 @@ def _check_dmz_requirement(project: Project) -> list[PolicyViolation]:
 
     for conduit in project.conduits:
         is_enterprise_to_cell = (
-            (conduit.from_zone in enterprise_zones and conduit.to_zone in cell_zones)
-            or (conduit.from_zone in cell_zones and conduit.to_zone in enterprise_zones)
-        )
+            conduit.from_zone in enterprise_zones and conduit.to_zone in cell_zones
+        ) or (conduit.from_zone in cell_zones and conduit.to_zone in enterprise_zones)
 
         if is_enterprise_to_cell:
             violations.append(
@@ -322,9 +321,7 @@ def _check_dmz_requirement(project: Project) -> list[PolicyViolation]:
                         "and cell zones without traversing DMZ"
                     ),
                     affected_entities=[conduit.id, conduit.from_zone, conduit.to_zone],
-                    remediation=(
-                        "Create a DMZ zone and route enterprise-cell traffic through it"
-                    ),
+                    remediation=("Create a DMZ zone and route enterprise-cell traffic through it"),
                 )
             )
 
@@ -488,7 +485,8 @@ def _check_cip_esp_boundary(project: Project) -> list[PolicyViolation]:
 
     dmz_zones = [z for z in project.zones if z.type == ZoneType.DMZ]
     critical_zones = [
-        z for z in project.zones
+        z
+        for z in project.zones
         if z.type in (ZoneType.CELL, ZoneType.SAFETY) and z.security_level_target >= 3
     ]
 
@@ -519,7 +517,8 @@ def _check_cip_bes_classification(project: Project) -> list[PolicyViolation]:
         return violations
 
     critical_zones = [
-        z for z in project.zones
+        z
+        for z in project.zones
         if z.type in (ZoneType.CELL, ZoneType.SAFETY) and z.security_level_target >= 3
     ]
 

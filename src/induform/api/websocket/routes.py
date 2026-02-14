@@ -6,14 +6,14 @@ import logging
 import time
 from typing import Any
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from jose import jwt, JWTError
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from jose import JWTError, jwt
+from sqlalchemy import select
 
 from induform.api.websocket.manager import manager
-from induform.security.jwt import SECRET_KEY, ALGORITHM, decode_token
-from induform.db import get_db, RevokedToken
-from induform.security.permissions import check_project_permission, Permission
-from sqlalchemy import select
+from induform.db import RevokedToken, get_db
+from induform.security.jwt import ALGORITHM, SECRET_KEY, decode_token
+from induform.security.permissions import Permission, check_project_permission
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,7 @@ def _validate_message(raw: str) -> tuple[dict | None, str | None]:
 
     return message, None
 
+
 router = APIRouter(tags=["WebSocket"])
 
 # Re-validate token every 5 minutes
@@ -110,7 +111,8 @@ async def project_websocket(
         - {"type": "presence", "viewers": [...]}
         - {"type": "cursor", "user_id": "...", "username": "...", "position": {...}}
         - {"type": "selection", "user_id": "...", "username": "...", "entity_id": "..."}
-        - {"type": "edit", "user_id": "...", "username": "...", "entity": "...", "action": "...", "data": {...}}
+        - {"type": "edit", "user_id": "...", "username": "...",
+           "entity": "...", "action": "...", "data": {...}}
     """
     # Validate JWT token
     try:
@@ -153,12 +155,15 @@ async def project_websocket(
                     websocket.receive_text(),
                     timeout=_TOKEN_REVALIDATION_INTERVAL,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Periodic token re-validation
                 if not await _is_token_still_valid(token):
-                    logger.info("WebSocket token expired/revoked: user=%s project=%s", username, project_id)
+                    logger.info(
+                        "WebSocket token expired/revoked: user=%s project=%s", username, project_id
+                    )
                     await manager.send_to_user(
-                        project_id, user_id,
+                        project_id,
+                        user_id,
                         {"type": "error", "message": "Session expired. Please reconnect."},
                     )
                     await websocket.close(code=4001, reason="Token expired")
@@ -170,9 +175,12 @@ async def project_websocket(
             now = time.monotonic()
             if now - last_revalidation > _TOKEN_REVALIDATION_INTERVAL:
                 if not await _is_token_still_valid(token):
-                    logger.info("WebSocket token expired/revoked: user=%s project=%s", username, project_id)
+                    logger.info(
+                        "WebSocket token expired/revoked: user=%s project=%s", username, project_id
+                    )
                     await manager.send_to_user(
-                        project_id, user_id,
+                        project_id,
+                        user_id,
                         {"type": "error", "message": "Session expired. Please reconnect."},
                     )
                     await websocket.close(code=4001, reason="Token expired")
@@ -182,7 +190,8 @@ async def project_websocket(
             message, error = _validate_message(data)
             if error:
                 await manager.send_to_user(
-                    project_id, user_id,
+                    project_id,
+                    user_id,
                     {"type": "error", "message": error},
                 )
                 continue
@@ -205,13 +214,16 @@ async def project_websocket(
                     )
                     if not has_edit_access:
                         await manager.send_to_user(
-                            project_id, user_id,
+                            project_id,
+                            user_id,
                             {"type": "error", "message": "Edit permission denied"},
                         )
                         continue
 
                     await manager.broadcast_edit(
-                        project_id, user_id, username,
+                        project_id,
+                        user_id,
+                        username,
                         message["entity"],
                         message["action"],
                         message.get("data", {}),
@@ -220,7 +232,8 @@ async def project_websocket(
 
             elif msg_type == "ping":
                 await manager.send_to_user(
-                    project_id, user_id,
+                    project_id,
+                    user_id,
                     {"type": "pong", "timestamp": message.get("timestamp")},
                 )
 

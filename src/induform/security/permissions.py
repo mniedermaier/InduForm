@@ -1,14 +1,14 @@
 """Permission checking utilities."""
 
-from enum import Enum
+from enum import StrEnum
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from induform.db.models import ProjectDB, ProjectAccess, TeamMember
+from induform.db.models import ProjectAccess, ProjectDB, TeamMember
 
 
-class Permission(str, Enum):
+class Permission(StrEnum):
     """Permission levels for project access."""
 
     VIEWER = "viewer"
@@ -34,9 +34,7 @@ async def check_project_permission(
         True if user has the required permission, False otherwise.
     """
     # First, check if user is the project owner
-    result = await session.execute(
-        select(ProjectDB).where(ProjectDB.id == project_id)
-    )
+    result = await session.execute(select(ProjectDB).where(ProjectDB.id == project_id))
     project = result.scalar_one_or_none()
 
     if not project:
@@ -100,9 +98,7 @@ async def get_user_permission(
         The user's permission level, or None if no access.
     """
     # Check if user is the project owner
-    result = await session.execute(
-        select(ProjectDB).where(ProjectDB.id == project_id)
-    )
+    result = await session.execute(select(ProjectDB).where(ProjectDB.id == project_id))
     project = result.scalar_one_or_none()
 
     if not project:

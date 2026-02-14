@@ -32,31 +32,23 @@ class UserRepository:
 
     async def get_by_id(self, user_id: str) -> User | None:
         """Get a user by ID."""
-        result = await self.session.execute(
-            select(User).where(User.id == user_id)
-        )
+        result = await self.session.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
     async def get_by_email(self, email: str) -> User | None:
         """Get a user by email."""
-        result = await self.session.execute(
-            select(User).where(User.email == email)
-        )
+        result = await self.session.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
     async def get_by_username(self, username: str) -> User | None:
         """Get a user by username."""
-        result = await self.session.execute(
-            select(User).where(User.username == username)
-        )
+        result = await self.session.execute(select(User).where(User.username == username))
         return result.scalar_one_or_none()
 
     async def get_by_email_or_username(self, identifier: str) -> User | None:
         """Get a user by email or username."""
         result = await self.session.execute(
-            select(User).where(
-                (User.email == identifier) | (User.username == identifier)
-            )
+            select(User).where((User.email == identifier) | (User.username == identifier))
         )
         return result.scalar_one_or_none()
 
@@ -77,19 +69,21 @@ class UserRepository:
         """List all users with pagination."""
         result = await self.session.execute(
             select(User)
-            .where(User.is_active == True)
+            .where(User.is_active == True)  # noqa: E712
             .offset(skip)
             .limit(limit)
             .order_by(User.username)
         )
         return list(result.scalars().all())
 
-    async def search(self, query: str, limit: int = 10, exclude_user_id: str | None = None) -> list[User]:
+    async def search(
+        self, query: str, limit: int = 10, exclude_user_id: str | None = None
+    ) -> list[User]:
         """Search users by email or username."""
         search_pattern = f"%{query}%"
         stmt = select(User).where(
-            User.is_active == True,
-            (User.email.ilike(search_pattern)) | (User.username.ilike(search_pattern))
+            User.is_active == True,  # noqa: E712
+            (User.email.ilike(search_pattern)) | (User.username.ilike(search_pattern)),
         )
         if exclude_user_id:
             stmt = stmt.where(User.id != exclude_user_id)

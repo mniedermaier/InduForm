@@ -148,9 +148,7 @@ def _resolve_conduit_controls(
     recommendations = []
 
     if needs_inspection:
-        recommendations.append(
-            "Deploy application-layer firewall with deep packet inspection"
-        )
+        recommendations.append("Deploy application-layer firewall with deep packet inspection")
 
     if needs_encryption:
         recommendations.append("Encrypt all traffic using TLS 1.3 or IPsec")
@@ -181,49 +179,63 @@ def _resolve_global_controls(max_sl: int) -> list[dict]:
     controls = []
 
     # Always recommend network segmentation
-    controls.append({
-        "control": "Network Segmentation",
-        "description": "Implement VLAN or physical network segmentation between zones",
-        "priority": 1,
-    })
+    controls.append(
+        {
+            "control": "Network Segmentation",
+            "description": "Implement VLAN or physical network segmentation between zones",
+            "priority": 1,
+        }
+    )
 
     # Always recommend centralized logging
-    controls.append({
-        "control": "Centralized Logging",
-        "description": "Deploy SIEM for security event collection and correlation",
-        "priority": 2,
-    })
+    controls.append(
+        {
+            "control": "Centralized Logging",
+            "description": "Deploy SIEM for security event collection and correlation",
+            "priority": 2,
+        }
+    )
 
     if max_sl >= 2:
-        controls.append({
-            "control": "Security Monitoring",
-            "description": "Implement 24/7 security monitoring with alerting",
-            "priority": 2,
-        })
+        controls.append(
+            {
+                "control": "Security Monitoring",
+                "description": "Implement 24/7 security monitoring with alerting",
+                "priority": 2,
+            }
+        )
 
     if max_sl >= 3:
-        controls.append({
-            "control": "Incident Response",
-            "description": "Establish OT-specific incident response procedures",
-            "priority": 1,
-        })
-        controls.append({
-            "control": "Vulnerability Management",
-            "description": "Implement OT-aware vulnerability scanning and patching program",
-            "priority": 2,
-        })
+        controls.append(
+            {
+                "control": "Incident Response",
+                "description": "Establish OT-specific incident response procedures",
+                "priority": 1,
+            }
+        )
+        controls.append(
+            {
+                "control": "Vulnerability Management",
+                "description": "Implement OT-aware vulnerability scanning and patching program",
+                "priority": 2,
+            }
+        )
 
     if max_sl >= 4:
-        controls.append({
-            "control": "Red Team Assessment",
-            "description": "Conduct regular red team exercises against OT environment",
-            "priority": 2,
-        })
-        controls.append({
-            "control": "Threat Intelligence",
-            "description": "Subscribe to ICS-CERT and vendor threat intelligence feeds",
-            "priority": 2,
-        })
+        controls.append(
+            {
+                "control": "Red Team Assessment",
+                "description": "Conduct regular red team exercises against OT environment",
+                "priority": 2,
+            }
+        )
+        controls.append(
+            {
+                "control": "Threat Intelligence",
+                "description": "Subscribe to ICS-CERT and vendor threat intelligence feeds",
+                "priority": 2,
+            }
+        )
 
     return controls
 

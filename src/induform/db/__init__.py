@@ -1,26 +1,26 @@
 """Database module for InduForm."""
 
-from induform.db.database import get_db, init_db, close_db, get_database_url
+from induform.db.database import close_db, get_database_url, get_db, init_db
 from induform.db.models import (
+    ActivityLog,
+    AssetDB,
     Base,
-    User,
+    Comment,
+    ConduitDB,
+    NmapHost,
+    NmapScan,
+    Notification,
+    PasswordResetToken,
+    ProjectAccess,
+    ProjectDB,
+    ProjectVersion,
+    ProtocolFlowDB,
+    RevokedToken,
     Team,
     TeamMember,
-    ProjectDB,
-    ProjectAccess,
-    ZoneDB,
-    AssetDB,
-    ConduitDB,
-    ProtocolFlowDB,
-    Comment,
-    NmapScan,
-    NmapHost,
     TemplateDB,
-    ActivityLog,
-    Notification,
-    RevokedToken,
-    PasswordResetToken,
-    ProjectVersion,
+    User,
+    ZoneDB,
 )
 
 __all__ = [

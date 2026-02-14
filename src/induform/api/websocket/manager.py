@@ -1,10 +1,9 @@
 """WebSocket connection manager for real-time collaboration."""
 
 import asyncio
-import json
 import logging
 from datetime import datetime
-from typing import Optional
+
 from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
@@ -24,7 +23,7 @@ class ConnectionManager:
         project_id: str,
         user_id: str,
         username: str,
-        display_name: Optional[str] = None,
+        display_name: str | None = None,
     ):
         """Accept a new WebSocket connection."""
         await websocket.accept()
@@ -77,7 +76,10 @@ class ConnectionManager:
         ]
 
     async def broadcast_presence(self, project_id: str):
-        """Broadcast presence update to all users in a project, excluding self from each user's list."""
+        """Broadcast presence update to all users in a project.
+
+        Excludes self from each user's list.
+        """
         all_viewers = self.get_viewers(project_id)
         timestamp = datetime.utcnow().isoformat()
 
@@ -106,7 +108,7 @@ class ConnectionManager:
         self,
         project_id: str,
         message: dict,
-        exclude_user: Optional[str] = None,
+        exclude_user: str | None = None,
     ):
         """Broadcast a message to all users in a project."""
         if project_id not in self.active_connections:
@@ -189,7 +191,7 @@ class ConnectionManager:
         project_id: str,
         user_id: str,
         username: str,
-        entity_id: Optional[str],
+        entity_id: str | None,
     ):
         """Broadcast selection change to other users."""
         message = {

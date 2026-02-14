@@ -3,19 +3,17 @@
 import csv
 import io
 import json
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from induform.api.activity.schemas import ActivityLogEntry, ActivityLogList
 from induform.api.auth.dependencies import get_current_user, get_db
 from induform.api.rate_limit import limiter
-from induform.api.activity.schemas import ActivityLogEntry, ActivityLogList
-from induform.db.models import User, ProjectDB, ActivityLog
+from induform.db.models import ActivityLog, User
 from induform.db.repositories.project_repository import ProjectRepository
-
 
 router = APIRouter(prefix="/projects/{project_id}/activity", tags=["activity"])
 
@@ -146,18 +144,22 @@ async def export_activity_csv(
     # Build CSV
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Timestamp", "User", "Action", "Entity Type", "Entity ID", "Entity Name", "Details"])
+    writer.writerow(
+        ["Timestamp", "User", "Action", "Entity Type", "Entity ID", "Entity Name", "Details"]
+    )
 
     for log in logs:
-        writer.writerow([
-            log.created_at.isoformat() if log.created_at else "",
-            users.get(log.user_id, log.user_id),
-            log.action,
-            log.entity_type or "",
-            log.entity_id or "",
-            log.entity_name or "",
-            log.details or "",
-        ])
+        writer.writerow(
+            [
+                log.created_at.isoformat() if log.created_at else "",
+                users.get(log.user_id, log.user_id),
+                log.action,
+                log.entity_type or "",
+                log.entity_id or "",
+                log.entity_name or "",
+                log.details or "",
+            ]
+        )
 
     output.seek(0)
     return StreamingResponse(

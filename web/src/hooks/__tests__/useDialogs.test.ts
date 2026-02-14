@@ -121,10 +121,14 @@ describe('useDialogs', () => {
     ] as const;
 
     for (const [openFn, closeFn, stateKey] of boolDialogs) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       act(() => (result.current[1] as any)[openFn]());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((result.current[0] as any)[stateKey]).toBe(true);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       act(() => (result.current[1] as any)[closeFn]());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((result.current[0] as any)[stateKey]).toBe(false);
     }
   });

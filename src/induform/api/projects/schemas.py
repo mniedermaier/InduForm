@@ -5,8 +5,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from induform.models.project import Project
-
 
 class ProjectCreate(BaseModel):
     """Schema for creating a new project."""

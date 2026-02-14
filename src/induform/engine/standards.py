@@ -1,9 +1,9 @@
 """Compliance standard definitions and check/rule mappings."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ComplianceStandard(str, Enum):
+class ComplianceStandard(StrEnum):
     """Supported compliance frameworks."""
 
     IEC62443 = "IEC62443"
@@ -15,19 +15,33 @@ class ComplianceStandard(str, Enum):
 STANDARD_INFO: dict[str, dict[str, str]] = {
     ComplianceStandard.IEC62443: {
         "name": "IEC 62443",
-        "description": "Industrial automation and control systems security standard. Defines security levels, zones, and conduits.",
+        "description": (
+            "Industrial automation and control systems security"
+            " standard. Defines security levels, zones,"
+            " and conduits."
+        ),
     },
     ComplianceStandard.PURDUE: {
         "name": "Purdue Model",
-        "description": "Reference architecture for industrial network segmentation with hierarchical levels from enterprise to safety.",
+        "description": (
+            "Reference architecture for industrial network"
+            " segmentation with hierarchical levels"
+            " from enterprise to safety."
+        ),
     },
     ComplianceStandard.NIST_CSF: {
         "name": "NIST CSF",
-        "description": "NIST Cybersecurity Framework for identifying, protecting, detecting, responding, and recovering from cyber threats.",
+        "description": (
+            "NIST Cybersecurity Framework for identifying,"
+            " protecting, detecting, responding, and"
+            " recovering from cyber threats."
+        ),
     },
     ComplianceStandard.NERC_CIP: {
         "name": "NERC CIP",
-        "description": "Critical Infrastructure Protection standards for bulk electric system cybersecurity.",
+        "description": (
+            "Critical Infrastructure Protection standards for bulk electric system cybersecurity."
+        ),
     },
 }
 
@@ -40,8 +54,16 @@ VALIDATION_CHECK_STANDARDS: dict[str, set[str]] = {
     "DMZ_MISSING": {ComplianceStandard.IEC62443, ComplianceStandard.PURDUE},
     "CELL_ISOLATION_VIOLATION": {ComplianceStandard.IEC62443, ComplianceStandard.PURDUE},
     "PROTOCOL_NOT_IN_ALLOWLIST": {ComplianceStandard.IEC62443},
-    "CRITICAL_ASSET_LOW_SL": {ComplianceStandard.IEC62443, ComplianceStandard.NIST_CSF, ComplianceStandard.NERC_CIP},
-    "ZONE_NO_CONDUITS": {ComplianceStandard.IEC62443, ComplianceStandard.PURDUE, ComplianceStandard.NIST_CSF},
+    "CRITICAL_ASSET_LOW_SL": {
+        ComplianceStandard.IEC62443,
+        ComplianceStandard.NIST_CSF,
+        ComplianceStandard.NERC_CIP,
+    },
+    "ZONE_NO_CONDUITS": {
+        ComplianceStandard.IEC62443,
+        ComplianceStandard.PURDUE,
+        ComplianceStandard.NIST_CSF,
+    },
     "CONDUIT_NO_FLOWS": {ComplianceStandard.IEC62443},
     "SAFETY_ZONE_NON_SAFETY_ASSET": {ComplianceStandard.IEC62443},
     "PURDUE_NON_ADJACENT": {ComplianceStandard.PURDUE},

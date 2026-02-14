@@ -4,20 +4,19 @@ import json
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from induform.api.auth.dependencies import get_current_user, get_db
 from induform.api.templates.schemas import (
     TemplateCreate,
-    TemplateUpdate,
-    TemplateSummary,
     TemplateDetail,
+    TemplateSummary,
+    TemplateUpdate,
 )
-from induform.db.models import User, ProjectDB, TemplateDB
+from induform.db.models import TemplateDB, User
 from induform.db.repositories.project_repository import ProjectRepository
 from induform.templates import get_templates as get_builtin_templates
-
 
 router = APIRouter(prefix="/templates", tags=["templates"])
 
@@ -77,7 +76,7 @@ async def list_templates(
     query = select(TemplateDB).where(
         or_(
             TemplateDB.owner_id == current_user.id,
-            TemplateDB.is_public == True if include_public else False,
+            TemplateDB.is_public == True if include_public else False,  # noqa: E712
         )
     )
 
@@ -207,10 +206,16 @@ async def create_template(
         raise HTTPException(status_code=404, detail="Project not found")
 
     # Check project access (owner or editor)
-    from induform.security.permissions import check_project_permission, Permission
-    has_access = await check_project_permission(db, data.project_id, current_user.id, Permission.EDITOR)
+    from induform.security.permissions import Permission, check_project_permission
+
+    has_access = await check_project_permission(
+        db, data.project_id, current_user.id, Permission.EDITOR
+    )
     if not has_access:
-        raise HTTPException(status_code=403, detail="You don't have permission to create templates from this project")
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to create templates from this project",
+        )
 
     # Calculate counts
     zone_count = len(project_db.zones)

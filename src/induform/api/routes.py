@@ -1,25 +1,26 @@
 """API routes for InduForm."""
 
-import os
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from induform.engine.policy import PolicyViolation, evaluate_policies
+from induform.engine.resolver import resolve_security_controls
+from induform.engine.risk import RiskAssessment, assess_risk
+from induform.engine.validator import ValidationReport, validate_project
+from induform.generators.compliance import generate_compliance_report
+from induform.generators.firewall import export_rules_json, generate_firewall_rules
+from induform.generators.vlan import generate_vlan_mapping
+from induform.models.conduit import Conduit
 from induform.models.project import Project, ProjectMetadata
 from induform.models.zone import Zone
-from induform.models.conduit import Conduit
-from induform.engine.validator import validate_project, ValidationReport
-from induform.engine.policy import evaluate_policies, PolicyViolation
-from induform.engine.resolver import resolve_security_controls
-from induform.engine.risk import assess_risk, RiskAssessment
-from induform.generators.firewall import generate_firewall_rules, export_rules_json
-from induform.generators.vlan import generate_vlan_mapping
-from induform.generators.compliance import generate_compliance_report
+
 # Template imports moved to templates/routes.py
 
 router = APIRouter()
+
 
 # Base directory for project files
 def get_projects_dir(request: Request) -> Path:
@@ -30,6 +31,7 @@ def get_projects_dir(request: Request) -> Path:
 
 class ProjectResponse(BaseModel):
     """Response model for project data."""
+
     project: dict[str, Any]
     validation: ValidationReport
     policy_violations: list[PolicyViolation]
@@ -38,6 +40,7 @@ class ProjectResponse(BaseModel):
 
 class FileInfo(BaseModel):
     """Information about a project file."""
+
     name: str
     path: str
     project_name: str | None = None
@@ -45,11 +48,13 @@ class FileInfo(BaseModel):
 
 class SaveAsRequest(BaseModel):
     """Request model for save-as endpoint."""
+
     filename: str
 
 
 class GenerateRequest(BaseModel):
     """Request model for generate endpoint."""
+
     # Project fields (inherited from Project structure)
     version: str
     project: dict[str, Any]
@@ -62,6 +67,7 @@ class GenerateRequest(BaseModel):
 
 class GenerateResponse(BaseModel):
     """Response model for generate endpoint."""
+
     generator: str
     content: Any
 
@@ -78,6 +84,7 @@ async def root():
 
 # File management endpoints
 
+
 @router.get("/files")
 async def list_files(request: Request) -> list[FileInfo]:
     """List available project files."""
@@ -91,11 +98,13 @@ async def list_files(request: Request) -> list[FileInfo]:
         except Exception:
             project_name = None
 
-        files.append(FileInfo(
-            name=yaml_file.name,
-            path=str(yaml_file),
-            project_name=project_name,
-        ))
+        files.append(
+            FileInfo(
+                name=yaml_file.name,
+                path=str(yaml_file),
+                project_name=project_name,
+            )
+        )
 
     for yml_file in projects_dir.glob("*.yml"):
         try:
@@ -104,11 +113,13 @@ async def list_files(request: Request) -> list[FileInfo]:
         except Exception:
             project_name = None
 
-        files.append(FileInfo(
-            name=yml_file.name,
-            path=str(yml_file),
-            project_name=project_name,
-        ))
+        files.append(
+            FileInfo(
+                name=yml_file.name,
+                path=str(yml_file),
+                project_name=project_name,
+            )
+        )
 
     return sorted(files, key=lambda f: f.name)
 
@@ -168,8 +179,8 @@ async def new_file(save_as: SaveAsRequest, request: Request) -> ProjectResponse:
     filename = save_as.filename
 
     # Ensure .yaml extension
-    if not filename.endswith(('.yaml', '.yml')):
-        filename += '.yaml'
+    if not filename.endswith((".yaml", ".yml")):
+        filename += ".yaml"
 
     file_path = projects_dir / filename
 
@@ -180,7 +191,7 @@ async def new_file(save_as: SaveAsRequest, request: Request) -> ProjectResponse:
     project = Project(
         version="1.0",
         project=ProjectMetadata(
-            name=filename.replace('.yaml', '').replace('.yml', '').replace('_', ' ').title(),
+            name=filename.replace(".yaml", "").replace(".yml", "").replace("_", " ").title(),
             description="New InduForm project",
             compliance_standards=["IEC62443"],
         ),
@@ -215,8 +226,8 @@ async def save_as(project: Project, save_as: SaveAsRequest, request: Request) ->
     filename = save_as.filename
 
     # Ensure .yaml extension
-    if not filename.endswith(('.yaml', '.yml')):
-        filename += '.yaml'
+    if not filename.endswith((".yaml", ".yml")):
+        filename += ".yaml"
 
     file_path = projects_dir / filename
 
@@ -232,6 +243,7 @@ async def save_as(project: Project, save_as: SaveAsRequest, request: Request) ->
 
 
 # Project endpoints
+
 
 @router.get("/project")
 async def get_project(request: Request) -> ProjectResponse:
@@ -351,6 +363,7 @@ async def generate(request_body: GenerateRequest) -> GenerateResponse:
 
 # Zone CRUD operations
 
+
 @router.get("/zones")
 async def list_zones(request: Request) -> list[Zone]:
     """List all zones."""
@@ -450,6 +463,7 @@ async def delete_zone(zone_id: str, request: Request) -> dict[str, str]:
 
 # Conduit CRUD operations
 
+
 @router.get("/conduits")
 async def list_conduits(request: Request) -> list[Conduit]:
     """List all conduits."""
@@ -548,10 +562,10 @@ async def delete_conduit(conduit_id: str, request: Request) -> dict[str, str]:
 @router.get("/schema/{model}")
 async def get_schema(model: str) -> dict[str, Any]:
     """Get JSON Schema for a model."""
+    from induform.models.asset import Asset
+    from induform.models.conduit import Conduit
     from induform.models.project import Project
     from induform.models.zone import Zone
-    from induform.models.conduit import Conduit
-    from induform.models.asset import Asset
 
     models = {
         "project": Project,
