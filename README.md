@@ -2,7 +2,8 @@
 
 **Industrial Terraform** - Declarative IEC 62443 zone/conduit security for OT networks
 
-[![Version](https://img.shields.io/badge/version-0.2.0--alpha-blue.svg)](https://github.com/induform/induform)
+[![CI](https://github.com/mniedermaier/InduForm/actions/workflows/ci.yml/badge.svg)](https://github.com/mniedermaier/InduForm/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-0.2.0--alpha-blue.svg)](https://github.com/mniedermaier/InduForm)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -307,32 +308,34 @@ When running the server, API documentation is available at:
 
 ## Development
 
+### CI/CD
+
+GitHub Actions runs on every push and PR to `main` with two parallel jobs:
+- **Backend**: ruff lint + format check, mypy type check, pytest with coverage
+- **Frontend**: ESLint, TypeScript type check, Vitest tests, production build
+
 ### Running Tests
 
 ```bash
+# Backend
 pytest tests/
-```
-
-### Running with Coverage
-
-```bash
 pytest tests/ --cov=induform --cov-report=html
+
+# Frontend
+cd web && npm run test
 ```
 
-### Type Checking
+### Linting & Type Checking
 
 ```bash
 # Backend
+ruff check src/
+ruff format --check src/
 mypy src/induform
 
 # Frontend
+cd web && npm run lint
 cd web && npx tsc --noEmit
-```
-
-### Linting
-
-```bash
-ruff check src/
 ```
 
 ## Technology Stack

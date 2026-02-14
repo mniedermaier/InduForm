@@ -43,11 +43,17 @@ cd web && npm run test:watch            # Watch mode
 ```bash
 ruff check src/                         # Python lint (rules: E, F, I, N, W, UP)
 ruff format src/                        # Python format
-mypy src/induform                       # Python type check (strict)
+mypy src/induform                       # Python type check (strict, non-blocking in CI)
 
 cd web && npm run lint                  # ESLint (zero warnings policy)
 cd web && npx tsc --noEmit              # TypeScript strict check
 ```
+
+### CI (GitHub Actions)
+CI runs on push/PR to `main` via `.github/workflows/ci.yml` with two parallel jobs:
+- **backend**: Python 3.11 — ruff check, ruff format --check, mypy (continue-on-error), pytest --cov
+- **frontend**: Node 20 — npm run lint, tsc --noEmit, npm run test, npm run build
+- Backend tests require `INDUFORM_RATE_LIMIT_ENABLED=false` (set as env var in the workflow)
 
 ### CLI commands (single-file YAML mode)
 ```bash
@@ -142,3 +148,5 @@ induform db init|migrate|backup|status  # Database management
 - **ProjectMetadata vs DB model**: The Pydantic `ProjectMetadata` has `compliance_standards` (list), while the DB model `Project` has `standard` (string). Don't confuse them — `project.project.compliance_standards` not `project.project.standard`.
 - **Rate limit in tests**: `conftest.py` sets `INDUFORM_RATE_LIMIT_ENABLED=false` before importing the app. If adding new test files, ensure they use the shared `conftest.py` fixtures.
 - **slowapi parameter naming**: Rate-limited endpoints need `request: Request` as first param. If the endpoint body is also named `request`, rename it to `body` to avoid conflicts.
+- **ESLint config**: The frontend uses `.eslintrc.cjs` (ESLint 8 legacy format). The lint script uses `--max-warnings 0` so warnings also fail CI.
+- **mypy strict**: mypy runs in strict mode but has pre-existing errors. It is `continue-on-error` in CI so it reports but doesn't block. Fixing type errors is a separate effort.
