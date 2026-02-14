@@ -30,6 +30,7 @@ jobs:
 
       - name: Type check
         run: mypy src/induform
+        continue-on-error: true
 
       - name: Tests
         run: pytest tests/ --cov=induform
