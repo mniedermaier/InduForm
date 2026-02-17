@@ -1,6 +1,6 @@
 // API client for InduForm backend
 
-import type { Project, ProjectResponse, ValidationReport, PolicyViolation, Zone, Conduit, Vulnerability, VulnerabilitySummary } from '../types/models';
+import type { Project, ProjectResponse, ValidationReport, PolicyViolation, Zone, Conduit, Vulnerability, VulnerabilitySummary, GapAnalysisReport, MetricsDataPoint, AnalyticsSummary } from '../types/models';
 
 const API_BASE = '/api';
 
@@ -326,6 +326,14 @@ export const api = {
     });
   },
 
+  // Attack Path Analysis
+  async analyzeAttackPaths(project: Project): Promise<AttackPathAnalysis> {
+    return fetchJson('/attack-paths', {
+      method: 'POST',
+      body: JSON.stringify(project),
+    });
+  },
+
   // Templates
   async listTemplates(options?: { includeBuiltin?: boolean; includePublic?: boolean; category?: string }): Promise<TemplateInfo[]> {
     const params = new URLSearchParams();
@@ -584,6 +592,20 @@ export const api = {
       body: JSON.stringify({ token, new_password: newPassword }),
     });
   },
+
+  // Gap Analysis
+  async getGapAnalysis(projectId: string): Promise<GapAnalysisReport> {
+    return fetchJson(`/projects/${projectId}/gap-analysis`);
+  },
+
+  // Analytics
+  async getProjectAnalytics(projectId: string, days = 30): Promise<MetricsDataPoint[]> {
+    return fetchJson(`/projects/${projectId}/analytics?days=${days}`);
+  },
+
+  async getAnalyticsSummary(projectId: string, days = 30): Promise<AnalyticsSummary> {
+    return fetchJson(`/projects/${projectId}/analytics/summary?days=${days}`);
+  },
 };
 
 // Risk Assessment types
@@ -633,6 +655,47 @@ export interface RiskAssessment {
   overall_score: number;
   overall_level: 'critical' | 'high' | 'medium' | 'low' | 'minimal';
   recommendations: string[];
+}
+
+// Attack Path Analysis types
+export interface ConduitWeakness {
+  weakness_type: string;
+  description: string;
+  remediation: string;
+  severity_contribution: number;
+}
+
+export interface AttackPathStep {
+  conduit_id: string;
+  from_zone_id: string;
+  from_zone_name: string;
+  to_zone_id: string;
+  to_zone_name: string;
+  traversal_cost: number;
+  weaknesses: ConduitWeakness[];
+}
+
+export interface AttackPath {
+  id: string;
+  entry_zone_id: string;
+  entry_zone_name: string;
+  target_zone_id: string;
+  target_zone_name: string;
+  target_reason: string;
+  steps: AttackPathStep[];
+  total_cost: number;
+  risk_score: number;
+  risk_level: string;
+  zone_ids: string[];
+  conduit_ids: string[];
+}
+
+export interface AttackPathAnalysis {
+  paths: AttackPath[];
+  entry_points: string[];
+  high_value_targets: string[];
+  summary: string;
+  counts: Record<string, number>;
 }
 
 export interface TemplateInfo {

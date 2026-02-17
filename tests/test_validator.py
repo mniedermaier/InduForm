@@ -197,3 +197,170 @@ class TestCircularReference:
 
         errors = [r for r in report.results if r.severity == ValidationSeverity.ERROR]
         assert any("ZONE_CIRCULAR_REF" in r.code for r in errors)
+
+
+class TestMultiFrameworkValidation:
+    """Tests for NIST CSF, NERC CIP, and Purdue validation checks."""
+
+    def test_nist_access_control_warning(self):
+        """Warn if high-SL zone has no firewall."""
+        project = make_project(
+            zones=[
+                Zone(
+                    id="cell",
+                    name="Cell",
+                    type=ZoneType.CELL,
+                    security_level_target=3,
+                    assets=[Asset(id="plc1", name="PLC", type=AssetType.PLC)],
+                ),
+            ],
+            conduits=[],
+        )
+        report = validate_project(project)
+        warnings = [r for r in report.results if r.code == "NIST_ACCESS_CONTROL"]
+        assert len(warnings) == 1
+
+    def test_nist_access_control_passes_with_firewall(self):
+        """No warning if high-SL zone has a firewall."""
+        project = make_project(
+            zones=[
+                Zone(
+                    id="cell",
+                    name="Cell",
+                    type=ZoneType.CELL,
+                    security_level_target=3,
+                    assets=[Asset(id="fw1", name="Firewall", type=AssetType.FIREWALL)],
+                ),
+            ],
+            conduits=[],
+        )
+        report = validate_project(project)
+        warnings = [r for r in report.results if r.code == "NIST_ACCESS_CONTROL"]
+        assert len(warnings) == 0
+
+    def test_nist_detection_gap(self):
+        """Warn if no monitoring and uninspected conduits."""
+        project = make_project(
+            zones=[
+                Zone(id="z1", name="Z1", type=ZoneType.CELL, security_level_target=2),
+                Zone(id="z2", name="Z2", type=ZoneType.AREA, security_level_target=2),
+            ],
+            conduits=[
+                Conduit(id="c1", from_zone="z1", to_zone="z2", requires_inspection=False),
+            ],
+        )
+        report = validate_project(project)
+        results = [r for r in report.results if r.code == "NIST_DETECTION_GAP"]
+        assert len(results) == 1
+
+    def test_nist_recovery_plan(self):
+        """Info if safety zone has fewer than 2 assets."""
+        project = make_project(
+            zones=[
+                Zone(
+                    id="safety",
+                    name="Safety",
+                    type=ZoneType.SAFETY,
+                    security_level_target=3,
+                    assets=[Asset(id="plc1", name="SIS PLC", type=AssetType.PLC)],
+                ),
+            ],
+            conduits=[],
+        )
+        report = validate_project(project)
+        infos = [r for r in report.results if r.code == "NIST_RECOVERY_PLAN"]
+        assert len(infos) == 1
+
+    def test_cip_access_point(self):
+        """Warn if enterprise→cell conduit exists with DMZ present."""
+        project = make_project(
+            zones=[
+                Zone(id="ent", name="Enterprise", type=ZoneType.ENTERPRISE, security_level_target=1),
+                Zone(id="dmz", name="DMZ", type=ZoneType.DMZ, security_level_target=3),
+                Zone(id="cell", name="Cell", type=ZoneType.CELL, security_level_target=2),
+            ],
+            conduits=[
+                Conduit(id="c1", from_zone="ent", to_zone="cell"),
+            ],
+        )
+        report = validate_project(project)
+        results = [r for r in report.results if r.code == "CIP_ACCESS_POINT"]
+        assert len(results) == 1
+
+    def test_cip_bes_classification(self):
+        """Info if cell/safety asset has low criticality."""
+        project = make_project(
+            zones=[
+                Zone(
+                    id="cell",
+                    name="Cell",
+                    type=ZoneType.CELL,
+                    security_level_target=2,
+                    assets=[Asset(id="plc1", name="PLC", type=AssetType.PLC, criticality=2)],
+                ),
+            ],
+            conduits=[],
+        )
+        report = validate_project(project)
+        infos = [r for r in report.results if r.code == "CIP_BES_CLASSIFICATION"]
+        assert len(infos) == 1
+
+    def test_cip_change_management(self):
+        """Info if >10 conduits and some have no description."""
+        zones = [
+            Zone(id="z1", name="Z1", type=ZoneType.AREA, security_level_target=2),
+            Zone(id="z2", name="Z2", type=ZoneType.CELL, security_level_target=2),
+        ]
+        conduits = [
+            Conduit(id=f"c{i}", from_zone="z1", to_zone="z2")
+            for i in range(12)
+        ]
+        project = make_project(zones=zones, conduits=conduits)
+        report = validate_project(project)
+        infos = [r for r in report.results if r.code == "CIP_CHANGE_MGMT"]
+        assert len(infos) == 1
+
+    def test_cip_change_management_no_warning_with_descriptions(self):
+        """No info if all conduits have descriptions."""
+        zones = [
+            Zone(id="z1", name="Z1", type=ZoneType.AREA, security_level_target=2),
+            Zone(id="z2", name="Z2", type=ZoneType.CELL, security_level_target=2),
+        ]
+        conduits = [
+            Conduit(id=f"c{i}", from_zone="z1", to_zone="z2", description=f"Conduit {i}")
+            for i in range(12)
+        ]
+        project = make_project(zones=zones, conduits=conduits)
+        report = validate_project(project)
+        infos = [r for r in report.results if r.code == "CIP_CHANGE_MGMT"]
+        assert len(infos) == 0
+
+    def test_purdue_safety_direct(self):
+        """Warn if safety zone connects directly to enterprise/site."""
+        project = make_project(
+            zones=[
+                Zone(id="safety", name="Safety", type=ZoneType.SAFETY, security_level_target=3),
+                Zone(id="ent", name="Enterprise", type=ZoneType.ENTERPRISE, security_level_target=1),
+            ],
+            conduits=[
+                Conduit(id="c1", from_zone="safety", to_zone="ent"),
+            ],
+        )
+        report = validate_project(project)
+        results = [r for r in report.results if r.code == "PURDUE_SAFETY_DIRECT"]
+        assert len(results) == 1
+
+    def test_purdue_safety_to_cell_ok(self):
+        """No warning if safety zone connects to cell (adjacent)."""
+        project = make_project(
+            zones=[
+                Zone(id="safety", name="Safety", type=ZoneType.SAFETY, security_level_target=3),
+                Zone(id="cell", name="Cell", type=ZoneType.CELL, security_level_target=2),
+            ],
+            conduits=[
+                Conduit(id="c1", from_zone="safety", to_zone="cell"),
+            ],
+        )
+        report = validate_project(project)
+        results = [r for r in report.results if r.code == "PURDUE_SAFETY_DIRECT"]
+        assert len(results) == 0

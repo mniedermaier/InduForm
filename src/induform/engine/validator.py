@@ -69,6 +69,13 @@ def validate_project(
     results.extend(_validate_safety_zone_assets(project))
     results.extend(_validate_nist_asset_inventory(project))
     results.extend(_validate_cip_esp(project))
+    results.extend(_validate_nist_access_control(project))
+    results.extend(_validate_nist_detection(project))
+    results.extend(_validate_nist_recovery(project))
+    results.extend(_validate_cip_access_points(project))
+    results.extend(_validate_cip_asset_classification(project))
+    results.extend(_validate_cip_change_management(project))
+    results.extend(_validate_purdue_safety_isolation(project))
 
     # Filter by enabled standards if specified
     if enabled_standards:
@@ -554,6 +561,206 @@ def _validate_cip_esp(project: Project) -> list[ValidationResult]:
                 ),
             )
         )
+
+    return results
+
+
+def _validate_nist_access_control(project: Project) -> list[ValidationResult]:
+    """Warn if high-security zones have no access control device (NIST CSF PR.AC)."""
+    results = []
+    firewall_types = {"firewall"}
+
+    for zone in project.zones:
+        if zone.security_level_target >= 3:
+            has_firewall = any(a.type.value.lower() in firewall_types for a in zone.assets)
+            if not has_firewall:
+                results.append(
+                    ValidationResult(
+                        severity=ValidationSeverity.WARNING,
+                        code="NIST_ACCESS_CONTROL",
+                        message=(
+                            f"NIST CSF PR.AC: No access control device in "
+                            f"high-security zone '{zone.name}' (SL-T={zone.security_level_target})."
+                        ),
+                        location=f"zones[{zone.id}]",
+                        recommendation=("Add a firewall or access control device to this zone"),
+                    )
+                )
+
+    return results
+
+
+def _validate_nist_detection(project: Project) -> list[ValidationResult]:
+    """Warn if no monitoring capability exists (NIST CSF DE.CM)."""
+    results = []
+    monitoring_types = {"scada", "server", "historian"}
+
+    has_monitoring = any(
+        a.type.value.lower() in monitoring_types for zone in project.zones for a in zone.assets
+    )
+
+    uninspected_conduits = [c for c in project.conduits if not c.requires_inspection]
+
+    if not has_monitoring and uninspected_conduits:
+        results.append(
+            ValidationResult(
+                severity=ValidationSeverity.WARNING,
+                code="NIST_DETECTION_GAP",
+                message=(
+                    "NIST CSF DE.CM: No continuous monitoring capability "
+                    "detected and conduits exist without inspection."
+                ),
+                location="project",
+                recommendation=(
+                    "Add monitoring assets (SCADA, historian) or enable "
+                    "inspection on conduits for network visibility"
+                ),
+            )
+        )
+
+    return results
+
+
+def _validate_nist_recovery(project: Project) -> list[ValidationResult]:
+    """Info if safety zones lack redundancy/backup assets (NIST CSF RC.RP)."""
+    results = []
+    safety_zones = [z for z in project.zones if z.type == ZoneType.SAFETY]
+
+    for zone in safety_zones:
+        if len(zone.assets) < 2:
+            results.append(
+                ValidationResult(
+                    severity=ValidationSeverity.INFO,
+                    code="NIST_RECOVERY_PLAN",
+                    message=(
+                        f"NIST CSF RC.RP: Safety zone '{zone.name}' has "
+                        f"{len(zone.assets)} asset(s). Consider adding "
+                        "redundant/backup assets for recovery capability."
+                    ),
+                    location=f"zones[{zone.id}]",
+                    recommendation=("Add redundant safety assets to ensure recovery capability"),
+                )
+            )
+
+    return results
+
+
+def _validate_cip_access_points(project: Project) -> list[ValidationResult]:
+    """Warn if enterprise→cell conduit bypasses DMZ (NERC CIP-005)."""
+    results = []
+    enterprise_zones = {z.id for z in project.zones if z.type == ZoneType.ENTERPRISE}
+    cell_zones = {z.id for z in project.zones if z.type == ZoneType.CELL}
+    dmz_zones = {z.id for z in project.zones if z.type == ZoneType.DMZ}
+
+    if not dmz_zones:
+        return results  # No DMZ to bypass — handled by CIP_ESP_MISSING
+
+    for conduit in project.conduits:
+        is_enterprise_cell = (
+            conduit.from_zone in enterprise_zones and conduit.to_zone in cell_zones
+        ) or (conduit.from_zone in cell_zones and conduit.to_zone in enterprise_zones)
+
+        if is_enterprise_cell:
+            results.append(
+                ValidationResult(
+                    severity=ValidationSeverity.WARNING,
+                    code="CIP_ACCESS_POINT",
+                    message=(
+                        f"NERC CIP-005: Conduit '{conduit.id}' provides an "
+                        "Electronic Access Point that bypasses the DMZ."
+                    ),
+                    location=f"conduits[{conduit.id}]",
+                    recommendation=("Route enterprise-to-cell traffic through the DMZ zone"),
+                )
+            )
+
+    return results
+
+
+def _validate_cip_asset_classification(project: Project) -> list[ValidationResult]:
+    """Info if critical zone assets may need higher criticality (NERC CIP-002)."""
+    results = []
+    critical_zones = [z for z in project.zones if z.type in (ZoneType.CELL, ZoneType.SAFETY)]
+
+    for zone in critical_zones:
+        for asset in zone.assets:
+            if asset.criticality is not None and asset.criticality < 3:
+                results.append(
+                    ValidationResult(
+                        severity=ValidationSeverity.INFO,
+                        code="CIP_BES_CLASSIFICATION",
+                        message=(
+                            f"NERC CIP-002: Asset '{asset.name}' in "
+                            f"{zone.type.value} zone '{zone.name}' has "
+                            f"criticality {asset.criticality}. BES Cyber Assets "
+                            "may need higher criticality classification."
+                        ),
+                        location=f"zones[{zone.id}].assets[{asset.id}]",
+                        recommendation=(
+                            "Review and classify this asset's impact on "
+                            "reliable BES operation per CIP-002"
+                        ),
+                    )
+                )
+
+    return results
+
+
+def _validate_cip_change_management(project: Project) -> list[ValidationResult]:
+    """Info if many conduits lack descriptions (NERC CIP-010)."""
+    results = []
+
+    if len(project.conduits) > 10:
+        undocumented = [c for c in project.conduits if not c.description]
+        if undocumented:
+            results.append(
+                ValidationResult(
+                    severity=ValidationSeverity.INFO,
+                    code="CIP_CHANGE_MGMT",
+                    message=(
+                        f"NERC CIP-010: {len(undocumented)} of "
+                        f"{len(project.conduits)} conduits have no "
+                        "description. Undocumented conduits may not meet "
+                        "configuration change management requirements."
+                    ),
+                    location="conduits",
+                    recommendation=(
+                        "Add descriptions to all conduits to support "
+                        "change management documentation"
+                    ),
+                )
+            )
+
+    return results
+
+
+def _validate_purdue_safety_isolation(project: Project) -> list[ValidationResult]:
+    """Warn if safety zone connects directly to upper-level zones."""
+    results = []
+    safety_zones = {z.id for z in project.zones if z.type == ZoneType.SAFETY}
+    upper_zones = {
+        z.id for z in project.zones if z.type in (ZoneType.ENTERPRISE, ZoneType.SITE, ZoneType.DMZ)
+    }
+
+    for conduit in project.conduits:
+        safety_to_upper = (
+            conduit.from_zone in safety_zones and conduit.to_zone in upper_zones
+        ) or (conduit.from_zone in upper_zones and conduit.to_zone in safety_zones)
+
+        if safety_to_upper:
+            results.append(
+                ValidationResult(
+                    severity=ValidationSeverity.WARNING,
+                    code="PURDUE_SAFETY_DIRECT",
+                    message=(
+                        f"Purdue Model: Conduit '{conduit.id}' connects a "
+                        "safety zone directly to an upper-level zone. "
+                        "Safety zones should only connect to cell/area zones."
+                    ),
+                    location=f"conduits[{conduit.id}]",
+                    recommendation=("Route safety zone traffic through cell or area zones"),
+                )
+            )
 
     return results
 

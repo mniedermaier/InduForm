@@ -29,6 +29,7 @@ interface ToolbarProps {
   onVersionHistory?: () => void;
   onAnalytics?: () => void;
   onVulnerabilities?: () => void;
+  onAttackPaths?: () => void;
   onToggleRiskOverlay?: () => void;
   riskOverlayEnabled?: boolean;
   versionCount?: number;
@@ -201,6 +202,7 @@ const Toolbar = memo(({
   onVersionHistory,
   onAnalytics,
   onVulnerabilities,
+  onAttackPaths,
   onToggleRiskOverlay,
   riskOverlayEnabled = false,
   versionCount = 0,
@@ -272,6 +274,7 @@ const Toolbar = memo(({
   const analyzeItems: DropdownItem[] = [
     { label: 'Validate', onClick: onValidate, disabled: !apiConnected, shortcut: 'F5' },
     { label: 'Risk Assessment', onClick: onRiskDashboard || (() => {}), disabled: !onRiskDashboard },
+    { label: 'Attack Paths', onClick: onAttackPaths || (() => {}), disabled: !onAttackPaths },
     { label: '', onClick: () => {}, divider: true },
     { label: 'Compliance Dashboard', onClick: onComplianceDashboard || (() => {}), disabled: !onComplianceDashboard },
     { label: 'Compliance Settings...', onClick: onComplianceSettings || (() => {}), disabled: !onComplianceSettings },

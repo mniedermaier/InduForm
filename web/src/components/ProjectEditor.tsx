@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react
 import { ReactFlowProvider } from '@xyflow/react';
 
 import type { Project, Zone, Conduit, Asset } from '../types/models';
+import type { AttackPath } from '../api/client';
 import { useProject, useDialogs, useKeyboardShortcuts } from '../hooks';
 import { useProjectWebSocket } from '../hooks/useWebSocket';
 import { useToast } from '../contexts/ToastContext';
@@ -34,6 +35,7 @@ const KeyboardShortcutsDialog = lazy(() => import('./KeyboardShortcutsDialog'));
 const ComplianceSettingsDialog = lazy(() => import('./ComplianceSettingsDialog'));
 const AnalyticsPanel = lazy(() => import('./AnalyticsPanel'));
 const VulnerabilityPanel = lazy(() => import('./VulnerabilityPanel'));
+const AttackPathPanel = lazy(() => import('./AttackPathPanel'));
 const Zone3DEditor = lazy(() => import('./Zone3DEditor'));
 
 interface ProjectEditorProps {
@@ -62,6 +64,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
   const [copiedZone, setCopiedZone] = useState<Zone | null>(null);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [riskOverlayEnabled, setRiskOverlayEnabled] = useState(false);
+  const [highlightedPath, setHighlightedPath] = useState<{ zoneIds: Set<string>; conduitIds: Set<string>; riskLevel: string } | null>(null);
   const [multiSelectedZoneIds, setMultiSelectedZoneIds] = useState<string[]>([]);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -72,6 +75,14 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
 
   const toggleRiskOverlay = useCallback(() => {
     setRiskOverlayEnabled(prev => !prev);
+  }, []);
+
+  const handleHighlightPath = useCallback((path: AttackPath | null) => {
+    setHighlightedPath(path ? {
+      zoneIds: new Set(path.zone_ids),
+      conduitIds: new Set(path.conduit_ids),
+      riskLevel: path.risk_level,
+    } : null);
   }, []);
 
   // Client-side risk score computation (mirrors backend formula)
@@ -731,6 +742,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
         onNmapImport={dialogActions.openNmapImport}
         onAnalytics={dialogActions.openAnalytics}
         onVulnerabilities={dialogActions.openVulnerabilities}
+        onAttackPaths={dialogActions.openAttackPaths}
         onToggleRiskOverlay={toggleRiskOverlay}
         riskOverlayEnabled={riskOverlayEnabled}
         canUndo={canUndo}
@@ -771,6 +783,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
                 zoneRisks={riskOverlayEnabled ? computeZoneRisks(project) : undefined}
                 remoteSelections={remoteSelections}
                 onSelectionChange={setMultiSelectedZoneIds}
+                highlightedPath={highlightedPath}
               />
             </ReactFlowProvider>
           ) : (
@@ -788,6 +801,9 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
                 selectedConduit={selectedConduit}
                 onSelectZone={selectZone}
                 onSelectConduit={selectConduit}
+                riskOverlayEnabled={riskOverlayEnabled}
+                zoneRisks={riskOverlayEnabled ? computeZoneRisks(project) : undefined}
+                highlightedPath={highlightedPath}
               />
             </Suspense>
           )}
@@ -1034,6 +1050,14 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
         <AnalyticsPanel
           projectId={projectId}
           onClose={dialogActions.closeAnalytics}
+        />
+      )}
+
+      {dialogs.showAttackPaths && (
+        <AttackPathPanel
+          project={project}
+          onClose={() => { setHighlightedPath(null); dialogActions.closeAttackPaths(); }}
+          onHighlightPath={handleHighlightPath}
         />
       )}
 

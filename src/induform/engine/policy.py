@@ -101,6 +101,24 @@ POLICY_RULES: dict[str, PolicyRule] = {
         description="Assets in critical zones must have a criticality classification",
         severity=PolicySeverity.MEDIUM,
     ),
+    "NIST-002": PolicyRule(
+        id="NIST-002",
+        name="Network Segmentation Monitoring",
+        description=("At least one conduit should require inspection per NIST CSF PR.DS"),
+        severity=PolicySeverity.MEDIUM,
+    ),
+    "CIP-003": PolicyRule(
+        id="CIP-003",
+        name="Physical Security Perimeter",
+        description=("Cell and safety zones should have network_segment defined per CIP-006"),
+        severity=PolicySeverity.HIGH,
+    ),
+    "PURDUE-002": PolicyRule(
+        id="PURDUE-002",
+        name="Level Bypass Prevention",
+        description=("No conduit should skip more than 1 Purdue level without a DMZ"),
+        severity=PolicySeverity.HIGH,
+    ),
 }
 
 
@@ -143,6 +161,9 @@ def evaluate_policies(
         ("NIST-001", _check_nist_asset_identification),
         ("CIP-001", _check_cip_esp_boundary),
         ("CIP-002", _check_cip_bes_classification),
+        ("NIST-002", _check_nist_segmentation_monitoring),
+        ("CIP-003", _check_cip_physical_security_perimeter),
+        ("PURDUE-002", _check_purdue_level_bypass),
     ]
 
     for rule_id, check_fn in rule_checks:
@@ -544,6 +565,123 @@ def _check_cip_bes_classification(project: Project) -> list[PolicyViolation]:
                         ),
                     )
                 )
+
+    return violations
+
+
+def _check_nist_segmentation_monitoring(project: Project) -> list[PolicyViolation]:
+    """Check NIST-002: At least one conduit should require inspection."""
+    violations = []
+    rule = POLICY_RULES["NIST-002"]
+
+    if not rule.enabled:
+        return violations
+
+    if len(project.conduits) == 0:
+        return violations
+
+    has_inspection = any(c.requires_inspection for c in project.conduits)
+    if not has_inspection:
+        violations.append(
+            PolicyViolation(
+                rule_id=rule.id,
+                rule_name=rule.name,
+                severity=rule.severity,
+                message=(
+                    "No conduits require inspection. NIST CSF PR.DS recommends "
+                    "network segmentation monitoring for data security."
+                ),
+                affected_entities=[c.id for c in project.conduits[:5]],
+                remediation=(
+                    "Enable requires_inspection on conduits spanning "
+                    "security boundaries to monitor network traffic"
+                ),
+            )
+        )
+
+    return violations
+
+
+def _check_cip_physical_security_perimeter(
+    project: Project,
+) -> list[PolicyViolation]:
+    """Check CIP-003: Cell/safety zones should have network_segment defined."""
+    violations = []
+    rule = POLICY_RULES["CIP-003"]
+
+    if not rule.enabled:
+        return violations
+
+    critical_zones = [z for z in project.zones if z.type in (ZoneType.CELL, ZoneType.SAFETY)]
+
+    for zone in critical_zones:
+        if not zone.network_segment:
+            violations.append(
+                PolicyViolation(
+                    rule_id=rule.id,
+                    rule_name=rule.name,
+                    severity=rule.severity,
+                    message=(
+                        f"{zone.type.value.title()} zone '{zone.name}' has no "
+                        "network_segment defined. NERC CIP-006 requires "
+                        "Physical Security Perimeter documentation."
+                    ),
+                    affected_entities=[zone.id],
+                    remediation=(
+                        "Define a network_segment (e.g., VLAN or subnet) "
+                        "for this zone to document its physical/logical boundary"
+                    ),
+                )
+            )
+
+    return violations
+
+
+def _check_purdue_level_bypass(project: Project) -> list[PolicyViolation]:
+    """Check PURDUE-002: No conduit should skip more than 1 Purdue level."""
+    violations = []
+    rule = POLICY_RULES["PURDUE-002"]
+
+    if not rule.enabled:
+        return violations
+
+    for conduit in project.conduits:
+        from_zone = project.get_zone(conduit.from_zone)
+        to_zone = project.get_zone(conduit.to_zone)
+        if not from_zone or not to_zone:
+            continue
+
+        if from_zone.type == to_zone.type:
+            continue
+
+        from_level = _PURDUE_LEVEL[from_zone.type]
+        to_level = _PURDUE_LEVEL[to_zone.type]
+        gap = abs(from_level - to_level)
+
+        if gap > 1:
+            # Check if one end is a DMZ (DMZ connections are transitional)
+            if from_zone.type == ZoneType.DMZ or to_zone.type == ZoneType.DMZ:
+                continue
+
+            violations.append(
+                PolicyViolation(
+                    rule_id=rule.id,
+                    rule_name=rule.name,
+                    severity=rule.severity,
+                    message=(
+                        f"Conduit '{conduit.id}' skips {gap - 1} Purdue "
+                        f"level{'s' if gap - 1 != 1 else ''} between "
+                        f"{from_zone.type.value} zone '{from_zone.name}' and "
+                        f"{to_zone.type.value} zone '{to_zone.name}' "
+                        "without a DMZ intermediary."
+                    ),
+                    affected_entities=[conduit.id, from_zone.id, to_zone.id],
+                    remediation=(
+                        "Add intermediate zones or a DMZ to prevent "
+                        "direct cross-level communication"
+                    ),
+                )
+            )
 
     return violations
 

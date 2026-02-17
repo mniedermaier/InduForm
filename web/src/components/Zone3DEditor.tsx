@@ -13,6 +13,9 @@ interface Zone3DEditorProps {
   selectedConduit?: Conduit;
   onSelectZone: (zone: Zone | undefined) => void;
   onSelectConduit: (conduit: Conduit | undefined) => void;
+  riskOverlayEnabled?: boolean;
+  zoneRisks?: Map<string, { score: number; level: string }>;
+  highlightedPath?: { zoneIds: Set<string>; conduitIds: Set<string>; riskLevel: string } | null;
 }
 
 // --- Height & Layout ---
@@ -185,27 +188,59 @@ function AssetObject({
 
 // --- Zone Platform ---
 
+const RISK_COLORS_3D: Record<string, string> = {
+  critical: '#ef4444',
+  high: '#f97316',
+  medium: '#eab308',
+  low: '#3b82f6',
+  minimal: '#22c55e',
+};
+
 function ZonePlatform({
   zone,
   position,
   selected,
   onClick,
   dark,
+  riskLevel,
+  riskOverlay,
+  highlighted,
+  highlightRiskLevel,
+  dimmed,
 }: {
   zone: Zone;
   position: [number, number, number];
   selected: boolean;
   onClick: () => void;
   dark: boolean;
+  riskLevel?: string;
+  riskOverlay?: boolean;
+  highlighted?: boolean;
+  highlightRiskLevel?: string;
+  dimmed?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
   const config = ZONE_TYPE_CONFIG[zone.type];
   const slConfig = SECURITY_LEVEL_CONFIG[zone.security_level_target] || SECURITY_LEVEL_CONFIG[1];
-  const color = new THREE.Color(config.color);
+
+  // Risk overlay tints the platform color
+  const riskColor = riskOverlay && riskLevel ? RISK_COLORS_3D[riskLevel] : undefined;
+  const baseColor = riskColor ? new THREE.Color(riskColor) : new THREE.Color(config.color);
+  const color = baseColor;
+
+  const emissiveColor = highlighted && highlightRiskLevel
+    ? RISK_COLORS_3D[highlightRiskLevel] || config.color
+    : config.color;
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
     groupRef.current.position.y = position[1] + Math.sin(clock.getElapsedTime() * 0.4 + position[0]) * 0.1;
+    // Pulse the highlight ring
+    if (ringRef.current && highlighted) {
+      const scale = 1 + Math.sin(clock.getElapsedTime() * 3) * 0.08;
+      ringRef.current.scale.set(scale, scale, scale);
+    }
   });
 
   const assetPositions = useMemo(() => {
@@ -237,12 +272,12 @@ function ZonePlatform({
       >
         <meshStandardMaterial
           color={dark ? color.clone().multiplyScalar(0.5) : color.clone().multiplyScalar(0.85)}
-          emissive={config.color}
-          emissiveIntensity={selected ? 0.8 : dark ? 0.35 : 0.15}
+          emissive={emissiveColor}
+          emissiveIntensity={highlighted ? 1.0 : selected ? 0.8 : riskOverlay && riskLevel ? 0.5 : dark ? 0.35 : 0.15}
           metalness={0.4}
           roughness={0.5}
           transparent
-          opacity={0.92}
+          opacity={dimmed ? 0.3 : 0.92}
         />
       </RoundedBox>
 
@@ -250,19 +285,27 @@ function ZonePlatform({
       <mesh position={[0, 0.18, 0]} onClick={(e) => { e.stopPropagation(); onClick(); }}>
         <boxGeometry args={[s - 0.1, 0.02, s - 0.1]} />
         <meshStandardMaterial
-          color={config.color}
+          color={riskColor || config.color}
           transparent
-          opacity={dark ? 0.2 : 0.12}
+          opacity={dimmed ? 0.1 : dark ? 0.2 : 0.12}
           metalness={0.9}
           roughness={0.05}
         />
       </mesh>
 
       {/* Selection ring */}
-      {selected && (
+      {selected && !highlighted && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.2, 0]}>
           <torusGeometry args={[s * 0.55, 0.06, 8, 48]} />
           <meshBasicMaterial color="#fbbf24" />
+        </mesh>
+      )}
+
+      {/* Attack path highlight ring (pulsing) */}
+      {highlighted && (
+        <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.22, 0]}>
+          <torusGeometry args={[s * 0.6, 0.08, 8, 48]} />
+          <meshBasicMaterial color={RISK_COLORS_3D[highlightRiskLevel || 'medium'] || '#3b82f6'} />
         </mesh>
       )}
 
@@ -381,6 +424,9 @@ function ConduitConnection({
   dark,
   tierGap,
   conduitIndex,
+  highlighted,
+  highlightRiskLevel,
+  dimmed,
 }: {
   conduit: Conduit;
   fromPos: [number, number, number];
@@ -390,6 +436,9 @@ function ConduitConnection({
   dark: boolean;
   tierGap: number;
   conduitIndex: number;
+  highlighted?: boolean;
+  highlightRiskLevel?: string;
+  dimmed?: boolean;
 }) {
   // For conduits that skip tiers, arc outward in Z to avoid passing through
   // intermediate platforms. Adjacent tiers get a small arc; skipping tiers
@@ -405,11 +454,16 @@ function ConduitConnection({
     (fromPos[2] + toPos[2]) / 2 + zOffset,
   ];
 
-  const lineColor = conduit.requires_inspection
-    ? '#f97316'
-    : selected
-      ? '#60a5fa'
-      : dark ? '#94a3b8' : '#9ca3af';
+  const highlightColor = highlightRiskLevel
+    ? (RISK_COLORS_3D[highlightRiskLevel] || '#3b82f6')
+    : '#3b82f6';
+  const lineColor = highlighted
+    ? highlightColor
+    : conduit.requires_inspection
+      ? '#f97316'
+      : selected
+        ? '#60a5fa'
+        : dark ? '#94a3b8' : '#9ca3af';
 
   // Extract individual coordinates for stable useMemo dependencies
   const fx = fromPos[0], fy = fromPos[1], fz = fromPos[2];
@@ -438,19 +492,21 @@ function ConduitConnection({
         end={toPos}
         mid={mid}
         color={lineColor}
-        lineWidth={selected ? 4 : 2.5}
+        lineWidth={highlighted ? 5 : selected ? 4 : 2.5}
+        transparent={dimmed}
+        opacity={dimmed ? 0.2 : 1}
       />
 
       {/* Outer glow */}
-      {dark && (
+      {(dark || highlighted) && !dimmed && (
         <QuadraticBezierLine
           start={fromPos}
           end={toPos}
           mid={mid}
           color={lineColor}
-          lineWidth={selected ? 10 : 6}
+          lineWidth={highlighted ? 14 : selected ? 10 : 6}
           transparent
-          opacity={0.12}
+          opacity={highlighted ? 0.25 : 0.12}
         />
       )}
 
@@ -561,6 +617,9 @@ function Scene({
   onSelectConduit,
   dark,
   bgColor,
+  riskOverlayEnabled,
+  zoneRisks,
+  highlightedPath,
 }: Zone3DEditorProps & { dark: boolean; bgColor: string }) {
   const positions = useMemo(
     () => computeZonePositions(project.zones),
@@ -578,6 +637,9 @@ function Scene({
       {project.zones.map((zone) => {
         const pos = positions.get(zone.id);
         if (!pos) return null;
+        const risk = zoneRisks?.get(zone.id);
+        const isInPath = highlightedPath?.zoneIds.has(zone.id) ?? false;
+        const hasDimming = highlightedPath != null && !isInPath;
         return (
           <ZonePlatform
             key={zone.id}
@@ -586,6 +648,11 @@ function Scene({
             selected={selectedZone?.id === zone.id}
             onClick={() => onSelectZone(zone)}
             dark={dark}
+            riskLevel={risk?.level}
+            riskOverlay={riskOverlayEnabled}
+            highlighted={isInPath}
+            highlightRiskLevel={isInPath ? highlightedPath?.riskLevel : undefined}
+            dimmed={hasDimming}
           />
         );
       })}
@@ -600,6 +667,8 @@ function Scene({
         const tierGap = (fromZone && toZone)
           ? Math.abs(ZONE_TYPE_CONFIG[fromZone.type].level - ZONE_TYPE_CONFIG[toZone.type].level)
           : 1;
+        const isInPath = highlightedPath?.conduitIds.has(conduit.id) ?? false;
+        const hasDimming = highlightedPath != null && !isInPath;
         return (
           <ConduitConnection
             key={conduit.id}
@@ -611,6 +680,9 @@ function Scene({
             dark={dark}
             tierGap={tierGap}
             conduitIndex={conduitIndex}
+            highlighted={isInPath}
+            highlightRiskLevel={isInPath ? highlightedPath?.riskLevel : undefined}
+            dimmed={hasDimming}
           />
         );
       })}

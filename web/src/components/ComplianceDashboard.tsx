@@ -1,44 +1,7 @@
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
-import type { Project, ValidationResult, PolicyViolation } from '../types/models';
+import type { Project, ValidationResult, PolicyViolation, ControlStatus, GapAnalysisReport } from '../types/models';
 import { ZONE_TYPE_CONFIG, SECURITY_LEVEL_CONFIG } from '../types/models';
-
-// ---------------------------------------------------------------------------
-// Gap Analysis types (matching backend GapAnalysisReport)
-// ---------------------------------------------------------------------------
-
-type ControlStatus = 'met' | 'partial' | 'unmet' | 'not_applicable';
-
-interface ControlAssessment {
-  sr_id: string;
-  sr_name: string;
-  fr_id: string;
-  fr_name: string;
-  status: ControlStatus;
-  details: string;
-  remediation: string | null;
-}
-
-interface ZoneGapAnalysis {
-  zone_id: string;
-  zone_name: string;
-  zone_type: string;
-  security_level_target: number;
-  total_controls: number;
-  met_controls: number;
-  partial_controls: number;
-  unmet_controls: number;
-  compliance_percentage: number;
-  controls: ControlAssessment[];
-}
-
-interface GapAnalysisReport {
-  project_name: string;
-  analysis_date: string;
-  overall_compliance: number;
-  zones: ZoneGapAnalysis[];
-  summary: { met: number; partial: number; unmet: number; not_applicable?: number };
-  priority_remediations: string[];
-}
+import { api } from '../api/client';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -146,16 +109,7 @@ const ComplianceDashboard = memo(({
     setGapLoading(true);
     setGapError(null);
     try {
-      const token = localStorage.getItem('induform_access_token');
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const response = await fetch(`/api/projects/${projectId}/gap-analysis`, { headers });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(typeof body.detail === 'string' ? body.detail : 'Failed to fetch gap analysis');
-      }
-      const data: GapAnalysisReport = await response.json();
+      const data = await api.getGapAnalysis(projectId);
       setGapReport(data);
     } catch (err) {
       setGapError(err instanceof Error ? err.message : 'Unknown error');

@@ -184,6 +184,72 @@ export interface VulnerabilitySummary {
   top_affected_assets: Array<{ asset_id: string; asset_name: string; count: number }>;
 }
 
+// Gap Analysis types
+export type ControlStatus = 'met' | 'partial' | 'unmet' | 'not_applicable';
+
+export interface ControlAssessment {
+  sr_id: string;
+  sr_name: string;
+  fr_id: string;
+  fr_name: string;
+  status: ControlStatus;
+  details: string;
+  remediation: string | null;
+}
+
+export interface ZoneGapAnalysis {
+  zone_id: string;
+  zone_name: string;
+  zone_type: string;
+  security_level_target: number;
+  total_controls: number;
+  met_controls: number;
+  partial_controls: number;
+  unmet_controls: number;
+  compliance_percentage: number;
+  controls: ControlAssessment[];
+}
+
+export interface GapAnalysisReport {
+  project_name: string;
+  analysis_date: string;
+  overall_compliance: number;
+  zones: ZoneGapAnalysis[];
+  summary: Record<string, number>;
+  priority_remediations: string[];
+}
+
+// Analytics/Metrics types
+export interface MetricsDataPoint {
+  recorded_at: string;
+  zone_count: number;
+  asset_count: number;
+  conduit_count: number;
+  compliance_score: number;
+  risk_score: number;
+  error_count: number;
+  warning_count: number;
+}
+
+export interface TrendDirection {
+  value: number;
+  direction: 'up' | 'down' | 'stable';
+  change: number;
+}
+
+export interface AnalyticsSummary {
+  current: MetricsDataPoint | null;
+  compliance_trend: TrendDirection | null;
+  risk_trend: TrendDirection | null;
+  zone_count_trend: TrendDirection | null;
+  asset_count_trend: TrendDirection | null;
+  min_compliance: number | null;
+  max_compliance: number | null;
+  min_risk: number | null;
+  max_risk: number | null;
+  snapshot_count: number;
+}
+
 export interface ProjectResponse {
   project: Project;
   validation: ValidationReport;

@@ -19,6 +19,8 @@ export interface ZoneNodeData extends Record<string, unknown> {
   riskLevel?: string;
   riskOverlay?: boolean;
   remoteUser?: string;
+  highlighted?: boolean;
+  highlightRiskLevel?: string;
 }
 
 export type ZoneNodeType = Node<ZoneNodeData, 'zone'>;
@@ -44,6 +46,8 @@ const ZoneNode = memo(({ data, selected }: NodeProps<ZoneNodeType>) => {
     riskLevel,
     riskOverlay = false,
     remoteUser,
+    highlighted = false,
+    highlightRiskLevel,
   } = data as ZoneNodeData;
   const typeConfig = ZONE_TYPE_CONFIG[zone.type];
   const slConfig = SECURITY_LEVEL_CONFIG[zone.security_level_target];
@@ -61,7 +65,12 @@ const ZoneNode = memo(({ data, selected }: NodeProps<ZoneNodeType>) => {
   }, []);
 
   const hasIssues = errorCount > 0 || warningCount > 0;
-  const borderColor = riskOverlay && riskLevel ? RISK_BORDER_COLORS[riskLevel] || typeConfig.color : typeConfig.color;
+  const attackPathColor = highlightRiskLevel === 'critical' ? '#ef4444' :
+                          highlightRiskLevel === 'high' ? '#f97316' :
+                          highlightRiskLevel === 'medium' ? '#eab308' : '#3b82f6';
+  const borderColor = highlighted && highlightRiskLevel ? attackPathColor
+    : riskOverlay && riskLevel ? RISK_BORDER_COLORS[riskLevel] || typeConfig.color
+    : typeConfig.color;
 
   return (
     <div
@@ -69,11 +78,13 @@ const ZoneNode = memo(({ data, selected }: NodeProps<ZoneNodeType>) => {
         px-4 py-3 rounded-lg shadow-lg border-2 min-w-[180px]
         transition-all duration-200 cursor-pointer group
         ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}
+        ${highlighted && !selected ? 'ring-2 ring-offset-2' : ''}
       `}
       style={{
         backgroundColor: theme === 'dark' ? '#1f2937' : 'white',
         borderColor,
-        borderWidth: riskOverlay ? 3 : 2,
+        borderWidth: highlighted ? 3 : (riskOverlay ? 3 : 2),
+        ...(highlighted && !selected ? { '--tw-ring-color': attackPathColor, boxShadow: `0 0 0 2px ${attackPathColor}40` } as React.CSSProperties : {}),
       }}
       onClick={() => onSelect?.(zone)}
     >

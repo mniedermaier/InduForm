@@ -69,6 +69,13 @@ VALIDATION_CHECK_STANDARDS: dict[str, set[str]] = {
     "PURDUE_NON_ADJACENT": {ComplianceStandard.PURDUE},
     "NIST_ASSET_INVENTORY_GAP": {ComplianceStandard.NIST_CSF},
     "CIP_ESP_MISSING": {ComplianceStandard.NERC_CIP},
+    "NIST_ACCESS_CONTROL": {ComplianceStandard.NIST_CSF},
+    "NIST_DETECTION_GAP": {ComplianceStandard.NIST_CSF},
+    "NIST_RECOVERY_PLAN": {ComplianceStandard.NIST_CSF},
+    "CIP_ACCESS_POINT": {ComplianceStandard.NERC_CIP},
+    "CIP_BES_CLASSIFICATION": {ComplianceStandard.NERC_CIP},
+    "CIP_CHANGE_MGMT": {ComplianceStandard.NERC_CIP},
+    "PURDUE_SAFETY_DIRECT": {ComplianceStandard.PURDUE},
 }
 
 # Maps each policy rule ID to the set of standards it applies to.
@@ -81,6 +88,9 @@ POLICY_RULE_STANDARDS: dict[str, set[str]] = {
     "POL-006": {ComplianceStandard.IEC62443},
     "POL-007": {ComplianceStandard.PURDUE},
     "NIST-001": {ComplianceStandard.NIST_CSF},
+    "NIST-002": {ComplianceStandard.NIST_CSF},
     "CIP-001": {ComplianceStandard.NERC_CIP},
     "CIP-002": {ComplianceStandard.NERC_CIP},
+    "CIP-003": {ComplianceStandard.NERC_CIP},
+    "PURDUE-002": {ComplianceStandard.PURDUE},
 }

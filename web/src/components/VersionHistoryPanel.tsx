@@ -281,7 +281,16 @@ export default function VersionHistoryPanel({
                       <div key={z.id} className="text-red-400">- {z.name}</div>
                     ))}
                     {diff.zones.modified.map((z) => (
-                      <div key={z.id} className="text-yellow-400">~ {z.name}</div>
+                      <div key={z.id}>
+                        <div className="text-yellow-400">~ {z.name}</div>
+                        {z.changes && Object.entries(z.changes).map(([field, change]) => (
+                          <div key={field} className="text-slate-400 ml-4">
+                            {field}: <span className="text-red-400">{String(change.from)}</span>
+                            {' → '}
+                            <span className="text-green-400">{String(change.to)}</span>
+                          </div>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -299,7 +308,16 @@ export default function VersionHistoryPanel({
                       <div key={`${a.zone_id}:${a.id}`} className="text-red-400">- {a.name}</div>
                     ))}
                     {diff.assets.modified.map((a) => (
-                      <div key={`${a.zone_id}:${a.id}`} className="text-yellow-400">~ {a.name}</div>
+                      <div key={`${a.zone_id}:${a.id}`}>
+                        <div className="text-yellow-400">~ {a.name}</div>
+                        {a.changes && Object.entries(a.changes).map(([field, change]) => (
+                          <div key={field} className="text-slate-400 ml-4">
+                            {field}: <span className="text-red-400">{String(change.from)}</span>
+                            {' → '}
+                            <span className="text-green-400">{String(change.to)}</span>
+                          </div>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -317,7 +335,16 @@ export default function VersionHistoryPanel({
                       <div key={c.id} className="text-red-400">- {c.from_zone} → {c.to_zone}</div>
                     ))}
                     {diff.conduits.modified.map((c) => (
-                      <div key={c.id} className="text-yellow-400">~ {c.id}</div>
+                      <div key={c.id}>
+                        <div className="text-yellow-400">~ {c.id}</div>
+                        {c.changes && Object.entries(c.changes).map(([field, change]) => (
+                          <div key={field} className="text-slate-400 ml-4">
+                            {field}: <span className="text-red-400">{String(change.from)}</span>
+                            {' → '}
+                            <span className="text-green-400">{String(change.to)}</span>
+                          </div>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 </div>

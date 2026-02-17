@@ -1768,6 +1768,217 @@ async def export_project_excel(
     return {"excel_base64": excel_data, "filename": filename}
 
 
+def _draw_risk_matrix(
+    risk_result,
+    zones: list,
+):
+    """Render a 5×5 risk matrix heatmap as a ReportLab Drawing."""
+    from reportlab.graphics.shapes import Drawing, Rect, String
+    from reportlab.lib import colors as gcolors
+
+    cell_w, cell_h = 52, 40
+    margin_left, margin_bottom = 80, 40
+    width = margin_left + 5 * cell_w + 20
+    height = margin_bottom + 5 * cell_h + 50
+
+    d = Drawing(width, height)
+
+    # Risk level color for each cell (row=impact 0-4, col=likelihood 0-4)
+    # Higher row+col = higher risk
+    cell_colors = [
+        ["#22c55e", "#22c55e", "#eab308", "#eab308", "#f97316"],  # row 0 (Negligible)
+        ["#22c55e", "#eab308", "#eab308", "#f97316", "#f97316"],  # row 1 (Minor)
+        ["#eab308", "#eab308", "#f97316", "#f97316", "#ef4444"],  # row 2 (Moderate)
+        ["#eab308", "#f97316", "#f97316", "#ef4444", "#ef4444"],  # row 3 (Major)
+        ["#f97316", "#f97316", "#ef4444", "#ef4444", "#ef4444"],  # row 4 (Catastrophic)
+    ]
+
+    impact_labels = ["Negligible", "Minor", "Moderate", "Major", "Catastrophic"]
+    likelihood_labels = ["Rare", "Unlikely", "Possible", "Likely", "Almost\nCertain"]
+
+    # Draw cells
+    for row in range(5):
+        for col in range(5):
+            x = margin_left + col * cell_w
+            y = margin_bottom + row * cell_h
+            r = Rect(x, y, cell_w, cell_h)
+            r.fillColor = gcolors.HexColor(cell_colors[row][col])
+            r.strokeColor = gcolors.HexColor("#94a3b8")
+            r.strokeWidth = 0.5
+            d.add(r)
+
+    # Place zone abbreviations in cells based on risk score and SL-T
+    if risk_result.zone_risks:
+        for zone_id, zr in risk_result.zone_risks.items():
+            # Find the zone to get its SL-T
+            zone = next((z for z in zones if z.id == zone_id), None)
+            if not zone:
+                continue
+            # Impact: SL-T 1=row0 ... SL-T 4=row3, default row2
+            impact_row = min(max(zone.security_level_target - 1, 0), 4)
+            # Likelihood: risk score 0-20=col0 ... 80-100=col4
+            likelihood_col = min(int(zr.score / 20), 4)
+            x = margin_left + likelihood_col * cell_w + cell_w / 2
+            y = margin_bottom + impact_row * cell_h + cell_h / 2
+            label = zone.name[:6]
+            s = String(x, y - 4, label, fontSize=7, textAnchor="middle")
+            s.fillColor = gcolors.white
+            d.add(s)
+
+    # Y-axis labels (Impact)
+    for i, label in enumerate(impact_labels):
+        y = margin_bottom + i * cell_h + cell_h / 2
+        s = String(margin_left - 5, y - 4, label, fontSize=7, textAnchor="end")
+        s.fillColor = gcolors.HexColor("#334155")
+        d.add(s)
+
+    # X-axis labels (Likelihood)
+    for i, label in enumerate(likelihood_labels):
+        x = margin_left + i * cell_w + cell_w / 2
+        # Handle multi-line by using first word only
+        display = label.split("\n")[0]
+        s = String(x, margin_bottom - 12, display, fontSize=7, textAnchor="middle")
+        s.fillColor = gcolors.HexColor("#334155")
+        d.add(s)
+
+    # Axis titles
+    s = String(
+        margin_left + 5 * cell_w / 2,
+        margin_bottom - 28,
+        "Likelihood →",
+        fontSize=8,
+        textAnchor="middle",
+    )
+    s.fillColor = gcolors.HexColor("#1e40af")
+    d.add(s)
+
+    s = String(8, margin_bottom + 5 * cell_h / 2, "Impact →", fontSize=8, textAnchor="middle")
+    s.fillColor = gcolors.HexColor("#1e40af")
+    d.add(s)
+
+    return d
+
+
+def _draw_topology_diagram(
+    zones: list,
+    conduits: list,
+):
+    """Render a zone/conduit topology diagram as a ReportLab Drawing."""
+    from reportlab.graphics.shapes import Drawing, Line, Rect, String
+    from reportlab.lib import colors as gcolors
+
+    # Layer order (Purdue-like, top to bottom)
+    layer_order = ["enterprise", "dmz", "site", "area", "cell", "safety"]
+    layer_y = {name: (5 - i) * 70 + 40 for i, name in enumerate(layer_order)}
+
+    # Group zones by layer
+    layers: dict[str, list] = {name: [] for name in layer_order}
+    for zone in zones:
+        zone_type = zone.type.value if hasattr(zone.type, "value") else str(zone.type)
+        if zone_type in layers:
+            layers[zone_type].append(zone)
+        else:
+            layers["area"].append(zone)  # fallback
+
+    # Calculate dimensions
+    max_per_layer = max((len(v) for v in layers.values() if v), default=1)
+    box_w, box_h = 100, 35
+    h_spacing = 120
+    width = max(max_per_layer * h_spacing + 60, 500)
+    height = 6 * 70 + 100
+
+    d = Drawing(width, height)
+
+    # Zone type colors
+    type_colors = {
+        "enterprise": "#3b82f6",
+        "dmz": "#f59e0b",
+        "site": "#8b5cf6",
+        "area": "#06b6d4",
+        "cell": "#10b981",
+        "safety": "#ef4444",
+    }
+
+    # Draw zones and record positions
+    zone_positions: dict[str, tuple[float, float]] = {}
+    for layer_name, layer_zones in layers.items():
+        if not layer_zones:
+            continue
+        y = layer_y[layer_name]
+        total_width = len(layer_zones) * h_spacing
+        start_x = (width - total_width) / 2 + h_spacing / 2 - box_w / 2
+
+        # Layer label
+        label_s = String(15, y + box_h / 2 - 4, layer_name.upper(), fontSize=6, textAnchor="start")
+        label_s.fillColor = gcolors.HexColor("#94a3b8")
+        d.add(label_s)
+
+        for i, zone in enumerate(layer_zones):
+            x = start_x + i * h_spacing
+            center_x = x + box_w / 2
+            center_y = y + box_h / 2
+            zone_positions[zone.id] = (center_x, center_y)
+
+            color = type_colors.get(
+                zone.type.value if hasattr(zone.type, "value") else str(zone.type),
+                "#64748b",
+            )
+            r = Rect(x, y, box_w, box_h, rx=4, ry=4)
+            r.fillColor = gcolors.HexColor(color)
+            r.strokeColor = gcolors.HexColor("#1e293b")
+            r.strokeWidth = 0.8
+            d.add(r)
+
+            # Zone name (truncated)
+            name = zone.name[:14]
+            s = String(center_x, center_y, name, fontSize=7, textAnchor="middle")
+            s.fillColor = gcolors.white
+            d.add(s)
+
+            # SL-T badge
+            sl = String(
+                center_x,
+                y + 5,
+                f"SL-{zone.security_level_target}",
+                fontSize=6,
+                textAnchor="middle",
+            )
+            sl.fillColor = gcolors.HexColor("#e2e8f0")
+            d.add(sl)
+
+    # Draw conduits as lines
+    for conduit in conduits:
+        from_pos = zone_positions.get(conduit.from_zone)
+        to_pos = zone_positions.get(conduit.to_zone)
+        if not from_pos or not to_pos:
+            continue
+
+        color = "#22c55e" if conduit.requires_inspection else "#ef4444"
+        line = Line(from_pos[0], from_pos[1], to_pos[0], to_pos[1])
+        line.strokeColor = gcolors.HexColor(color)
+        line.strokeWidth = 1.2
+        d.add(line)
+
+    # Legend
+    legend_y = 10
+    legend_items = [
+        ("#22c55e", "Inspected conduit"),
+        ("#ef4444", "Uninspected conduit"),
+    ]
+    legend_x = 10
+    for color, label in legend_items:
+        line = Line(legend_x, legend_y, legend_x + 20, legend_y)
+        line.strokeColor = gcolors.HexColor(color)
+        line.strokeWidth = 2
+        d.add(line)
+        s = String(legend_x + 25, legend_y - 3, label, fontSize=6, textAnchor="start")
+        s.fillColor = gcolors.HexColor("#334155")
+        d.add(s)
+        legend_x += 120
+
+    return d
+
+
 # PDF Report endpoint
 @router.post("/{project_id}/export/pdf")
 async def export_project_pdf(
@@ -1959,6 +2170,8 @@ async def export_project_pdf(
         "9. Recommended Security Controls",
         "10. Validation Results",
         "11. Policy Violations",
+        "12. Network Topology",
+        "13. Attack Path Analysis",
     ]
     for item in toc_items:
         story.append(
@@ -1987,6 +2200,7 @@ async def export_project_pdf(
         ["High Violations", str(len(high_violations))],
         ["Validation Errors", str(validation_report.error_count)],
         ["Validation Warnings", str(validation_report.warning_count)],
+        ["Compliance Score", f"{gap_report.overall_compliance:.1f}%"],
     ]
 
     t = RLTable(summary_data, colWidths=[3 * inch, 2 * inch])
@@ -2177,6 +2391,14 @@ async def export_project_pdf(
                 )
             )
 
+    story.append(Spacer(1, 0.3 * inch))
+
+    # Risk Matrix visualization
+    story.append(Paragraph("Risk Matrix", subheading_style))
+    risk_matrix_drawing = _draw_risk_matrix(risk_result, project.zones)
+    from reportlab.graphics import renderPDF
+
+    story.append(renderPDF.GraphicsFlowable(risk_matrix_drawing))
     story.append(Spacer(1, 0.3 * inch))
 
     # --- 6. Gap Analysis ---
@@ -2461,6 +2683,164 @@ async def export_project_pdf(
     else:
         story.append(
             Paragraph("<b>No policy violations found.</b> All policy rules pass.", normal_style)
+        )
+
+    # --- 12. Network Topology ---
+    story.append(PageBreak())
+    story.append(Paragraph("12. Network Topology", heading_style))
+    story.append(Spacer(1, 0.2 * inch))
+
+    if project.zones:
+        story.append(
+            Paragraph(
+                f"Zone/conduit topology diagram showing {total_zones} zone(s) and "
+                f"{total_conduits} conduit connection(s), arranged by Purdue model layers.",
+                normal_style,
+            )
+        )
+        story.append(Spacer(1, 0.15 * inch))
+        topo_drawing = _draw_topology_diagram(project.zones, project.conduits)
+        story.append(renderPDF.GraphicsFlowable(topo_drawing))
+    else:
+        story.append(Paragraph("No zones defined — topology diagram unavailable.", normal_style))
+
+    story.append(Spacer(1, 0.3 * inch))
+
+    # --- 13. Attack Path Analysis ---
+    story.append(PageBreak())
+    story.append(Paragraph("13. Attack Path Analysis", heading_style))
+    story.append(Spacer(1, 0.2 * inch))
+
+    from induform.engine.attack_path import analyze_attack_paths
+
+    attack_analysis = analyze_attack_paths(project)
+
+    story.append(Paragraph(attack_analysis.summary, normal_style))
+    story.append(Spacer(1, 0.15 * inch))
+
+    if attack_analysis.entry_points:
+        entry_text = ", ".join(attack_analysis.entry_points)
+        story.append(Paragraph(f"<b>Entry points:</b> {entry_text}", normal_style))
+
+    if attack_analysis.high_value_targets:
+        target_text = ", ".join(attack_analysis.high_value_targets)
+        story.append(Paragraph(f"<b>High-value targets:</b> {target_text}", normal_style))
+
+    story.append(Spacer(1, 0.15 * inch))
+
+    if attack_analysis.paths:
+        # Path summary table
+        story.append(Paragraph("Attack Path Summary", subheading_style))
+        path_data = [["Entry", "Target", "Steps", "Risk Score", "Risk Level"]]
+        for path in attack_analysis.paths:
+            entry_name = path.entry_zone_name[:15]
+            target_name = path.target_zone_name[:15]
+            path_data.append(
+                [
+                    entry_name,
+                    target_name,
+                    str(len(path.steps)),
+                    f"{path.risk_score:.0f}/100",
+                    path.risk_level.upper(),
+                ]
+            )
+
+        apt = RLTable(
+            path_data,
+            colWidths=[1.2 * inch, 1.2 * inch, 0.6 * inch, 0.9 * inch, 0.9 * inch],
+        )
+        apt.setStyle(make_table_style("#b91c1c", "#fef2f2"))
+        story.append(apt)
+        story.append(Spacer(1, 0.2 * inch))
+
+        # Detailed breakdown for top 5 paths
+        story.append(Paragraph("Detailed Path Analysis (Top 5)", subheading_style))
+        for idx, path in enumerate(attack_analysis.paths[:5], 1):
+            story.append(
+                Paragraph(
+                    f"<b>Path {idx}:</b> {path.entry_zone_name} → {path.target_zone_name} "
+                    f"(Risk: {path.risk_score:.0f}, {path.risk_level.upper()})",
+                    ParagraphStyle(
+                        "PathTitle",
+                        parent=normal_style,
+                        fontSize=10,
+                        spaceAfter=4,
+                        textColor=colors.HexColor("#1e40af"),
+                    ),
+                )
+            )
+            story.append(
+                Paragraph(
+                    f"<i>Reason:</i> {path.target_reason}",
+                    ParagraphStyle(
+                        "PathReason",
+                        parent=normal_style,
+                        fontSize=9,
+                        leftIndent=15,
+                        spaceAfter=3,
+                    ),
+                )
+            )
+
+            # Step chain
+            step_parts = [path.entry_zone_name]
+            for step in path.steps:
+                step_parts.append(f"→ {step.to_zone_name}")
+            chain_text = " ".join(step_parts)
+            story.append(
+                Paragraph(
+                    f"<b>Route:</b> {chain_text}",
+                    ParagraphStyle(
+                        "PathChain",
+                        parent=normal_style,
+                        fontSize=9,
+                        leftIndent=15,
+                        spaceAfter=3,
+                    ),
+                )
+            )
+
+            # Weaknesses
+            all_weaknesses = []
+            for step in path.steps:
+                for w in step.weaknesses:
+                    all_weaknesses.append(w)
+
+            if all_weaknesses:
+                for w in all_weaknesses[:5]:
+                    story.append(
+                        Paragraph(
+                            f"\u2022 {w.description}",
+                            ParagraphStyle(
+                                "WeakBullet",
+                                parent=normal_style,
+                                fontSize=8,
+                                leftIndent=25,
+                                spaceAfter=2,
+                            ),
+                        )
+                    )
+                    story.append(
+                        Paragraph(
+                            f"  ↳ {w.remediation}",
+                            ParagraphStyle(
+                                "WeakRemediation",
+                                parent=normal_style,
+                                fontSize=8,
+                                leftIndent=35,
+                                spaceAfter=2,
+                                textColor=colors.HexColor("#059669"),
+                            ),
+                        )
+                    )
+
+            story.append(Spacer(1, 0.15 * inch))
+    else:
+        story.append(
+            Paragraph(
+                "No attack paths identified between entry points and high-value targets.",
+                normal_style,
+            )
         )
 
     # Build PDF with page numbers

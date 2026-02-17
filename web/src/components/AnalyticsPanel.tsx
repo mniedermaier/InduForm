@@ -1,37 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import DialogShell from './DialogShell';
-
-// --- Types ---
-
-interface MetricsDataPoint {
-  recorded_at: string;
-  zone_count: number;
-  asset_count: number;
-  conduit_count: number;
-  compliance_score: number;
-  risk_score: number;
-  error_count: number;
-  warning_count: number;
-}
-
-interface TrendDirection {
-  value: number;
-  direction: 'up' | 'down' | 'stable';
-  change: number;
-}
-
-interface AnalyticsSummary {
-  current: MetricsDataPoint | null;
-  compliance_trend: TrendDirection | null;
-  risk_trend: TrendDirection | null;
-  zone_count_trend: TrendDirection | null;
-  asset_count_trend: TrendDirection | null;
-  min_compliance: number | null;
-  max_compliance: number | null;
-  min_risk: number | null;
-  max_risk: number | null;
-  snapshot_count: number;
-}
+import type { MetricsDataPoint, AnalyticsSummary, TrendDirection } from '../types/models';
+import { api } from '../api/client';
 
 // --- SVG Line Chart ---
 
@@ -347,20 +317,10 @@ export default function AnalyticsPanel({ projectId, onClose }: AnalyticsPanelPro
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('induform_access_token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      const [dataRes, summaryRes] = await Promise.all([
-        fetch(`/api/projects/${projectId}/analytics?days=${timeRange}`, { headers }),
-        fetch(`/api/projects/${projectId}/analytics/summary?days=${timeRange}`, { headers }),
+      const [dataJson, summaryJson] = await Promise.all([
+        api.getProjectAnalytics(projectId, timeRange),
+        api.getAnalyticsSummary(projectId, timeRange),
       ]);
-
-      if (!dataRes.ok || !summaryRes.ok) {
-        throw new Error('Failed to fetch analytics');
-      }
-
-      const dataJson = await dataRes.json();
-      const summaryJson = await summaryRes.json();
 
       setData(dataJson);
       setSummary(summaryJson);

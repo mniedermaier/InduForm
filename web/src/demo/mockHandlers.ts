@@ -10,6 +10,7 @@ import {
   DEMO_VALIDATION,
   DEMO_POLICY_VIOLATIONS,
   DEMO_RISK,
+  DEMO_ATTACK_PATHS,
   DEMO_VULN_SUMMARY,
   DEMO_VULNERABILITIES,
   DEMO_GAP_ANALYSIS,
@@ -111,6 +112,7 @@ export const handlers = [
   http.post('/api/validate', () => HttpResponse.json(DEMO_VALIDATION)),
   http.post('/api/policies', () => HttpResponse.json(DEMO_POLICY_VIOLATIONS)),
   http.post('/api/risk', () => HttpResponse.json(DEMO_RISK)),
+  http.post('/api/attack-paths', () => HttpResponse.json(DEMO_ATTACK_PATHS)),
 
   // ── Versions ──────────────────────────────────────────
   http.get('/api/projects/:id/versions/', () => HttpResponse.json(DEMO_VERSIONS)),
@@ -189,6 +191,16 @@ export const handlers = [
   http.post('/api/presence/heartbeat', () => HttpResponse.json({ status: 'ok' })),
   http.get('/api/presence/:id', () => HttpResponse.json([])),
   http.delete('/api/presence/leave', () => HttpResponse.json({ status: 'ok' })),
+
+  // ── PDF Export ──────────────────────────────────────────
+  http.post('/api/projects/:id/export/pdf', () => {
+    // Minimal valid PDF: single blank page with "Demo Mode" text
+    const MINIMAL_PDF = 'JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgNjEyIDc5Ml0vQ29udGVudHMgNCAwIFIvUmVzb3VyY2VzPDwvRm9udDw8L0YxIDUgMCBSPj4+Pj4+ZW5kb2JqCjQgMCBvYmo8PC9MZW5ndGggNDQ+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDEwMCA0MDAgVGQgKERlbW8gTW9kZSkgVGogRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqPDwvVHlwZS9Gb250L1N1YnR5cGUvVHlwZTEvQmFzZUZvbnQvSGVsdmV0aWNhPj5lbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjY2IDAwMDAwIG4gCjAwMDAwMDAzNjAgMDAwMDAgbiAKdHJhaWxlcjw8L1NpemUgNi9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjQzMAolJUVPRg==';
+    return HttpResponse.json({
+      pdf_base64: MINIMAL_PDF,
+      filename: 'demo_project_report.pdf',
+    });
+  }),
 
   // ── Comments ──────────────────────────────────────────
   http.get('/api/projects/:id/comments', () => HttpResponse.json([

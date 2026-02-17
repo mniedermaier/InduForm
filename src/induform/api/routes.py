@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from induform.engine.attack_path import AttackPathAnalysis, analyze_attack_paths
 from induform.engine.policy import PolicyViolation, evaluate_policies
 from induform.engine.resolver import resolve_security_controls
 from induform.engine.risk import RiskAssessment, assess_risk
@@ -320,6 +321,12 @@ async def risk_assessment(project: Project) -> RiskAssessment:
     - SL Gap: difference between zone's SL-T and connected zones' SL-T
     """
     return assess_risk(project)
+
+
+@router.post("/attack-paths")
+async def attack_paths(project: Project) -> AttackPathAnalysis:
+    """Analyze attack paths in a project."""
+    return analyze_attack_paths(project)
 
 
 @router.post("/generate")

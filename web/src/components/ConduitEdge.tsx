@@ -22,6 +22,8 @@ export interface ConduitEdgeData extends Record<string, unknown> {
   warningCount?: number;
   validationResults?: ValidationResult[];
   policyViolations?: PolicyViolation[];
+  highlighted?: boolean;
+  highlightRiskLevel?: string;
 }
 
 export type ConduitEdgeType = Edge<ConduitEdgeData, 'conduit'>;
@@ -79,6 +81,8 @@ const ConduitEdge = memo(({
   const warningCount = edgeData?.warningCount ?? 0;
   const validationResults = edgeData?.validationResults ?? [];
   const policyViolations = edgeData?.policyViolations ?? [];
+  const highlighted = edgeData?.highlighted ?? false;
+  const highlightRiskLevel = edgeData?.highlightRiskLevel;
   const [showPopover, setShowPopover] = useState(false);
   const warningRef = useRef<HTMLSpanElement>(null);
 
@@ -109,12 +113,17 @@ const ConduitEdge = memo(({
     ? ` +${conduit.flows.length - 2}`
     : '';
 
-  // Determine edge color based on validation status, then inspection requirement
-  const strokeColor = errorCount > 0
-    ? '#ef4444'
-    : (warningCount > 0 || conduit?.requires_inspection)
-      ? '#f97316'
-      : '#64748b';
+  // Determine edge color based on highlighting, validation status, then inspection requirement
+  const attackPathColor = highlightRiskLevel === 'critical' ? '#ef4444' :
+                          highlightRiskLevel === 'high' ? '#f97316' :
+                          highlightRiskLevel === 'medium' ? '#eab308' : '#3b82f6';
+
+  const strokeColor = highlighted ? attackPathColor :
+    errorCount > 0
+      ? '#ef4444'
+      : (warningCount > 0 || conduit?.requires_inspection)
+        ? '#f97316'
+        : '#64748b';
 
   const hasIssues = errorCount > 0 || warningCount > 0;
 
@@ -133,9 +142,10 @@ const ConduitEdge = memo(({
         id={id}
         path={edgePath}
         style={{
-          stroke: selected ? '#3b82f6' : strokeColor,
-          strokeWidth: selected ? 3 : 2,
-          strokeDasharray: conduit?.requires_inspection ? '5,5' : undefined,
+          stroke: selected && !highlighted ? '#3b82f6' : strokeColor,
+          strokeWidth: highlighted ? 4 : (selected ? 3 : 2),
+          strokeDasharray: highlighted ? '8,4' : (conduit?.requires_inspection ? '5,5' : undefined),
+          animation: highlighted ? 'conduit-flow 0.6s linear infinite' : undefined,
         }}
       />
       <EdgeLabelRenderer>

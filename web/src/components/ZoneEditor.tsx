@@ -56,6 +56,7 @@ interface ZoneEditorProps {
   zoneRisks?: Map<string, { score: number; level: string }>;
   remoteSelections?: Map<string, string>;
   onSelectionChange?: (selectedIds: string[]) => void;
+  highlightedPath?: { zoneIds: Set<string>; conduitIds: Set<string>; riskLevel: string } | null;
 }
 
 // Define custom node types
@@ -410,6 +411,7 @@ function ZoneEditorInner({
   zoneRisks,
   remoteSelections,
   onSelectionChange,
+  highlightedPath,
 }: ZoneEditorProps) {
   const { fitView, getNodes } = useReactFlow();
   const flowRef = useRef<HTMLDivElement>(null);
@@ -476,11 +478,13 @@ function ZoneEditorInner({
           riskLevel: risk?.level,
           riskOverlay: riskOverlayEnabled,
           remoteUser: remoteSelections?.get(zone.id),
+          highlighted: highlightedPath?.zoneIds.has(zone.id) ?? false,
+          highlightRiskLevel: highlightedPath?.zoneIds.has(zone.id) ? highlightedPath.riskLevel : undefined,
         } as ZoneNodeData,
         selected: selectedZone?.id === zone.id,
       };
     });
-  }, [project.zones, zonePositions, selectedZone, onSelectZone, onEditZone, validationResults, policyViolations, zoneRisks, riskOverlayEnabled, remoteSelections]);
+  }, [project.zones, zonePositions, selectedZone, onSelectZone, onEditZone, validationResults, policyViolations, zoneRisks, riskOverlayEnabled, remoteSelections, highlightedPath]);
 
   // Create initial edges
   const createEdges = useCallback((): Edge[] => {
@@ -501,6 +505,8 @@ function ZoneEditorInner({
           warningCount,
           validationResults: entityValidationResults,
           policyViolations: entityPolicyViolations,
+          highlighted: highlightedPath?.conduitIds.has(conduit.id) ?? false,
+          highlightRiskLevel: highlightedPath?.conduitIds.has(conduit.id) ? highlightedPath.riskLevel : undefined,
         } as ConduitEdgeData,
         selected: selectedConduit?.id === conduit.id,
       };
@@ -532,7 +538,7 @@ function ZoneEditorInner({
       }));
 
     return [...hierarchyEdges, ...conduitEdges];
-  }, [project.conduits, project.zones, selectedConduit, onSelectConduit, onEditConduit, validationResults, policyViolations]);
+  }, [project.conduits, project.zones, selectedConduit, onSelectConduit, onEditConduit, validationResults, policyViolations, highlightedPath]);
 
   const [nodes, setNodes, onNodesChangeRaw] = useNodesState(createNodes());
   const [edges, setEdges, onEdgesChangeRaw] = useEdgesState(createEdges());
@@ -607,13 +613,15 @@ function ZoneEditorInner({
             riskLevel: risk?.level,
             riskOverlay: riskOverlayEnabled,
             remoteUser: remoteSelections?.get(zone.id),
+            highlighted: highlightedPath?.zoneIds.has(zone.id) ?? false,
+            highlightRiskLevel: highlightedPath?.zoneIds.has(zone.id) ? highlightedPath.riskLevel : undefined,
           },
           selected: selectedZone?.id === zone.id,
         };
       })
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- onZonePositionsChange is a parent callback whose identity changes on every render; adding it would cause infinite node resets
-  }, [zoneIds, conduitIds, rearrangeKey, storedPositionsKey, createNodes, createEdges, setNodes, setEdges, project.zones, selectedZone, onSelectZone, onEditZone, validationResults, policyViolations, zoneRisks, riskOverlayEnabled, remoteSelections]);
+  }, [zoneIds, conduitIds, rearrangeKey, storedPositionsKey, createNodes, createEdges, setNodes, setEdges, project.zones, selectedZone, onSelectZone, onEditZone, validationResults, policyViolations, zoneRisks, riskOverlayEnabled, remoteSelections, highlightedPath]);
 
   // Update edges when conduits change or selection changes
   useEffect(() => {
@@ -639,13 +647,15 @@ function ZoneEditorInner({
               warningCount,
               validationResults: entityValidationResults,
               policyViolations: entityPolicyViolations,
+              highlighted: highlightedPath?.conduitIds.has(conduit.id) ?? false,
+              highlightRiskLevel: highlightedPath?.conduitIds.has(conduit.id) ? highlightedPath.riskLevel : undefined,
             },
             selected: selectedConduit?.id === conduit.id,
           };
         })
       );
     }
-  }, [conduitIds, createEdges, setEdges, project.conduits, selectedConduit, onSelectConduit, onEditConduit, validationResults, policyViolations]);
+  }, [conduitIds, createEdges, setEdges, project.conduits, selectedConduit, onSelectConduit, onEditConduit, validationResults, policyViolations, highlightedPath]);
 
   // Fit view when zones change significantly
   useEffect(() => {

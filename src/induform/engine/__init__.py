@@ -1,5 +1,9 @@
 """InduForm validation and policy engine."""
 
+from induform.engine.attack_path import (
+    AttackPathAnalysis,
+    analyze_attack_paths,
+)
 from induform.engine.gap_analysis import (
     GapAnalysisReport,
     ZoneGapAnalysis,
@@ -24,6 +28,7 @@ from induform.engine.validator import (
 )
 
 __all__ = [
+    "AttackPathAnalysis",
     "GapAnalysisReport",
     "PolicyRule",
     "RiskAssessment",
@@ -34,6 +39,7 @@ __all__ = [
     "ValidationSeverity",
     "ZoneGapAnalysis",
     "ZoneRisk",
+    "analyze_attack_paths",
     "analyze_gaps",
     "assess_risk",
     "calculate_zone_risk",
