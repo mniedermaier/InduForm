@@ -10,6 +10,8 @@ import {
   Edge,
   NodeTypes,
   EdgeTypes,
+  EdgeChange,
+  NodeChange,
   ConnectionMode,
   useReactFlow,
   Connection,
@@ -419,10 +421,15 @@ function ZoneEditorInner({
     [project.zones]
   );
 
+  // Track whether rearrange was just triggered (only true for the render where it changes)
+  const prevRearrangeKeyForLayout = useRef(rearrangeKey);
+  const rearrangeJustTriggered = prevRearrangeKeyForLayout.current !== rearrangeKey;
+  prevRearrangeKeyForLayout.current = rearrangeKey;
+
   // Calculate positions - prefer stored positions, fall back to auto-layout
   const zonePositions = useMemo(
     () => {
-      if (rearrangeKey && rearrangeKey > 0) {
+      if (rearrangeJustTriggered) {
         return optimizeLayoutForConduits(project.zones, project.conduits);
       }
       if (allZonesHavePositions) {
@@ -434,6 +441,7 @@ function ZoneEditorInner({
       }
       return calculateZonePositions(project.zones, project.conduits);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rearrangeJustTriggered is derived from rearrangeKey ref comparison
     [project.zones, project.conduits, rearrangeKey, allZonesHavePositions]
   );
 
@@ -526,8 +534,17 @@ function ZoneEditorInner({
     return [...hierarchyEdges, ...conduitEdges];
   }, [project.conduits, project.zones, selectedConduit, onSelectConduit, onEditConduit, validationResults, policyViolations]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(createNodes());
-  const [edges, setEdges, onEdgesChange] = useEdgesState(createEdges());
+  const [nodes, setNodes, onNodesChangeRaw] = useNodesState(createNodes());
+  const [edges, setEdges, onEdgesChangeRaw] = useEdgesState(createEdges());
+
+  // Filter out removal events — nodes/edges are managed via project state, not ReactFlow internals.
+  // This prevents accidental deletion via keyboard (Backspace/Delete) or ReactFlow edge cleanup.
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    onNodesChangeRaw(changes.filter(c => c.type !== 'remove'));
+  }, [onNodesChangeRaw]);
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
+    onEdgesChangeRaw(changes.filter(c => c.type !== 'remove'));
+  }, [onEdgesChangeRaw]);
 
   // Track previous values to detect actual changes
   const prevZoneIds = useRef(zoneIds);
@@ -546,7 +563,7 @@ function ZoneEditorInner({
     if (isLocalDrag && positionsChanged && !zonesChanged && !rearrangeTriggered) {
       localDragRef.current = false;
       prevStoredPositionsKey.current = storedPositionsKey;
-      // Still update data (selection, validation) without touching positions
+      // Fall through to data-only update below
     } else if (zonesChanged || rearrangeTriggered || positionsChanged) {
       const newNodes = createNodes();
       setNodes(newNodes);
@@ -565,34 +582,36 @@ function ZoneEditorInner({
         }
         onZonePositionsChange(positions);
       }
-    } else {
-      // Only update data (selection state, zone data, validation counts, risk, remote) without changing positions
-      setNodes(currentNodes =>
-        currentNodes.map(node => {
-          const zone = project.zones.find(z => z.id === node.id);
-          if (!zone) return node;
-          const { errorCount, warningCount, entityValidationResults, entityPolicyViolations } = computeEntityIssues(zone.id, validationResults, policyViolations);
-          const risk = zoneRisks?.get(zone.id);
-          return {
-            ...node,
-            data: {
-              zone,
-              selected: selectedZone?.id === zone.id,
-              onSelect: onSelectZone,
-              errorCount,
-              warningCount,
-              validationResults: entityValidationResults,
-              policyViolations: entityPolicyViolations,
-              riskScore: risk?.score,
-              riskLevel: risk?.level,
-              riskOverlay: riskOverlayEnabled,
-              remoteUser: remoteSelections?.get(zone.id),
-            },
-            selected: selectedZone?.id === zone.id,
-          };
-        })
-      );
+      return; // Full reset done, skip data-only update
     }
+
+    // Data-only update: update selection state, zone data, validation counts, risk, remote
+    // without changing node positions. Runs for local drags AND non-structural re-renders.
+    setNodes(currentNodes =>
+      currentNodes.map(node => {
+        const zone = project.zones.find(z => z.id === node.id);
+        if (!zone) return node;
+        const { errorCount, warningCount, entityValidationResults, entityPolicyViolations } = computeEntityIssues(zone.id, validationResults, policyViolations);
+        const risk = zoneRisks?.get(zone.id);
+        return {
+          ...node,
+          data: {
+            zone,
+            selected: selectedZone?.id === zone.id,
+            onSelect: onSelectZone,
+            errorCount,
+            warningCount,
+            validationResults: entityValidationResults,
+            policyViolations: entityPolicyViolations,
+            riskScore: risk?.score,
+            riskLevel: risk?.level,
+            riskOverlay: riskOverlayEnabled,
+            remoteUser: remoteSelections?.get(zone.id),
+          },
+          selected: selectedZone?.id === zone.id,
+        };
+      })
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- onZonePositionsChange is a parent callback whose identity changes on every render; adding it would cause infinite node resets
   }, [zoneIds, conduitIds, rearrangeKey, storedPositionsKey, createNodes, createEdges, setNodes, setEdges, project.zones, selectedZone, onSelectZone, onEditZone, validationResults, policyViolations, zoneRisks, riskOverlayEnabled, remoteSelections]);
 
@@ -801,6 +820,7 @@ function ZoneEditorInner({
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Strict}
         connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5,5' }}
+        deleteKeyCode={null}
         selectionOnDrag={false}
         onSelectionChange={(params) => {
           if (onSelectionChange) {
