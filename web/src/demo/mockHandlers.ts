@@ -118,12 +118,103 @@ export const handlers = [
   http.get('/api/projects/:id/versions/', () => HttpResponse.json(DEMO_VERSIONS)),
   http.get('/api/projects/:id/versions/count', () => HttpResponse.json({ count: DEMO_VERSIONS.length })),
 
+  // Create version snapshot
+  http.post('/api/projects/:id/versions/', () =>
+    HttpResponse.json({
+      id: 'ver-new-' + Date.now(),
+      version_number: 6,
+      created_by: 'demo-user',
+      created_by_username: 'demo',
+      created_at: new Date().toISOString(),
+      description: 'Manual snapshot (demo mode)',
+    }),
+  ),
+
+  // Restore version
+  http.post('/api/projects/:id/versions/:versionId/restore', () =>
+    HttpResponse.json({
+      id: 'ver-restored',
+      version_number: 7,
+      created_by: 'demo-user',
+      created_by_username: 'demo',
+      created_at: new Date().toISOString(),
+      description: 'Restored from snapshot (demo mode)',
+    }),
+  ),
+
+  // Compare versions
+  http.get('/api/projects/:id/versions/:versionA/compare/:versionB', () =>
+    HttpResponse.json({
+      version_a: { id: 'ver-004', version_number: 4, created_at: '2026-02-10T09:15:00Z' },
+      version_b: { id: 'ver-005', version_number: 5, created_at: '2026-02-15T14:30:00Z' },
+      zones: {
+        added: [{ id: 'zone-safety', name: 'Safety Instrumented Systems', type: 'safety' }],
+        removed: [],
+        modified: [{ id: 'zone-field', name: 'Field Device Network', changes: { asset_count: { old: 4, new: 5 } } }],
+      },
+      conduits: {
+        added: [{ id: 'conduit-field-safety', name: 'Field <> Safety' }],
+        removed: [],
+        modified: [],
+      },
+      assets: {
+        added: [{ id: 'asset-sis', name: 'Safety Controller', zone_name: 'Safety Instrumented Systems' }, { id: 'asset-gas', name: 'Chlorine Gas Detector', zone_name: 'Safety Instrumented Systems' }],
+        removed: [],
+        modified: [],
+      },
+    }),
+  ),
+
   // ── Templates ─────────────────────────────────────────
   http.get('/api/templates/', () => HttpResponse.json([
     { id: 'tpl-1', name: 'IEC 62443 Starter', description: 'Basic zone/conduit template with Enterprise, DMZ, and Control zones.', category: 'industrial', owner_id: 'system', owner_username: null, is_public: true, is_builtin: true, zone_count: 3, asset_count: 5, conduit_count: 2, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' },
     { id: 'tpl-2', name: 'Purdue Model Reference', description: 'Full Purdue model with all 6 levels from Enterprise to Safety.', category: 'reference', owner_id: 'system', owner_username: null, is_public: true, is_builtin: true, zone_count: 6, asset_count: 12, conduit_count: 7, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' },
     { id: 'tpl-3', name: 'NERC CIP Substation', description: 'Template for bulk electric system substation with ESP boundaries.', category: 'energy', owner_id: 'system', owner_username: null, is_public: true, is_builtin: true, zone_count: 4, asset_count: 8, conduit_count: 4, created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' },
   ])),
+
+  // Create template
+  http.post('/api/templates/', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      id: 'tpl-new-' + Date.now(),
+      ...body,
+      owner_id: 'demo-user',
+      owner_username: 'demo',
+      is_public: false,
+      is_builtin: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+  }),
+
+  // Update template
+  http.put('/api/templates/:id', async ({ params, request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({ id: params.id, ...body, updated_at: new Date().toISOString() });
+  }),
+
+  // Delete template
+  http.delete('/api/templates/:id', () =>
+    HttpResponse.json({ status: 'deleted' }),
+  ),
+
+  // Instantiate template (create project from template)
+  http.post('/api/templates/:id/instantiate', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      id: 'demo-from-tpl-' + Date.now(),
+      name: body.name || 'New Project from Template',
+      description: body.description || '',
+      owner_id: 'demo-user',
+      owner_username: 'demo',
+      permission: 'owner',
+      zone_count: 3,
+      conduit_count: 2,
+      asset_count: 5,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+  }),
 
   // ── Users & Teams ─────────────────────────────────────
   http.get('/api/users/', () => HttpResponse.json(DEMO_USERS)),
@@ -169,12 +260,149 @@ export const handlers = [
     HttpResponse.json(DEMO_VULNERABILITIES),
   ),
 
+  // Add vulnerability
+  http.post('/api/projects/:id/vulnerabilities', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      id: 'vuln-new-' + Date.now(),
+      ...body,
+      status: body.status || 'open',
+      discovered_at: new Date().toISOString(),
+      reporter_username: 'demo',
+    });
+  }),
+
+  // Update vulnerability
+  http.patch('/api/projects/:id/vulnerabilities/:vulnId', async ({ params, request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      id: params.vulnId,
+      ...body,
+      updated_at: new Date().toISOString(),
+    });
+  }),
+
+  // Delete vulnerability
+  http.delete('/api/projects/:id/vulnerabilities/:vulnId', () =>
+    HttpResponse.json({ status: 'deleted' }),
+  ),
+
+  // ── CVE / Vulnerability Scanning ───────────────────────
+  // CVE lookup
+  http.get('/api/projects/:id/cve-lookup/:cveId', ({ params }) =>
+    HttpResponse.json({
+      cve_id: params.cveId,
+      title: `Demo vulnerability for ${params.cveId}`,
+      description: 'This is a simulated CVE lookup result in demo mode.',
+      severity: 'high',
+      cvss_score: 7.5,
+      published: '2025-06-15T00:00:00Z',
+      references: ['https://nvd.nist.gov/vuln/detail/' + params.cveId],
+    }),
+  ),
+
+  // Scan single asset CVEs
+  http.post('/api/projects/:id/scan-cves', () =>
+    HttpResponse.json({
+      message: 'CVE scanning is not available in demo mode.',
+      vulnerabilities_found: 0,
+    }),
+  ),
+
+  // Scan all project CVEs
+  http.post('/api/projects/:id/scan-all-cves', () =>
+    HttpResponse.json({
+      job_id: 'demo-scan-' + Date.now(),
+      status: 'completed',
+      message: 'CVE scanning is simulated in demo mode.',
+    }),
+  ),
+
+  // Scan status
+  http.get('/api/projects/:id/scan-status/:jobId', () =>
+    HttpResponse.json({
+      job_id: 'demo-scan',
+      status: 'completed',
+      progress: 100,
+      total_assets: 22,
+      scanned_assets: 22,
+      vulnerabilities_found: 0,
+    }),
+  ),
+
+  // ── Nmap Import ────────────────────────────────────────
+  // Nmap scan upload
+  http.post('/api/projects/:id/nmap/upload', () =>
+    HttpResponse.json({
+      scan_id: 'demo-nmap-' + Date.now(),
+      hosts_found: 5,
+      filename: 'demo_scan.xml',
+      message: 'Nmap import simulated in demo mode.',
+    }),
+  ),
+
+  // List nmap scans
+  http.get('/api/projects/:id/nmap/scans', () =>
+    HttpResponse.json([
+      {
+        id: 'nmap-scan-1',
+        filename: 'network_scan_2026-02-15.xml',
+        hosts_found: 12,
+        imported_count: 8,
+        created_at: '2026-02-15T09:30:00Z',
+      },
+    ]),
+  ),
+
+  // Get scan details
+  http.get('/api/projects/:id/nmap/scans/:scanId', () =>
+    HttpResponse.json({
+      id: 'nmap-scan-1',
+      filename: 'network_scan_2026-02-15.xml',
+      hosts: [
+        { ip: '10.20.1.10', hostname: 'scada-server', os: 'Windows Server 2019', ports: [4840, 5678] },
+        { ip: '10.30.1.10', hostname: 'intake-plc', os: 'Siemens S7', ports: [102] },
+      ],
+      created_at: '2026-02-15T09:30:00Z',
+    }),
+  ),
+
+  // Import hosts from scan
+  http.post('/api/projects/:id/nmap/scans/:scanId/import', () =>
+    HttpResponse.json({
+      imported_count: 3,
+      skipped_count: 2,
+      message: 'Nmap host import simulated in demo mode.',
+    }),
+  ),
+
+  // Delete nmap scan
+  http.delete('/api/projects/:id/nmap/scans/:scanId', () =>
+    new HttpResponse(null, { status: 204 }),
+  ),
+
   // ── Project access ────────────────────────────────────
   http.get('/api/projects/:id/access', () => HttpResponse.json([
     { id: 'acc-1', user_id: 'user-alice', username: 'alice.chen', display_name: 'Alice Chen', permission: 'editor', granted_at: '2026-01-20T10:00:00Z' },
     { id: 'acc-2', user_id: 'user-bob', username: 'bob.mueller', display_name: 'Bob Mueller', permission: 'editor', granted_at: '2026-01-25T14:00:00Z' },
     { id: 'acc-3', user_id: 'user-carol', username: 'carol.tanaka', display_name: 'Carol Tanaka', permission: 'viewer', granted_at: '2026-02-01T09:00:00Z' },
   ])),
+
+  // Grant access
+  http.post('/api/projects/:id/access', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      id: 'acc-new-' + Date.now(),
+      user_id: body.user_id,
+      permission: body.permission || 'viewer',
+      granted_at: new Date().toISOString(),
+    });
+  }),
+
+  // Revoke access
+  http.delete('/api/projects/:id/access/:userId', () =>
+    HttpResponse.json({ status: 'revoked' }),
+  ),
 
   // ── Analytics ─────────────────────────────────────────
   http.get('/api/projects/:id/analytics', () =>
@@ -202,6 +430,51 @@ export const handlers = [
     });
   }),
 
+  // YAML export
+  http.post('/api/projects/:id/export/yaml', () =>
+    HttpResponse.json({
+      yaml_content: '# Demo YAML export\nversion: "1.0"\nproject:\n  name: Water Treatment Facility\n  compliance_standards:\n    - IEC62443\n    - NIST_CSF\nzones: []\nconduits: []\n',
+      filename: 'demo_project.yaml',
+    }),
+  ),
+
+  // JSON export
+  http.post('/api/projects/:id/export/json', () =>
+    HttpResponse.json({
+      json_content: JSON.stringify({ version: '1.0', project: { name: 'Water Treatment Facility' }, zones: [], conduits: [] }, null, 2),
+      filename: 'demo_project.json',
+    }),
+  ),
+
+  // Excel export
+  http.post('/api/projects/:id/export/excel', () =>
+    HttpResponse.json({
+      excel_base64: 'UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA==',
+      filename: 'demo_project.xlsx',
+    }),
+  ),
+
+  // CSV assets export
+  http.get('/api/projects/:id/export/assets-csv', () => {
+    const csv = 'zone_id,zone_name,asset_id,asset_name,asset_type,ip_address,vendor,model,criticality\nzone-enterprise,Enterprise Network,asset-erp,SAP ERP Server,server,10.0.1.5,SAP,S/4HANA,3\n';
+    return HttpResponse.json({ csv_content: csv, filename: 'demo_assets.csv' });
+  }),
+
+  // CSV template
+  http.get('/api/projects/:id/export/assets-csv-template', () => {
+    const csv = 'zone_id,zone_name,asset_name,asset_type,ip_address,vendor,model,criticality,description\n';
+    return HttpResponse.json({ csv_content: csv, filename: 'assets_template.csv' });
+  }),
+
+  // YAML import
+  http.post('/api/projects/import/yaml', () =>
+    HttpResponse.json({
+      id: 'demo-imported-' + Date.now(),
+      name: 'Imported Project (Demo)',
+      message: 'YAML import simulated in demo mode.',
+    }),
+  ),
+
   // ── Comments ──────────────────────────────────────────
   http.get('/api/projects/:id/comments', () => HttpResponse.json([
     { id: 'cmt-1', user_id: 'user-alice', username: 'alice.chen', display_name: 'Alice Chen', content: 'The SL gap on the field device network is our top priority. I\'ve requested quotes for industrial IDS from Claroty and Nozomi.', created_at: '2026-02-14T10:30:00Z', zone_id: 'zone-field' },
@@ -225,4 +498,35 @@ export const handlers = [
   http.get('/api/admin/users', () => HttpResponse.json(DEMO_ADMIN_USERS)),
   http.get('/api/admin/login-history', () => HttpResponse.json(DEMO_LOGIN_HISTORY)),
   http.post('/api/admin/make-first-admin', () => HttpResponse.json({ status: 'ok' })),
+
+  // Update admin user
+  http.patch('/api/admin/users/:userId', async ({ params, request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({ id: params.userId, ...body, updated_at: new Date().toISOString() });
+  }),
+
+  // Revoke all sessions
+  http.post('/api/admin/sessions/:userId/revoke-all', () =>
+    HttpResponse.json({ status: 'ok', revoked_count: 1 }),
+  ),
+
+  // Export activity
+  http.get('/api/admin/activity/export', () =>
+    HttpResponse.json({ csv_content: 'timestamp,user,action,entity\n2026-02-17,demo,update_project,Water Treatment\n', filename: 'activity_export.csv' }),
+  ),
+
+  // Bulk update users
+  http.post('/api/admin/users/bulk-update', () =>
+    HttpResponse.json({ updated_count: 0, message: 'Bulk update simulated in demo mode.' }),
+  ),
+
+  // Transfer project
+  http.patch('/api/admin/projects/:id/transfer', () =>
+    HttpResponse.json({ status: 'ok', message: 'Transfer simulated in demo mode.' }),
+  ),
+
+  // ── Attack Paths (DB-backed) ───────────────────────────
+  http.post('/api/projects/:id/attack-paths', () =>
+    HttpResponse.json(DEMO_ATTACK_PATHS),
+  ),
 ];

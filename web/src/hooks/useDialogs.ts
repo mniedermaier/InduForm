@@ -33,6 +33,7 @@ export interface DialogState {
   showAnalytics: boolean;
   showVulnerabilities: boolean;
   showAttackPaths: boolean;
+  showYamlImport: boolean;
 }
 
 export interface DialogActions {
@@ -90,6 +91,8 @@ export interface DialogActions {
   closeVulnerabilities: () => void;
   openAttackPaths: () => void;
   closeAttackPaths: () => void;
+  openYamlImport: () => void;
+  closeYamlImport: () => void;
   closeAll: () => void;
   closeTopmost: () => boolean; // Returns true if something was closed
 }
@@ -122,6 +125,7 @@ export function useDialogs(): [DialogState, DialogActions] {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showVulnerabilities, setShowVulnerabilities] = useState(false);
   const [showAttackPaths, setShowAttackPaths] = useState(false);
+  const [showYamlImport, setShowYamlImport] = useState(false);
 
   const state: DialogState = useMemo(() => ({
     showAddZone,
@@ -151,6 +155,7 @@ export function useDialogs(): [DialogState, DialogActions] {
     showAnalytics,
     showVulnerabilities,
     showAttackPaths,
+    showYamlImport,
   }), [
     showAddZone, showAddConduit, showAddAsset, fileDialogMode,
     pendingConnection, editingConduit, editingZone, contextMenu,
@@ -159,10 +164,11 @@ export function useDialogs(): [DialogState, DialogActions] {
     showRiskDashboard, showTemplateSelector, showAssetTable,
     showShareDialog, showTeamManagement, showNmapImport, showProfileSettings,
     showKeyboardShortcuts, showVersionHistory, showComplianceSettings,
-    showAnalytics, showVulnerabilities, showAttackPaths,
+    showAnalytics, showVulnerabilities, showAttackPaths, showYamlImport,
   ]);
 
   const closeTopmost = useCallback((): boolean => {
+    if (showYamlImport) { setShowYamlImport(false); return true; }
     if (showAttackPaths) { setShowAttackPaths(false); return true; }
     if (showVulnerabilities) { setShowVulnerabilities(false); return true; }
     if (showAnalytics) { setShowAnalytics(false); return true; }
@@ -192,7 +198,7 @@ export function useDialogs(): [DialogState, DialogActions] {
     if (contextMenu) { setContextMenu(null); return true; }
     return false;
   }, [
-    showAttackPaths, showVulnerabilities, showAnalytics, showComplianceSettings, showKeyboardShortcuts,
+    showYamlImport, showAttackPaths, showVulnerabilities, showAnalytics, showComplianceSettings, showKeyboardShortcuts,
     showVersionHistory, showAddZone, showAddConduit,
     editingZone, editingConduit,
     showAddAsset, fileDialogMode, showValidationResults, showExportDialog,
@@ -229,6 +235,7 @@ export function useDialogs(): [DialogState, DialogActions] {
     setShowAnalytics(false);
     setShowVulnerabilities(false);
     setShowAttackPaths(false);
+    setShowYamlImport(false);
   }, []);
 
   const actions: DialogActions = useMemo(() => ({
@@ -286,6 +293,8 @@ export function useDialogs(): [DialogState, DialogActions] {
     closeVulnerabilities: () => setShowVulnerabilities(false),
     openAttackPaths: () => setShowAttackPaths(true),
     closeAttackPaths: () => setShowAttackPaths(false),
+    openYamlImport: () => setShowYamlImport(true),
+    closeYamlImport: () => setShowYamlImport(false),
     closeAll,
     closeTopmost,
   }), [closeAll, closeTopmost]);

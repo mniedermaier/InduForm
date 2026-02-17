@@ -366,9 +366,7 @@ def export_rules_fortinet(ruleset: FirewallRuleset) -> str:
         log_traffic = "all" if rule.log else "disable"
 
         # Map protocol to FortiGate service name
-        service = _FORTINET_SERVICE_MAP.get(
-            rule.protocol.lower(), "ALL"
-        )
+        service = _FORTINET_SERVICE_MAP.get(rule.protocol.lower(), "ALL")
         # If unknown protocol but we have a port, create a custom service ref
         if service == "ALL" and rule.protocol.lower() != "any":
             port = _get_port(rule)
@@ -451,9 +449,7 @@ def export_rules_paloalto(ruleset: FirewallRuleset) -> str:
             ip_proto = _get_ip_protocol(rule.protocol)
             if port:
                 lines.append(f'{base} application "any"')
-                lines.append(
-                    f'{base} service "custom-{rule.protocol}-{ip_proto}-{port}"'
-                )
+                lines.append(f'{base} service "custom-{rule.protocol}-{ip_proto}-{port}"')
             else:
                 lines.append(f'{base} application "any"')
                 lines.append(f"{base} service any")
@@ -486,9 +482,7 @@ def export_rules_cisco_asa(ruleset: FirewallRuleset) -> str:
     zone_addresses: dict[str, set[str]] = {}
     for rule in ruleset.rules:
         if rule.source_addresses and rule.source_addresses != ["any"]:
-            zone_addresses.setdefault(rule.source_zone, set()).update(
-                rule.source_addresses
-            )
+            zone_addresses.setdefault(rule.source_zone, set()).update(rule.source_addresses)
         if rule.destination_addresses and rule.destination_addresses != ["any"]:
             zone_addresses.setdefault(rule.destination_zone, set()).update(
                 rule.destination_addresses
@@ -543,9 +537,7 @@ def export_rules_cisco_asa(ruleset: FirewallRuleset) -> str:
 
         if rule.protocol.lower() == "any" or ip_proto == "icmp":
             proto = "ip" if rule.protocol.lower() == "any" else "icmp"
-            lines.append(
-                f"access-list {acl_name} extended {action} {proto} {src_spec} {dst_spec}"
-            )
+            lines.append(f"access-list {acl_name} extended {action} {proto} {src_spec} {dst_spec}")
         elif port:
             lines.append(
                 f"access-list {acl_name} extended {action} {ip_proto} "
@@ -553,8 +545,7 @@ def export_rules_cisco_asa(ruleset: FirewallRuleset) -> str:
             )
         else:
             lines.append(
-                f"access-list {acl_name} extended {action} {ip_proto} "
-                f"{src_spec} {dst_spec}"
+                f"access-list {acl_name} extended {action} {ip_proto} {src_spec} {dst_spec}"
             )
 
         if rule.log:

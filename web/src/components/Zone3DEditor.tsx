@@ -732,6 +732,9 @@ const Zone3DEditor = memo(function Zone3DEditor(props: Zone3DEditorProps) {
         <Scene {...props} dark={dark} bgColor={bgColor} />
       </Canvas>
       <HtmlOverlays zones={props.project.zones} dark={dark} />
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-gray-800/80 text-gray-300 text-xs px-3 py-1.5 rounded-full backdrop-blur-sm pointer-events-none">
+        3D View — Read Only
+      </div>
     </div>
   );
 });

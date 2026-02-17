@@ -36,6 +36,7 @@ const ComplianceSettingsDialog = lazy(() => import('./ComplianceSettingsDialog')
 const AnalyticsPanel = lazy(() => import('./AnalyticsPanel'));
 const VulnerabilityPanel = lazy(() => import('./VulnerabilityPanel'));
 const AttackPathPanel = lazy(() => import('./AttackPathPanel'));
+const YamlImportDialog = lazy(() => import('./YamlImportDialog'));
 const Zone3DEditor = lazy(() => import('./Zone3DEditor'));
 
 interface ProjectEditorProps {
@@ -739,7 +740,10 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
         onRiskDashboard={dialogActions.openRiskDashboard}
         onAssetInventory={dialogActions.openAssetTable}
         onShare={canEdit ? dialogActions.openShareDialog : undefined}
+        onNewFile={onBackToProjects}
+        onOpenFile={onBackToProjects}
         onNmapImport={dialogActions.openNmapImport}
+        onYamlImport={dialogActions.openYamlImport}
         onAnalytics={dialogActions.openAnalytics}
         onVulnerabilities={dialogActions.openVulnerabilities}
         onAttackPaths={dialogActions.openAttackPaths}
@@ -1027,6 +1031,17 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
           onImportComplete={() => {
             projectHook.reload();
             dialogActions.closeNmapImport();
+          }}
+        />
+      )}
+
+      {dialogs.showYamlImport && canEdit && (
+        <YamlImportDialog
+          onClose={dialogActions.closeYamlImport}
+          onImported={(newProjectId) => {
+            dialogActions.closeYamlImport();
+            // Could navigate to new project, for now just close
+            void newProjectId;
           }}
         />
       )}

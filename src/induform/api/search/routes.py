@@ -130,9 +130,7 @@ async def search(
         )
         proj_result = await db.execute(proj_query)
         for proj in proj_result.scalars().all():
-            highlight = _build_highlight(proj.name, q) or _build_highlight(
-                proj.description, q
-            )
+            highlight = _build_highlight(proj.name, q) or _build_highlight(proj.description, q)
             results.append(
                 SearchResult(
                     type="project",
@@ -238,9 +236,7 @@ async def search(
         )
         conduit_result = await db.execute(conduit_query)
         for conduit in conduit_result.scalars().all():
-            highlight = _build_highlight(conduit.name, q) or _build_highlight(
-                conduit.conduit_id, q
-            )
+            highlight = _build_highlight(conduit.name, q) or _build_highlight(conduit.conduit_id, q)
             results.append(
                 SearchResult(
                     type="conduit",

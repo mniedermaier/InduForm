@@ -26,6 +26,7 @@ interface ToolbarProps {
   onAssetInventory?: () => void;
   onShare?: () => void;
   onNmapImport?: () => void;
+  onYamlImport?: () => void;
   onVersionHistory?: () => void;
   onAnalytics?: () => void;
   onVulnerabilities?: () => void;
@@ -199,6 +200,7 @@ const Toolbar = memo(({
   onAssetInventory,
   onShare,
   onNmapImport,
+  onYamlImport,
   onVersionHistory,
   onAnalytics,
   onVulnerabilities,
@@ -250,6 +252,7 @@ const Toolbar = memo(({
     { label: 'Export...', onClick: onExport || (() => {}), disabled: !onExport, shortcut: 'Ctrl+E' },
     { label: 'Import from CSV...', onClick: onCSVImport || (() => {}), disabled: !onCSVImport },
     { label: 'Import from Nmap...', onClick: onNmapImport || (() => {}), disabled: !onNmapImport || !apiConnected },
+    { label: 'Import from YAML...', onClick: onYamlImport || (() => {}), disabled: !onYamlImport || !apiConnected },
     { label: '', onClick: () => {}, divider: true },
     { label: 'Share...', onClick: onShare || (() => {}), disabled: !onShare || !apiConnected },
     { label: `Version History${versionCount > 0 ? ` (${versionCount})` : ''}`, onClick: onVersionHistory || (() => {}), disabled: !onVersionHistory || !apiConnected },
@@ -276,7 +279,7 @@ const Toolbar = memo(({
     { label: 'Risk Assessment', onClick: onRiskDashboard || (() => {}), disabled: !onRiskDashboard },
     { label: 'Attack Paths', onClick: onAttackPaths || (() => {}), disabled: !onAttackPaths },
     { label: '', onClick: () => {}, divider: true },
-    { label: 'Compliance Dashboard', onClick: onComplianceDashboard || (() => {}), disabled: !onComplianceDashboard },
+    { label: 'Gap Analysis Dashboard', onClick: onComplianceDashboard || (() => {}), disabled: !onComplianceDashboard },
     { label: 'Compliance Settings...', onClick: onComplianceSettings || (() => {}), disabled: !onComplianceSettings },
     { label: '', onClick: () => {}, divider: true },
     { label: 'Vulnerabilities', onClick: onVulnerabilities || (() => {}), disabled: !onVulnerabilities },
@@ -285,7 +288,7 @@ const Toolbar = memo(({
   const generateItems: DropdownItem[] = [
     { label: 'Firewall Rules', onClick: onGenerateFirewall || (() => {}), disabled: !apiConnected || !onGenerateFirewall },
     { label: 'PDF Report', onClick: onExport || (() => {}), disabled: !onExport },
-    { label: 'Compliance Report', onClick: onGenerateReport || (() => {}), disabled: !apiConnected || !onGenerateReport },
+    { label: 'Text Summary Report', onClick: onGenerateReport || (() => {}), disabled: !apiConnected || !onGenerateReport },
   ];
 
   const viewItems: DropdownItem[] = [

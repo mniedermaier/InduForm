@@ -26,6 +26,7 @@ from induform.api.projects.schemas import (
 )
 from induform.db import ActivityLog, AssetDB, ProjectDB, User, Vulnerability, ZoneDB, get_db
 from induform.db.repositories import ProjectRepository
+from induform.engine.attack_path import AttackPathAnalysis, analyze_attack_paths
 from induform.engine.gap_analysis import GapAnalysisReport, analyze_gaps
 from induform.engine.policy import PolicySeverity, evaluate_policies
 from induform.engine.risk import VulnInfo, assess_risk
@@ -1592,8 +1593,15 @@ async def export_project_excel(
     import base64
     import io
 
-    from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    except ImportError:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Excel export requires the 'openpyxl' package. "
+            "Install with: pip install openpyxl",
+        )
 
     project_repo = ProjectRepository(db)
 
@@ -1773,8 +1781,15 @@ def _draw_risk_matrix(
     zones: list,
 ):
     """Render a 5×5 risk matrix heatmap as a ReportLab Drawing."""
-    from reportlab.graphics.shapes import Drawing, Rect, String
-    from reportlab.lib import colors as gcolors
+    try:
+        from reportlab.graphics.shapes import Drawing, Rect, String
+        from reportlab.lib import colors as gcolors
+    except ImportError:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="PDF export requires the 'reportlab' package. "
+            "Install with: pip install reportlab",
+        )
 
     cell_w, cell_h = 52, 40
     margin_left, margin_bottom = 80, 40
@@ -1864,8 +1879,15 @@ def _draw_topology_diagram(
     conduits: list,
 ):
     """Render a zone/conduit topology diagram as a ReportLab Drawing."""
-    from reportlab.graphics.shapes import Drawing, Line, Rect, String
-    from reportlab.lib import colors as gcolors
+    try:
+        from reportlab.graphics.shapes import Drawing, Line, Rect, String
+        from reportlab.lib import colors as gcolors
+    except ImportError:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="PDF export requires the 'reportlab' package. "
+            "Install with: pip install reportlab",
+        )
 
     # Layer order (Purdue-like, top to bottom)
     layer_order = ["enterprise", "dmz", "site", "area", "cell", "safety"]
@@ -2004,13 +2026,20 @@ async def export_project_pdf(
     import io
     from datetime import datetime as dt
 
-    from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER
-    from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-    from reportlab.lib.units import inch
-    from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, TableStyle
-    from reportlab.platypus import Table as RLTable
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.lib.units import inch
+        from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, TableStyle
+        from reportlab.platypus import Table as RLTable
+    except ImportError:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="PDF export requires the 'reportlab' package. "
+            "Install with: pip install reportlab",
+        )
 
     from induform.engine.gap_analysis import analyze_gaps
     from induform.engine.resolver import resolve_security_controls
@@ -2396,7 +2425,14 @@ async def export_project_pdf(
     # Risk Matrix visualization
     story.append(Paragraph("Risk Matrix", subheading_style))
     risk_matrix_drawing = _draw_risk_matrix(risk_result, project.zones)
-    from reportlab.graphics import renderPDF
+    try:
+        from reportlab.graphics import renderPDF
+    except ImportError:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="PDF export requires the 'reportlab' package. "
+            "Install with: pip install reportlab",
+        )
 
     story.append(renderPDF.GraphicsFlowable(risk_matrix_drawing))
     story.append(Spacer(1, 0.3 * inch))
@@ -2893,6 +2929,32 @@ async def get_gap_analysis(
     report = analyze_gaps(project)
 
     return report
+
+
+# Attack Path Analysis endpoint
+
+
+@router.post("/{project_id}/attack-paths", response_model=AttackPathAnalysis)
+async def project_attack_paths(
+    project_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AttackPathAnalysis:
+    """Analyze attack paths for a project."""
+    project_repo = ProjectRepository(db)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+    project_db = await project_repo.get_by_id(project_id)
+    if not project_db:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project = await project_repo.to_pydantic(project_db)
+    return analyze_attack_paths(project)
 
 
 # Project comparison endpoint
