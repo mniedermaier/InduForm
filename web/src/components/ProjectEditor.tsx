@@ -541,7 +541,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <div className="text-center">
-          <img src="/logo.svg" alt="InduForm" className="w-24 h-24 mx-auto mb-4 animate-pulse" />
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="InduForm" className="w-24 h-24 mx-auto mb-4 animate-pulse" />
           <div className="text-gray-600 dark:text-gray-400">Loading project...</div>
         </div>
       </div>
@@ -581,7 +581,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
             </svg>
           </button>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <img src="/favicon.svg" alt="InduForm" className="w-7 h-7" />
+            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="InduForm" className="w-7 h-7" />
             <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 hidden md:block">InduForm</h1>
           </div>
           <span className="text-sm text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{project.project.name}</span>

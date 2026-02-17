@@ -508,7 +508,7 @@ export default function ProjectsPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <img src="/favicon.svg" alt="InduForm" className="w-8 h-8" />
+              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="InduForm" className="w-8 h-8" />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block">InduForm</h1>
             </div>
 

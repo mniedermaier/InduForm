@@ -68,7 +68,7 @@ function AuthWrapper() {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <div className="text-center">
-          <img src="/logo.svg" alt="InduForm" className="w-24 h-24 mx-auto mb-4 animate-pulse" />
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="InduForm" className="w-24 h-24 mx-auto mb-4 animate-pulse" />
           <div className="text-gray-600 dark:text-gray-400">Loading...</div>
         </div>
       </div>

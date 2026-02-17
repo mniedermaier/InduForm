@@ -42,7 +42,7 @@ export default function LoginPage({ onSwitchToRegister, onSwitchToForgotPassword
       <ParticleBackground />
       <div className="max-w-md w-full relative z-10">
         <div className="text-center mb-8">
-          <img src="/favicon.svg" alt="InduForm" className="w-16 h-16 mx-auto mb-4" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="InduForm" className="w-16 h-16 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-white">InduForm</h1>
           <p className="text-blue-200 mt-2">
             IEC 62443 Zone/Conduit Security Editor
