@@ -4,8 +4,11 @@ import {
   getBezierPath,
   EdgeLabelRenderer,
   BaseEdge,
+  useStore,
 } from '@xyflow/react';
-import type { Edge } from '@xyflow/react';
+import type { Edge, ReactFlowState } from '@xyflow/react';
+import { findObstructingNodes, computeSmartPath } from './edgeRouting';
+import type { NodeRect } from './edgeRouting';
 import type { Conduit, ValidationResult, PolicyViolation } from '../types/models';
 import { useTheme } from '../contexts/ThemeContext';
 import ValidationPopover from './ValidationPopover';
@@ -23,8 +26,42 @@ export interface ConduitEdgeData extends Record<string, unknown> {
 
 export type ConduitEdgeType = Edge<ConduitEdgeData, 'conduit'>;
 
+const selectNodeRects = (state: ReactFlowState): NodeRect[] => {
+  const rects: NodeRect[] = [];
+  for (const [id, node] of state.nodeLookup) {
+    const w = node.measured?.width;
+    const h = node.measured?.height;
+    if (w && h) {
+      rects.push({
+        id,
+        x: node.internals.positionAbsolute.x,
+        y: node.internals.positionAbsolute.y,
+        width: w,
+        height: h,
+      });
+    }
+  }
+  return rects;
+};
+
+function nodeRectsEqual(a: NodeRect[], b: NodeRect[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (
+      a[i].id !== b[i].id ||
+      a[i].x !== b[i].x ||
+      a[i].y !== b[i].y ||
+      a[i].width !== b[i].width ||
+      a[i].height !== b[i].height
+    ) return false;
+  }
+  return true;
+}
+
 const ConduitEdge = memo(({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -45,14 +82,23 @@ const ConduitEdge = memo(({
   const [showPopover, setShowPopover] = useState(false);
   const warningRef = useRef<HTMLSpanElement>(null);
 
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
+  const nodeRects = useStore(selectNodeRects, nodeRectsEqual);
+  const obstructing = findObstructingNodes(sourceX, sourceY, targetX, targetY, source, target, nodeRects);
+  const smartResult = computeSmartPath(sourceX, sourceY, targetX, targetY, obstructing);
+
+  let edgePath: string, labelX: number, labelY: number;
+  if (smartResult) {
+    ({ path: edgePath, labelX, labelY } = smartResult);
+  } else {
+    [edgePath, labelX, labelY] = getBezierPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+    });
+  }
 
   // Generate protocol label
   const protocolLabel = conduit?.flows

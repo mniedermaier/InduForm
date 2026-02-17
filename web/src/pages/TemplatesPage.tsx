@@ -68,11 +68,11 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
   const userCount = templates.filter(t => !t.is_builtin).length;
 
   return (
-    <div className="min-h-screen relative bg-gray-50 dark:bg-slate-900">
+    <div className="h-screen relative bg-gray-50 dark:bg-slate-900 flex flex-col overflow-hidden">
       <NetworkBackground />
 
       {/* Header */}
-      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-10">
+      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -90,9 +90,9 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="flex-1 min-h-0 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Filter tabs */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex-none flex items-center gap-4 mb-6">
           <div className="flex gap-1 bg-gray-100 dark:bg-slate-700/50 rounded-lg p-1">
             <button
               onClick={() => setFilter('all')}
@@ -137,7 +137,7 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
 
         {/* Templates grid */}
         {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 content-start">
             {filteredTemplates.map(template => (
               <div
                 key={template.id}

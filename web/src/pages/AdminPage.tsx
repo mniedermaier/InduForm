@@ -421,10 +421,10 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
   ];
 
   return (
-    <div className="min-h-screen relative bg-gray-50 dark:bg-slate-900">
+    <div className="h-screen relative bg-gray-50 dark:bg-slate-900 flex flex-col overflow-hidden">
       <NetworkBackground />
       {/* Header */}
-      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-20">
+      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -454,9 +454,9 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="flex-1 min-h-0 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Tab navigation */}
-        <div className="flex gap-1 mb-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50 p-1">
+        <div className="flex-none flex gap-1 mb-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50 p-1">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -474,7 +474,7 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
 
         {/* Dashboard tab */}
         {activeTab === 'dashboard' && (
-          <>
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {stats && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
@@ -539,12 +539,12 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
 
         {/* System tab */}
         {activeTab === 'system' && (
-          <div className="space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
             {systemLoading && !health ? (
               <LoadingSpinner text="Loading system data..." />
             ) : (
@@ -684,7 +684,7 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
 
         {/* Users tab */}
         {activeTab === 'users' && (
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+          <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
             <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">User Management</h2>
@@ -735,9 +735,9 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
             {usersLoading && users.length === 0 ? (
               <LoadingSpinner text="Loading users..." />
             ) : (
-              <div className="overflow-x-auto">
+              <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full">
-                  <thead>
+                  <thead className="sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm z-10">
                     <tr className="border-b border-gray-200 dark:border-slate-700/50">
                       <th className="px-4 py-3 text-center w-10">
                         <input
@@ -861,7 +861,7 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
 
         {/* Projects tab */}
         {activeTab === 'projects' && (
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+          <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
             <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">All Projects</h2>
@@ -872,9 +872,9 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
             {projectsLoading && projects.length === 0 ? (
               <LoadingSpinner text="Loading projects..." />
             ) : (
-              <div className="overflow-x-auto">
+              <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full">
-                  <thead>
+                  <thead className="sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm z-10">
                     <tr className="border-b border-gray-200 dark:border-slate-700/50">
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Name</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider hidden md:table-cell">Owner</th>
@@ -999,7 +999,7 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
 
         {/* Activity tab */}
         {activeTab === 'activity' && (
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+          <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
             <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -1038,9 +1038,9 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
             {activityLoading && activities.length === 0 ? (
               <LoadingSpinner text="Loading activity..." />
             ) : (
-              <div className="overflow-x-auto">
+              <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full">
-                  <thead>
+                  <thead className="sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm z-10">
                     <tr className="border-b border-gray-200 dark:border-slate-700/50">
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">User</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Action</th>

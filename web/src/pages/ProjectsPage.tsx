@@ -501,10 +501,10 @@ export default function ProjectsPage({
   const hasRiskData = projectsWithRisk > 0;
 
   return (
-    <div className="min-h-screen relative bg-gray-50 dark:bg-slate-900">
+    <div className="h-screen relative bg-gray-50 dark:bg-slate-900 flex flex-col overflow-hidden">
       <NetworkBackground />
       {/* Header */}
-      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-20">
+      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -536,7 +536,7 @@ export default function ProjectsPage({
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="flex-1 min-h-0 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
@@ -639,7 +639,7 @@ export default function ProjectsPage({
         )}
 
         {/* Projects Section */}
-        <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+        <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
           <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-4 flex-wrap">
@@ -948,7 +948,7 @@ export default function ProjectsPage({
 
           {/* Projects list */}
           {!loading && !error && filteredProjects.length > 0 && (
-            <div className="divide-y divide-gray-200 dark:divide-slate-700/50 max-h-[60vh] overflow-y-auto">
+            <div className="flex-1 min-h-0 divide-y divide-gray-200 dark:divide-slate-700/50 overflow-y-auto">
               {filteredProjects.map(project => (
                 <div
                   key={project.id}
