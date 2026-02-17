@@ -30,8 +30,16 @@ ruff check src/ && ruff format --check src/          # Python (100 char, Python 
 cd web && npm run lint && npx tsc --noEmit            # Frontend (--max-warnings 0)
 ```
 
+### Demo build
+```bash
+cd web && npm run build:demo                          # Vite build with VITE_DEMO_MODE=true
+```
+
 ### CI (.github/workflows/ci.yml)
 Backend: ruff + mypy (non-blocking) + pytest --cov | Frontend: eslint + tsc + test + build
+
+### GitHub Pages (.github/workflows/deploy-pages.yml)
+On push to main: builds demo app → assembles `docs/` landing page + `web/dist/` → deploys to Pages
 
 ## Key Paths
 
@@ -46,6 +54,9 @@ Backend: ruff + mypy (non-blocking) + pytest --cov | Frontend: eslint + tsc + te
 | Frontend editor | `web/src/components/ProjectEditor.tsx` (composes 5 hooks) |
 | Frontend API client | `web/src/api/client.ts` |
 | Frontend types | `web/src/types/models.ts` |
+| Demo mode (MSW mocks) | `web/src/demo/{mockData,mockHandlers,enableDemoMode}.ts` |
+| Landing page | `docs/index.html`, `docs/style.css` |
+| Pages deploy workflow | `.github/workflows/deploy-pages.yml` |
 
 ## Adding Features
 
@@ -54,6 +65,18 @@ Backend: ruff + mypy (non-blocking) + pytest --cov | Frontend: eslint + tsc + te
 - **New DB column**: `models.py` → Alembic migration → `_ensure_columns()` in `database.py`
 - **New project operation**: `useProject.ts` with undo/redo tracking
 - **New shortcut**: `useKeyboardShortcuts.ts`
+
+## Demo Mode
+
+The app supports a GitHub Pages demo at `/InduForm/demo/` using MSW (Mock Service Worker) to intercept all API calls with static data. Controlled by the `VITE_DEMO_MODE` env var (build-time only).
+
+- **Mock data**: `web/src/demo/mockData.ts` — demo user, project, zones, conduits, assets
+- **Mock handlers**: `web/src/demo/mockHandlers.ts` — MSW `http` handlers for all endpoints
+- **Boot**: `web/src/demo/enableDemoMode.ts` — starts MSW worker + injects auth tokens
+- **Banner**: `web/src/components/DemoBanner.tsx` — shown when `VITE_DEMO_MODE=true`
+- **WebSocket**: `useWebSocket.ts` exports a no-op hook in demo mode (no server to connect to)
+- **Vite base path**: conditional `/InduForm/demo/` in `vite.config.ts` for demo builds
+- **New mock endpoint**: add handler to `mockHandlers.ts`; if it needs data, add to `mockData.ts`
 
 ## Code Conventions
 
@@ -72,3 +95,5 @@ Backend: ruff + mypy (non-blocking) + pytest --cov | Frontend: eslint + tsc + te
 - **Tests**: `conftest.py` sets `INDUFORM_RATE_LIMIT_ENABLED=false` before app import
 - **ESLint**: `.eslintrc.cjs` (ESLint 8); `--max-warnings 0` means warnings fail CI
 - **mypy**: strict mode, `continue-on-error` in CI (pre-existing errors)
+- **Vite env types**: `web/src/vite-env.d.ts` must exist for `import.meta.env` to type-check
+- **Demo mode**: `VITE_DEMO_MODE` is build-time only; never check it at runtime outside `import.meta.env`

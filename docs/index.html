@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InduForm — Industrial Network Security Modeling</title>
+  <meta name="description" content="Visual zone/conduit editor for OT network security. Model IEC 62443 architectures, assess risk, and enforce compliance.">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Hero -->
+  <header class="hero">
+    <div class="container">
+      <img src="logo.svg" alt="InduForm logo" class="hero-logo" width="96" height="96">
+      <h1>InduForm</h1>
+      <p class="tagline">Industrial Network Security Modeling</p>
+      <p class="subtitle">
+        Visual zone &amp; conduit editor for OT networks. Model IEC&nbsp;62443 architectures,
+        assess risk, and enforce compliance &mdash; all in a collaborative, real-time interface.
+      </p>
+      <div class="hero-buttons">
+        <a href="demo/" class="btn btn-primary">Try Limited Demo</a>
+        <a href="https://github.com/mniedermaier/InduForm" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Screenshots -->
+  <section class="section" id="screenshots">
+    <div class="container">
+      <h2>See It in Action</h2>
+      <div class="screenshot-grid">
+        <figure>
+          <img src="screenshots/editor.png" alt="Zone/conduit graph editor" loading="lazy">
+          <figcaption>Visual zone &amp; conduit editor</figcaption>
+        </figure>
+        <figure>
+          <img src="screenshots/editor_zone_selected.png" alt="Zone detail panel" loading="lazy">
+          <figcaption>Zone detail &amp; asset management</figcaption>
+        </figure>
+        <figure>
+          <img src="screenshots/dashboard.png" alt="Project dashboard" loading="lazy">
+          <figcaption>Project dashboard &amp; analytics</figcaption>
+        </figure>
+        <figure>
+          <img src="screenshots/login.png" alt="Login page" loading="lazy">
+          <figcaption>Multi-user authentication</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section section-alt" id="features">
+    <div class="container">
+      <h2>Key Features</h2>
+      <div class="features-grid">
+        <div class="card">
+          <div class="card-icon">&#9881;</div>
+          <h3>Visual Editor</h3>
+          <p>
+            Drag-and-drop zone/conduit graph based on React Flow.
+            Add assets, define protocol flows, and see your IEC&nbsp;62443
+            architecture take shape in real time.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9989;</div>
+          <h3>Compliance Engine</h3>
+          <p>
+            Validate against IEC&nbsp;62443, NIST&nbsp;CSF, NERC&nbsp;CIP, and Purdue Model.
+            Get actionable policy violations with remediation guidance.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128101;</div>
+          <h3>Multi-User Collaboration</h3>
+          <p>
+            Real-time presence, cursor tracking, and conflict-free editing
+            via WebSockets. Role-based access control with team management.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="section" id="tech">
+    <div class="container">
+      <h2>Built With</h2>
+      <div class="badges">
+        <span class="badge badge-blue">Python</span>
+        <span class="badge badge-green">FastAPI</span>
+        <span class="badge badge-cyan">React</span>
+        <span class="badge badge-indigo">TypeScript</span>
+        <span class="badge badge-teal">Tailwind CSS</span>
+        <span class="badge badge-orange">SQLAlchemy</span>
+        <span class="badge badge-purple">React Flow</span>
+        <span class="badge badge-gray">Docker</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Start -->
+  <section class="section section-alt" id="quickstart">
+    <div class="container">
+      <h2>Quick Start</h2>
+      <pre class="code-block"><code>docker compose up -d    <span class="comment"># → http://localhost:8081</span></code></pre>
+      <p class="quickstart-note">
+        See the <a href="https://github.com/mniedermaier/InduForm#readme" target="_blank" rel="noopener noreferrer">full README</a>
+        for local development setup, environment variables, and configuration options.
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>
+        MIT License &middot;
+        <a href="https://github.com/mniedermaier/InduForm" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

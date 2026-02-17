@@ -36,7 +36,25 @@ interface WebSocketMessage {
   [key: string]: unknown;
 }
 
-export function useProjectWebSocket(projectId: string | null) {
+// No-op implementation for demo mode (no server to connect to)
+const noopFn = () => {};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function useDemoWebSocket(_projectId: string | null) {
+  return {
+    isConnected: false,
+    presence: [] as PresenceUser[],
+    cursors: {} as Record<string, RemoteCursor>,
+    selections: {} as Record<string, string | null>,
+    lastEdit: null as EditEvent | null,
+    sendCursor: noopFn as (position: CursorPosition) => void,
+    sendSelection: noopFn as (entityId: string | null) => void,
+    sendEdit: noopFn as (entity: string, action: string, data: Record<string, unknown>) => void,
+    connect: noopFn,
+    disconnect: noopFn,
+  };
+}
+
+function useRealWebSocket(projectId: string | null) {
   const [isConnected, setIsConnected] = useState(false);
   const [presence, setPresence] = useState<PresenceUser[]>([]);
   const [cursors, setCursors] = useState<Record<string, RemoteCursor>>({});
@@ -280,3 +298,6 @@ export function useProjectWebSocket(projectId: string | null) {
     disconnect,
   };
 }
+
+export const useProjectWebSocket =
+  import.meta.env.VITE_DEMO_MODE === 'true' ? useDemoWebSocket : useRealWebSocket;

@@ -223,10 +223,13 @@ function AuthWrapper() {
   );
 }
 
+import DemoBanner from './components/DemoBanner';
+
 // Main App wrapper with AuthProvider and ToastProvider
 function App() {
   return (
     <ToastProvider>
+      {import.meta.env.VITE_DEMO_MODE === 'true' && <DemoBanner />}
       <AuthProvider>
         <ErrorBoundary>
           <AuthWrapper />
