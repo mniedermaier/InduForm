@@ -119,9 +119,22 @@ describe('computeSmartPath', () => {
     ];
     const result = computeSmartPath(100, 50, 100, 600, obstructions);
     expect(result).not.toBeNull();
-    // Path should contain detour X coordinates that are all to the left
-    // (less than the node x positions)
     expect(result!.path).toBeTruthy();
+  });
+
+  it('handles overlapping obstructions without backwards paths', () => {
+    // Two obstructions that are very close (Y ranges nearly overlap with gap)
+    const obstructions = [
+      makeNode('mid1', 50, 150, 200, 100),
+      makeNode('mid2', 50, 260, 200, 100), // only 10px gap between them
+    ];
+    const result = computeSmartPath(150, 50, 150, 500, obstructions);
+    expect(result).not.toBeNull();
+    expect(result!.path).toMatch(/^M /);
+    // Path should not contain NaN
+    expect(result!.path).not.toContain('NaN');
+    expect(Number.isFinite(result!.labelX)).toBe(true);
+    expect(Number.isFinite(result!.labelY)).toBe(true);
   });
 });
 
@@ -172,6 +185,18 @@ describe('buildSmoothPath', () => {
     // Should have 3 arc commands (one per interior corner)
     const arcCount = (path.match(/A /g) || []).length;
     expect(arcCount).toBe(3);
+  });
+
+  it('handles collinear points with L instead of arc', () => {
+    // Three points on the same vertical line — no arc should be produced
+    const points = [
+      { x: 0, y: 0 },
+      { x: 0, y: 50 },
+      { x: 0, y: 100 },
+    ];
+    const path = buildSmoothPath(points);
+    expect(path).not.toContain('A');
+    expect(path).toContain('L');
   });
 });
 

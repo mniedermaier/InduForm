@@ -65,6 +65,9 @@ export function findObstructingNodes(
 /**
  * Compute a smart orthogonal path that routes around obstructing nodes.
  * Returns null if there are no obstructions (caller should use bezier fallback).
+ *
+ * Uses a merged bounding box of all obstructions to create a single clean detour,
+ * avoiding issues with overlapping/adjacent obstructions.
  */
 export function computeSmartPath(
   sourceX: number,
@@ -76,57 +79,48 @@ export function computeSmartPath(
 ): SmartPathResult | null {
   if (obstructingNodes.length === 0) return null;
 
+  // Compute merged bounding box of all obstructions
+  let bboxLeft = Infinity;
+  let bboxRight = -Infinity;
+  let bboxTop = Infinity;
+  let bboxBottom = -Infinity;
+
+  for (const node of obstructingNodes) {
+    bboxLeft = Math.min(bboxLeft, node.x);
+    bboxRight = Math.max(bboxRight, node.x + node.width);
+    bboxTop = Math.min(bboxTop, node.y);
+    bboxBottom = Math.max(bboxBottom, node.y + node.height);
+  }
+
   const edgeMidX = (sourceX + targetX) / 2;
+  const bboxCenterX = (bboxLeft + bboxRight) / 2;
 
-  // Decide which side to route: pick the side that requires less horizontal offset.
-  // Use majority vote across all obstructions to avoid zig-zag.
-  let leftVotes = 0;
-  let rightVotes = 0;
+  // Route left or right of the merged bounding box
+  const routeLeft = bboxCenterX >= edgeMidX;
+  const detourX = routeLeft
+    ? bboxLeft - gap
+    : bboxRight + gap;
 
-  for (const node of obstructingNodes) {
-    const nodeCenterX = node.x + node.width / 2;
-    const distToGoLeft = edgeMidX - (node.x - gap);
-    const distToGoRight = (node.x + node.width + gap) - edgeMidX;
-
-    if (nodeCenterX > edgeMidX) {
-      // Node is to the right of edge midline, prefer going left
-      leftVotes++;
-    } else if (nodeCenterX < edgeMidX) {
-      rightVotes++;
-    } else {
-      // Node centered on midline — pick side with shorter detour
-      if (distToGoLeft <= distToGoRight) leftVotes++;
-      else rightVotes++;
-    }
-  }
-
-  const routeLeft = leftVotes >= rightVotes;
-
-  // Build waypoints: source → detour around each obstruction → target
-  const waypoints: Point[] = [{ x: sourceX, y: sourceY }];
   const goingDown = targetY >= sourceY;
+  const entryY = goingDown
+    ? bboxTop - gap
+    : bboxBottom + gap;
+  const exitY = goingDown
+    ? bboxBottom + gap
+    : bboxTop - gap;
 
-  for (const node of obstructingNodes) {
-    const detourX = routeLeft
-      ? node.x - gap
-      : node.x + node.width + gap;
+  // Build waypoints: source → detour around merged bbox → target
+  const waypoints: Point[] = [
+    { x: sourceX, y: sourceY },
+    { x: detourX, y: entryY },
+    { x: detourX, y: exitY },
+    { x: targetX, y: targetY },
+  ];
 
-    const entryY = goingDown
-      ? node.y - gap
-      : node.y + node.height + gap;
-    const exitY = goingDown
-      ? node.y + node.height + gap
-      : node.y - gap;
+  // Convert to orthogonal segments and clean up
+  const orthoPoints = cleanPath(toOrthogonal(waypoints));
 
-    // Move horizontally to detour position, then vertically past node
-    waypoints.push({ x: detourX, y: entryY });
-    waypoints.push({ x: detourX, y: exitY });
-  }
-
-  waypoints.push({ x: targetX, y: targetY });
-
-  // Convert to orthogonal segments: ensure we only move along one axis at a time
-  const orthoPoints = toOrthogonal(waypoints);
+  if (orthoPoints.length < 2) return null;
 
   const path = buildSmoothPath(orthoPoints);
   const mid = getPathMidpoint(orthoPoints);
@@ -154,6 +148,42 @@ function toOrthogonal(points: Point[]): Point[] {
 
     result.push(curr);
   }
+
+  return result;
+}
+
+/**
+ * Remove consecutive duplicate points and collinear points from a path.
+ */
+function cleanPath(points: Point[]): Point[] {
+  if (points.length < 2) return points;
+
+  // Remove consecutive duplicates
+  const deduped: Point[] = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const prev = deduped[deduped.length - 1];
+    if (prev.x !== points[i].x || prev.y !== points[i].y) {
+      deduped.push(points[i]);
+    }
+  }
+
+  if (deduped.length < 3) return deduped;
+
+  // Remove collinear points (points that don't change direction)
+  const result: Point[] = [deduped[0]];
+  for (let i = 1; i < deduped.length - 1; i++) {
+    const prev = result[result.length - 1];
+    const curr = deduped[i];
+    const next = deduped[i + 1];
+
+    const sameX = prev.x === curr.x && curr.x === next.x;
+    const sameY = prev.y === curr.y && curr.y === next.y;
+
+    if (!sameX && !sameY) {
+      result.push(curr);
+    }
+  }
+  result.push(deduped[deduped.length - 1]);
 
   return result;
 }
@@ -188,6 +218,13 @@ export function buildSmoothPath(points: Point[], borderRadius = 8): string {
       continue;
     }
 
+    // Skip arc for collinear points (cross product ~0)
+    const cross = dx1 * dy2 - dy1 * dx2;
+    if (Math.abs(cross) < 0.01) {
+      d += ` L ${curr.x} ${curr.y}`;
+      continue;
+    }
+
     // Clamp radius to half of the shortest adjacent segment
     const r = Math.min(borderRadius, len1 / 2, len2 / 2);
 
@@ -198,7 +235,6 @@ export function buildSmoothPath(points: Point[], borderRadius = 8): string {
     const endY = curr.y + (dy2 / len2) * r;
 
     // Sweep flag: determined by cross product (clockwise vs counter-clockwise)
-    const cross = dx1 * dy2 - dy1 * dx2;
     const sweep = cross > 0 ? 1 : 0;
 
     d += ` L ${startX} ${startY}`;

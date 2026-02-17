@@ -87,7 +87,7 @@ const ConduitEdge = memo(({
   const smartResult = computeSmartPath(sourceX, sourceY, targetX, targetY, obstructing);
 
   let edgePath: string, labelX: number, labelY: number;
-  if (smartResult) {
+  if (smartResult && smartResult.path && !smartResult.path.includes('NaN')) {
     ({ path: edgePath, labelX, labelY } = smartResult);
   } else {
     [edgePath, labelX, labelY] = getBezierPath({
