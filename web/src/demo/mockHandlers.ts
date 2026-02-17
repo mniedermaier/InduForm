@@ -79,8 +79,14 @@ export const handlers = [
     });
   }),
 
-  http.put('/api/projects/:id', async ({ request }) => {
+  http.put('/api/projects/:id', async ({ params, request }) => {
     const body = await request.json();
+    const id = params.id as string;
+    // Persist the saved project so subsequent GETs return updated data
+    const entry = projectMap[id];
+    if (entry) {
+      entry.project = body as typeof entry.project;
+    }
     return HttpResponse.json({ project: body, status: 'saved' });
   }),
 
