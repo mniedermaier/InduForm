@@ -70,7 +70,7 @@ async def update_presence(
     """
     # Verify access to project
     has_access = await check_project_permission(
-        db, request.project_id, current_user.id, Permission.VIEWER
+        db, request.project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
     )
     if not has_access:
         raise HTTPException(
@@ -102,7 +102,9 @@ async def get_project_presence(
 ) -> ProjectPresence:
     """Get current viewers of a project."""
     # Verify access to project
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

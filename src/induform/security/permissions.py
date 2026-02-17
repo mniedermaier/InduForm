@@ -21,6 +21,7 @@ async def check_project_permission(
     project_id: str,
     user_id: str,
     required_permission: Permission = Permission.VIEWER,
+    is_admin: bool = False,
 ) -> bool:
     """Check if a user has the required permission on a project.
 
@@ -29,10 +30,14 @@ async def check_project_permission(
         project_id: The project ID to check.
         user_id: The user ID to check permissions for.
         required_permission: The minimum required permission level.
+        is_admin: If True, bypass permission checks (admin has full access).
 
     Returns:
         True if user has the required permission, False otherwise.
     """
+    if is_admin:
+        return True
+
     # First, check if user is the project owner
     result = await session.execute(select(ProjectDB).where(ProjectDB.id == project_id))
     project = result.scalar_one_or_none()
@@ -86,6 +91,7 @@ async def get_user_permission(
     session: AsyncSession,
     project_id: str,
     user_id: str,
+    is_admin: bool = False,
 ) -> Permission | None:
     """Get the user's permission level on a project.
 
@@ -93,10 +99,14 @@ async def get_user_permission(
         session: Database session.
         project_id: The project ID to check.
         user_id: The user ID to check permissions for.
+        is_admin: If True, return OWNER permission (admin has full access).
 
     Returns:
         The user's permission level, or None if no access.
     """
+    if is_admin:
+        return Permission.OWNER
+
     # Check if user is the project owner
     result = await session.execute(select(ProjectDB).where(ProjectDB.id == project_id))
     project = result.scalar_one_or_none()

@@ -15,6 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from induform.api.activity import activity_router
+from induform.api.admin import admin_router
 from induform.api.auth import auth_router
 from induform.api.auth.routes import users_router
 from induform.api.comments import comments_router
@@ -24,9 +25,11 @@ from induform.api.presence import presence_router
 from induform.api.projects import projects_router
 from induform.api.rate_limit import limiter
 from induform.api.routes import router
+from induform.api.search import search_router
 from induform.api.teams import teams_router
 from induform.api.templates import templates_router
 from induform.api.versions import versions_router
+from induform.api.vulnerabilities import vulnerabilities_router
 from induform.api.websocket import websocket_router
 from induform.db import close_db, init_db
 
@@ -211,6 +214,9 @@ app.include_router(activity_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api")
 app.include_router(presence_router, prefix="/api")
 app.include_router(versions_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
+app.include_router(search_router, prefix="/api")
+app.include_router(vulnerabilities_router, prefix="/api")
 app.include_router(websocket_router)
 
 # Serve static files if they exist (production build)

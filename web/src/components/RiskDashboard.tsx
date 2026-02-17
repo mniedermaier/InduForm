@@ -107,6 +107,10 @@ function ZoneRiskCard({ zoneName, risk }: { zoneName: string; risk: ZoneRisk }) 
               <span className="text-gray-600 dark:text-gray-400">SL Gap:</span>
               <span className={colors.text}>{risk.factors.sl_gap_risk.toFixed(1)}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Vulnerabilities:</span>
+              <span className={colors.text}>{risk.factors.vulnerability_risk?.toFixed(1) ?? '0.0'}</span>
+            </div>
           </div>
         </div>
       )}
@@ -184,7 +188,7 @@ const RiskDashboard = memo(({ project, onClose }: RiskDashboardProps) => {
                       {assessment.overall_level} Risk
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Overall security risk score based on zone configurations, asset criticality, and network exposure.
+                      Overall security risk score based on zone configurations, asset criticality, network exposure, and known vulnerabilities.
                     </p>
                   </div>
                 </div>

@@ -2,12 +2,14 @@
 
 import json
 import logging
+from collections import defaultdict
 from datetime import datetime
 from typing import Annotated
 
 import yaml
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from induform.api.auth.dependencies import get_current_user
@@ -22,10 +24,11 @@ from induform.api.projects.schemas import (
     ProjectSummary,
     ProjectUpdate,
 )
-from induform.db import ActivityLog, ProjectDB, User, get_db
+from induform.db import ActivityLog, AssetDB, ProjectDB, User, Vulnerability, ZoneDB, get_db
 from induform.db.repositories import ProjectRepository
+from induform.engine.gap_analysis import GapAnalysisReport, analyze_gaps
 from induform.engine.policy import PolicySeverity, evaluate_policies
-from induform.engine.risk import assess_risk
+from induform.engine.risk import VulnInfo, assess_risk
 from induform.models.project import Project
 from induform.security.permissions import (
     Permission,
@@ -56,6 +59,29 @@ def _parse_allowed_protocols(project_db: ProjectDB) -> list[str]:
     return []
 
 
+async def _load_vulnerability_data(db: AsyncSession, project_id: str) -> dict[str, list[VulnInfo]]:
+    """Load vulnerability data grouped by zone_id for risk scoring."""
+    result = await db.execute(
+        select(Vulnerability, ZoneDB.zone_id)
+        .join(AssetDB, Vulnerability.asset_db_id == AssetDB.id)
+        .join(ZoneDB, AssetDB.zone_db_id == ZoneDB.id)
+        .where(ZoneDB.project_id == project_id)
+    )
+    rows = result.all()
+
+    vuln_data: dict[str, list[VulnInfo]] = defaultdict(list)
+    for vuln, zone_id in rows:
+        vuln_data[zone_id].append(
+            VulnInfo(
+                cve_id=vuln.cve_id,
+                severity=vuln.severity,
+                cvss_score=vuln.cvss_score,
+                status=vuln.status,
+            )
+        )
+    return dict(vuln_data)
+
+
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
@@ -69,7 +95,9 @@ async def list_projects(
 ) -> list[ProjectSummary]:
     """List all projects accessible to the current user."""
     project_repo = ProjectRepository(db)
-    projects = await project_repo.list_accessible(current_user.id, skip, limit, load_full=True)
+    projects = await project_repo.list_accessible(
+        current_user.id, skip, limit, load_full=True, is_admin=current_user.is_admin
+    )
 
     result = []
     for project_db in projects:
@@ -77,7 +105,9 @@ async def list_projects(
         if not include_archived and getattr(project_db, "is_archived", False):
             continue
 
-        permission = await get_user_permission(db, project_db.id, current_user.id)
+        permission = await get_user_permission(
+            db, project_db.id, current_user.id, is_admin=current_user.is_admin
+        )
 
         # Calculate risk score and compliance if project has zones
         risk_score = None
@@ -91,7 +121,8 @@ async def list_projects(
                 project = await project_repo.to_pydantic(project_db)
 
                 # Risk assessment
-                risk_assessment = assess_risk(project)
+                vuln_data = await _load_vulnerability_data(db, project_db.id)
+                risk_assessment = assess_risk(project, vulnerability_data=vuln_data)
                 risk_score = int(round(risk_assessment.overall_score))
                 risk_level = risk_assessment.overall_level.value
 
@@ -212,7 +243,9 @@ async def get_project(
     project_repo = ProjectRepository(db)
 
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -228,7 +261,9 @@ async def get_project(
 
     # Convert to Pydantic model
     project = await project_repo.to_pydantic(project_db)
-    permission = await get_user_permission(db, project_id, current_user.id)
+    permission = await get_user_permission(
+        db, project_id, current_user.id, is_admin=current_user.is_admin
+    )
 
     return ProjectDetail(
         id=project_db.id,
@@ -258,7 +293,9 @@ async def update_project(
     project_repo = ProjectRepository(db)
 
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -407,7 +444,15 @@ async def update_project(
     # Reload and return
     project_db = await project_repo.get_by_id(project_id)
     project = await project_repo.to_pydantic(project_db)
-    permission = await get_user_permission(db, project_id, current_user.id)
+    permission = await get_user_permission(
+        db, project_id, current_user.id, is_admin=current_user.is_admin
+    )
+
+    # Record metrics snapshot (throttled to max 1 per 5 min per project)
+    try:
+        await _record_metrics_snapshot(db, project_id, project)
+    except Exception as e:
+        logger.warning("Failed to record metrics snapshot for project %s: %s", project_id, e)
 
     return ProjectDetail(
         id=project_db.id,
@@ -437,7 +482,9 @@ async def update_project_metadata(
     project_repo = ProjectRepository(db)
 
     # Check permission (owner or editor)
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -469,7 +516,9 @@ async def update_project_metadata(
         )
         db.add(log)
 
-    permission = await get_user_permission(db, project_id, current_user.id)
+    permission = await get_user_permission(
+        db, project_id, current_user.id, is_admin=current_user.is_admin
+    )
 
     # Calculate risk score if project has zones
     risk_score = None
@@ -477,7 +526,8 @@ async def update_project_metadata(
     if project_db.zones:
         try:
             project = await project_repo.to_pydantic(project_db)
-            risk_assessment = assess_risk(project)
+            vuln_data = await _load_vulnerability_data(db, project_id)
+            risk_assessment = assess_risk(project, vulnerability_data=vuln_data)
             risk_score = int(round(risk_assessment.overall_score))
             risk_level = risk_assessment.overall_level.value
         except Exception:
@@ -519,7 +569,9 @@ async def delete_project(
         )
 
     # Check permission (owner or editor)
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -557,7 +609,9 @@ async def duplicate_project(
     project_repo = ProjectRepository(db)
 
     # Check permission (viewer can duplicate to create their own copy)
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -583,7 +637,8 @@ async def duplicate_project(
     if new_project.zones:
         try:
             project = await project_repo.to_pydantic(new_project)
-            risk_assessment = assess_risk(project)
+            vuln_data = await _load_vulnerability_data(db, new_project.id)
+            risk_assessment = assess_risk(project, vulnerability_data=vuln_data)
             risk_score = int(round(risk_assessment.overall_score))
             risk_level = risk_assessment.overall_level.value
         except Exception:
@@ -621,7 +676,9 @@ async def list_project_access(
     project_repo = ProjectRepository(db)
 
     # Check permission (owner or editor)
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -666,7 +723,9 @@ async def grant_project_access(
     project_repo = ProjectRepository(db)
 
     # Check permission (owner or editor)
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -756,7 +815,9 @@ async def revoke_project_access(
     project_repo = ProjectRepository(db)
 
     # Check permission (owner or editor)
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -828,7 +889,9 @@ async def export_project_yaml(
     project_repo = ProjectRepository(db)
 
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -888,7 +951,8 @@ async def import_project_yaml(
     risk_level = None
     if project_db.zones:
         try:
-            risk_assessment = assess_risk(project)
+            vuln_data = await _load_vulnerability_data(db, project_db.id)
+            risk_assessment = assess_risk(project, vulnerability_data=vuln_data)
             risk_score = int(round(risk_assessment.overall_score))
             risk_level = risk_assessment.overall_level.value
         except Exception:
@@ -926,7 +990,9 @@ async def archive_project(
     project_repo = ProjectRepository(db)
 
     # Check permission (owner or editor)
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -974,7 +1040,9 @@ async def restore_project(
     project_repo = ProjectRepository(db)
 
     # Check permission (owner or editor)
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -1049,7 +1117,7 @@ async def bulk_operation(
                 continue
 
             has_access = await check_project_permission(
-                db, project_id, current_user.id, Permission.EDITOR
+                db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
             )
             if not has_access:
                 failed.append({"id": project_id, "error": "No permission"})
@@ -1096,7 +1164,9 @@ async def export_project_json(
     """Export a project as JSON."""
     project_repo = ProjectRepository(db)
 
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1154,7 +1224,9 @@ async def import_assets_csv(
     project_repo = ProjectRepository(db)
 
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -1223,6 +1295,15 @@ async def import_assets_csv(
             except ValueError:
                 criticality = 3
 
+            # Parse vlan as integer
+            vlan_val = None
+            vlan_str = row.get("vlan", "").strip()
+            if vlan_str:
+                try:
+                    vlan_val = int(vlan_str)
+                except ValueError:
+                    pass
+
             asset = Asset(
                 id=asset_id,
                 name=name,
@@ -1233,6 +1314,23 @@ async def import_assets_csv(
                 model=row.get("model", "").strip() or None,
                 criticality=criticality,
                 description=row.get("description", "").strip() or None,
+                firmware_version=row.get("firmware_version", "").strip() or None,
+                os_name=row.get("os_name", "").strip() or None,
+                os_version=row.get("os_version", "").strip() or None,
+                software=row.get("software", "").strip() or None,
+                cpe=row.get("cpe", "").strip() or None,
+                subnet=row.get("subnet", "").strip() or None,
+                gateway=row.get("gateway", "").strip() or None,
+                vlan=vlan_val,
+                dns=row.get("dns", "").strip() or None,
+                open_ports=row.get("open_ports", "").strip() or None,
+                protocols=row.get("protocols", "").strip() or None,
+                purchase_date=row.get("purchase_date", "").strip() or None,
+                end_of_life=row.get("end_of_life", "").strip() or None,
+                warranty_expiry=row.get("warranty_expiry", "").strip() or None,
+                last_patched=row.get("last_patched", "").strip() or None,
+                patch_level=row.get("patch_level", "").strip() or None,
+                location=row.get("location", "").strip() or None,
             )
 
             target_zone.assets.append(asset)
@@ -1266,6 +1364,215 @@ async def import_assets_csv(
     )
 
 
+# CSV Asset Export endpoint
+@router.get("/{project_id}/export/assets-csv")
+async def export_assets_csv(
+    project_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Export all project assets as CSV with all fields including zone info."""
+    import csv
+    import io
+
+    from starlette.responses import StreamingResponse
+
+    project_repo = ProjectRepository(db)
+
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    project_db = await project_repo.get_by_id(project_id)
+    if not project_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    project = await project_repo.to_pydantic(project_db)
+
+    headers = [
+        "zone_id",
+        "zone_name",
+        "id",
+        "name",
+        "type",
+        "ip_address",
+        "mac_address",
+        "vendor",
+        "model",
+        "firmware_version",
+        "criticality",
+        "description",
+        "os_name",
+        "os_version",
+        "software",
+        "cpe",
+        "subnet",
+        "gateway",
+        "vlan",
+        "dns",
+        "open_ports",
+        "protocols",
+        "purchase_date",
+        "end_of_life",
+        "warranty_expiry",
+        "last_patched",
+        "patch_level",
+        "location",
+    ]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(headers)
+
+    for zone in project.zones:
+        for asset in zone.assets:
+            writer.writerow(
+                [
+                    zone.id,
+                    zone.name,
+                    asset.id,
+                    asset.name,
+                    asset.type,
+                    asset.ip_address or "",
+                    asset.mac_address or "",
+                    asset.vendor or "",
+                    asset.model or "",
+                    asset.firmware_version or "",
+                    asset.criticality if asset.criticality is not None else "",
+                    asset.description or "",
+                    asset.os_name or "",
+                    asset.os_version or "",
+                    asset.software or "",
+                    asset.cpe or "",
+                    asset.subnet or "",
+                    asset.gateway or "",
+                    asset.vlan if asset.vlan is not None else "",
+                    asset.dns or "",
+                    asset.open_ports or "",
+                    asset.protocols or "",
+                    asset.purchase_date or "",
+                    asset.end_of_life or "",
+                    asset.warranty_expiry or "",
+                    asset.last_patched or "",
+                    asset.patch_level or "",
+                    asset.location or "",
+                ]
+            )
+
+    csv_content = output.getvalue()
+    filename = f"{project_db.name.lower().replace(' ', '_')}_assets.csv"
+
+    return StreamingResponse(
+        iter([csv_content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/{project_id}/export/assets-csv-template")
+async def export_assets_csv_template(
+    project_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Download a blank CSV template for asset import."""
+    import csv
+    import io
+
+    from starlette.responses import StreamingResponse
+
+    # Just verify project access
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    headers = [
+        "zone_id",
+        "id",
+        "name",
+        "type",
+        "ip_address",
+        "mac_address",
+        "vendor",
+        "model",
+        "firmware_version",
+        "criticality",
+        "description",
+        "os_name",
+        "os_version",
+        "software",
+        "cpe",
+        "subnet",
+        "gateway",
+        "vlan",
+        "dns",
+        "open_ports",
+        "protocols",
+        "purchase_date",
+        "end_of_life",
+        "warranty_expiry",
+        "last_patched",
+        "patch_level",
+        "location",
+    ]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(headers)
+    # Add one example row
+    writer.writerow(
+        [
+            "cell_01",
+            "plc_01",
+            "Main PLC",
+            "plc",
+            "10.10.1.10",
+            "00:1A:2B:3C:4D:5E",
+            "Siemens",
+            "S7-1500",
+            "4.5.2",
+            "4",
+            "Primary production controller",
+            "Linux",
+            "4.19",
+            "Step 7",
+            "cpe:2.3:h:siemens:s7-1500:-:*:*:*:*:*:*:*",
+            "10.10.1.0/24",
+            "10.10.1.1",
+            "100",
+            "10.10.1.1",
+            "102,502",
+            "S7,Modbus",
+            "2023-01-15",
+            "2030-12-31",
+            "2028-01-15",
+            "2025-06-01",
+            "SP3",
+            "Building A, Rack 2",
+        ]
+    )
+
+    csv_content = output.getvalue()
+    return StreamingResponse(
+        iter([csv_content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="asset_import_template.csv"'},
+    )
+
+
 # Excel export endpoint
 @router.post("/{project_id}/export/excel")
 async def export_project_excel(
@@ -1290,7 +1597,9 @@ async def export_project_excel(
 
     project_repo = ProjectRepository(db)
 
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1492,13 +1801,16 @@ async def export_project_pdf(
     from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, TableStyle
     from reportlab.platypus import Table as RLTable
 
+    from induform.engine.gap_analysis import analyze_gaps
     from induform.engine.resolver import resolve_security_controls
     from induform.engine.validator import validate_project
     from induform.iec62443.requirements import get_requirements_for_level
 
     project_repo = ProjectRepository(db)
 
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1520,7 +1832,11 @@ async def export_project_pdf(
     total_conduits = len(project.conduits)
 
     # Get risk assessment
-    risk_result = assess_risk(project)
+    vuln_data = await _load_vulnerability_data(db, project_db.id)
+    risk_result = assess_risk(project, vulnerability_data=vuln_data)
+
+    # Get gap analysis
+    gap_report = analyze_gaps(project)
 
     # Get policy violations
     violations = evaluate_policies(project)
@@ -1636,10 +1952,13 @@ async def export_project_pdf(
         "2. Zone Inventory",
         "3. Asset Inventory",
         "4. Conduit Summary",
-        "5. IEC 62443-3-3 Applicable Requirements",
-        "6. Recommended Security Controls",
-        "7. Validation Results",
-        "8. Policy Violations",
+        "5. Risk Assessment",
+        "6. Gap Analysis",
+        "7. Vulnerability Summary",
+        "8. IEC 62443-3-3 Applicable Requirements",
+        "9. Recommended Security Controls",
+        "10. Validation Results",
+        "11. Policy Violations",
     ]
     for item in toc_items:
         story.append(
@@ -1791,9 +2110,205 @@ async def export_project_pdf(
 
     story.append(Spacer(1, 0.3 * inch))
 
-    # --- 5. IEC 62443-3-3 Applicable Requirements ---
+    # --- 5. Risk Assessment ---
     story.append(PageBreak())
-    story.append(Paragraph("5. IEC 62443-3-3 Applicable Requirements", heading_style))
+    story.append(Paragraph("5. Risk Assessment", heading_style))
+    story.append(Spacer(1, 0.2 * inch))
+
+    story.append(
+        Paragraph(
+            f"Overall risk score: <b>{risk_result.overall_score:.0f}/100</b> "
+            f"(Level: <b>{risk_result.overall_level.value.upper()}</b>). "
+            f"Assessment covers {total_zones} zone(s) with {total_assets} asset(s) "
+            f"across {total_conduits} conduit connection(s).",
+            normal_style,
+        )
+    )
+    story.append(Spacer(1, 0.15 * inch))
+
+    if risk_result.zone_risks:
+        story.append(Paragraph("Per-Zone Risk Breakdown", subheading_style))
+        risk_table_data = [
+            ["Zone", "Score", "Level", "SL Base", "Asset Crit", "Exposure", "SL Gap", "Vuln"]
+        ]
+        for zone_id, zr in risk_result.zone_risks.items():
+            zone_label = zone_id[:15] + "..." if len(zone_id) > 15 else zone_id
+            risk_table_data.append(
+                [
+                    zone_label,
+                    f"{zr.score:.0f}",
+                    zr.level.value.upper(),
+                    f"{zr.factors.sl_base_risk:.0f}",
+                    f"{zr.factors.asset_criticality_risk:.0f}",
+                    f"{zr.factors.exposure_risk:.0f}",
+                    f"{zr.factors.sl_gap_risk:.0f}",
+                    f"{zr.factors.vulnerability_risk:.0f}",
+                ]
+            )
+
+        rsk_t = RLTable(
+            risk_table_data,
+            colWidths=[
+                1.1 * inch,
+                0.5 * inch,
+                0.7 * inch,
+                0.6 * inch,
+                0.7 * inch,
+                0.7 * inch,
+                0.6 * inch,
+                0.5 * inch,
+            ],
+        )
+        rsk_t.setStyle(make_table_style("#dc2626"))
+        story.append(rsk_t)
+
+    story.append(Spacer(1, 0.15 * inch))
+
+    if risk_result.recommendations:
+        story.append(Paragraph("Risk Recommendations", subheading_style))
+        for rec in risk_result.recommendations[:10]:
+            bullet_text = f"\u2022 {rec}"
+            story.append(
+                Paragraph(
+                    bullet_text,
+                    ParagraphStyle(
+                        "RiskBullet", parent=normal_style, fontSize=9, leftIndent=15, spaceAfter=3
+                    ),
+                )
+            )
+
+    story.append(Spacer(1, 0.3 * inch))
+
+    # --- 6. Gap Analysis ---
+    story.append(PageBreak())
+    story.append(Paragraph("6. Gap Analysis", heading_style))
+    story.append(Spacer(1, 0.2 * inch))
+
+    story.append(
+        Paragraph(
+            f"Overall IEC 62443-3-3 compliance: <b>{gap_report.overall_compliance:.1f}%</b>. "
+            f"Controls met: <b>{gap_report.summary.get('met', 0)}</b>, "
+            f"partial: <b>{gap_report.summary.get('partial', 0)}</b>, "
+            f"unmet: <b>{gap_report.summary.get('unmet', 0)}</b>.",
+            normal_style,
+        )
+    )
+    story.append(Spacer(1, 0.15 * inch))
+
+    if gap_report.zones:
+        story.append(Paragraph("Per-Zone Compliance", subheading_style))
+        gap_table_data = [
+            ["Zone", "Type", "SL-T", "Controls", "Met", "Partial", "Unmet", "Compliance%"]
+        ]
+        for za in gap_report.zones:
+            gap_table_data.append(
+                [
+                    za.zone_name[:15] + "..." if len(za.zone_name) > 15 else za.zone_name,
+                    za.zone_type,
+                    str(za.security_level_target),
+                    str(za.total_controls),
+                    str(za.met_controls),
+                    str(za.partial_controls),
+                    str(za.unmet_controls),
+                    f"{za.compliance_percentage:.0f}%",
+                ]
+            )
+
+        gap_t = RLTable(
+            gap_table_data,
+            colWidths=[
+                1.1 * inch,
+                0.8 * inch,
+                0.4 * inch,
+                0.6 * inch,
+                0.5 * inch,
+                0.5 * inch,
+                0.5 * inch,
+                0.8 * inch,
+            ],
+        )
+        gap_t.setStyle(make_table_style("#0f766e"))
+        story.append(gap_t)
+
+    story.append(Spacer(1, 0.15 * inch))
+
+    if gap_report.priority_remediations:
+        story.append(Paragraph("Priority Remediations", subheading_style))
+        for rem in gap_report.priority_remediations[:8]:
+            bullet_text = f"\u2022 {rem}"
+            story.append(
+                Paragraph(
+                    bullet_text,
+                    ParagraphStyle(
+                        "GapBullet", parent=normal_style, fontSize=9, leftIndent=15, spaceAfter=3
+                    ),
+                )
+            )
+
+    story.append(Spacer(1, 0.3 * inch))
+
+    # --- 7. Vulnerability Summary ---
+    story.append(PageBreak())
+    story.append(Paragraph("7. Vulnerability Summary", heading_style))
+    story.append(Spacer(1, 0.2 * inch))
+
+    # Flatten vuln_data into a list with zone info
+    all_vulns: list[tuple[str, VulnInfo]] = []
+    for zone_id, zone_vulns in vuln_data.items():
+        for v in zone_vulns:
+            all_vulns.append((zone_id, v))
+
+    sev_counts: dict[str, int] = {}
+    for _zid, v in all_vulns:
+        sev_counts[v.severity] = sev_counts.get(v.severity, 0) + 1
+
+    sev_breakdown = (
+        ", ".join(f"{sev}: {count}" for sev, count in sorted(sev_counts.items())) or "none"
+    )
+
+    story.append(
+        Paragraph(
+            f"Total vulnerabilities: <b>{len(all_vulns)}</b>. "
+            f"Breakdown by severity: {sev_breakdown}.",
+            normal_style,
+        )
+    )
+    story.append(Spacer(1, 0.15 * inch))
+
+    if all_vulns:
+        story.append(Paragraph("Top Vulnerabilities", subheading_style))
+        vuln_table_data = [["CVE ID", "Zone", "Severity", "CVSS", "Status"]]
+        # Sort by CVSS descending (None treated as 0)
+        sorted_vulns = sorted(all_vulns, key=lambda x: x[1].cvss_score or 0, reverse=True)
+        for zone_id, v in sorted_vulns[:20]:
+            vuln_table_data.append(
+                [
+                    v.cve_id,
+                    zone_id[:15] + "..." if len(zone_id) > 15 else zone_id,
+                    v.severity.upper(),
+                    f"{v.cvss_score:.1f}" if v.cvss_score is not None else "-",
+                    v.status,
+                ]
+            )
+
+        vul_t = RLTable(
+            vuln_table_data,
+            colWidths=[1.3 * inch, 1.3 * inch, 0.8 * inch, 0.6 * inch, 0.8 * inch],
+        )
+        vul_t.setStyle(make_table_style("#b91c1c", "#fef2f2"))
+        story.append(vul_t)
+        if len(all_vulns) > 20:
+            story.append(
+                Paragraph(f"<i>Showing 20 of {len(all_vulns)} vulnerabilities</i>", normal_style)
+            )
+    else:
+        story.append(Paragraph("No vulnerabilities recorded.", normal_style))
+
+    story.append(Spacer(1, 0.3 * inch))
+
+    # --- 8. IEC 62443-3-3 Applicable Requirements ---
+    story.append(PageBreak())
+    story.append(Paragraph("8. IEC 62443-3-3 Applicable Requirements", heading_style))
     story.append(Spacer(1, 0.1 * inch))
     story.append(
         Paragraph(
@@ -1827,8 +2342,8 @@ async def export_project_pdf(
 
     story.append(Spacer(1, 0.3 * inch))
 
-    # --- 6. Recommended Security Controls ---
-    story.append(Paragraph("6. Recommended Security Controls", heading_style))
+    # --- 9. Recommended Security Controls ---
+    story.append(Paragraph("9. Recommended Security Controls", heading_style))
     story.append(Spacer(1, 0.2 * inch))
 
     # Global controls
@@ -1874,9 +2389,9 @@ async def export_project_pdf(
 
     story.append(Spacer(1, 0.3 * inch))
 
-    # --- 7. Validation Results ---
+    # --- 10. Validation Results ---
     story.append(PageBreak())
-    story.append(Paragraph("7. Validation Results", heading_style))
+    story.append(Paragraph("10. Validation Results", heading_style))
     story.append(Spacer(1, 0.2 * inch))
 
     if validation_report.results:
@@ -1917,8 +2432,8 @@ async def export_project_pdf(
 
     story.append(Spacer(1, 0.3 * inch))
 
-    # --- 8. Policy Violations ---
-    story.append(Paragraph("8. Policy Violations", heading_style))
+    # --- 11. Policy Violations ---
+    story.append(Paragraph("11. Policy Violations", heading_style))
     story.append(Spacer(1, 0.2 * inch))
 
     if violations:
@@ -1959,6 +2474,47 @@ async def export_project_pdf(
     return {"pdf_base64": pdf_data, "filename": filename}
 
 
+# Gap Analysis endpoint
+
+
+@router.get("/{project_id}/gap-analysis", response_model=GapAnalysisReport)
+async def get_gap_analysis(
+    project_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> GapAnalysisReport:
+    """Perform IEC 62443-3-3 compliance gap analysis for a project.
+
+    Maps foundational requirements (FR1-FR7) to system requirements (SRs)
+    and assesses which controls are met, partially met, or unmet for each zone
+    based on zone configuration, assets, and conduit settings.
+    """
+    project_repo = ProjectRepository(db)
+
+    # Check permission (viewer can access gap analysis)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    project_db = await project_repo.get_by_id(project_id)
+    if not project_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    # Convert to Pydantic model and run analysis
+    project = await project_repo.to_pydantic(project_db)
+    report = analyze_gaps(project)
+
+    return report
+
+
 # Project comparison endpoint
 class CompareProjectsRequest(BaseModel):
     """Request to compare two projects."""
@@ -1986,10 +2542,10 @@ async def compare_projects(
 
     # Check access to both projects
     has_access_a = await check_project_permission(
-        db, request.project_a_id, current_user.id, Permission.VIEWER
+        db, request.project_a_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
     )
     has_access_b = await check_project_permission(
-        db, request.project_b_id, current_user.id, Permission.VIEWER
+        db, request.project_b_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
     )
 
     if not has_access_a or not has_access_b:
@@ -2200,4 +2756,276 @@ async def compare_projects(
             "conduits_removed": len(removed_conduits),
             "conduits_modified": len(modified_conduits),
         },
+    )
+
+
+# --- Metrics / Analytics ---
+
+_METRICS_THROTTLE_SECONDS = 300  # 5 minutes
+
+
+async def _record_metrics_snapshot(
+    db: AsyncSession,
+    project_id: str,
+    project: Project,
+) -> None:
+    """Record a time-series metrics snapshot for a project.
+
+    Throttled to max 1 snapshot per 5 minutes per project to avoid flooding.
+    """
+    from datetime import timedelta
+
+    from sqlalchemy import select as sa_select
+
+    from induform.db.models import MetricsSnapshot
+    from induform.engine.validator import validate_project
+
+    # Check throttle: skip if a snapshot was recorded recently
+    cutoff = datetime.utcnow() - timedelta(seconds=_METRICS_THROTTLE_SECONDS)
+    recent_query = (
+        sa_select(MetricsSnapshot.id)
+        .where(MetricsSnapshot.project_id == project_id)
+        .where(MetricsSnapshot.recorded_at >= cutoff)
+        .limit(1)
+    )
+    result = await db.execute(recent_query)
+    if result.scalar_one_or_none() is not None:
+        return  # Throttled
+
+    # Calculate metrics
+    zone_count = len(project.zones)
+    asset_count = sum(len(z.assets) for z in project.zones)
+    conduit_count = len(project.conduits)
+
+    # Compliance score from policy violations
+    compliance_score = 100.0
+    try:
+        enabled_standards = project.project.compliance_standards or None
+        violations = evaluate_policies(project, enabled_standards=enabled_standards)
+        if violations:
+            deduction = 0.0
+            for v in violations:
+                if v.severity == PolicySeverity.CRITICAL:
+                    deduction += 25
+                elif v.severity == PolicySeverity.HIGH:
+                    deduction += 15
+                elif v.severity == PolicySeverity.MEDIUM:
+                    deduction += 8
+                else:
+                    deduction += 3
+            compliance_score = max(0.0, 100.0 - deduction)
+    except Exception:
+        pass
+
+    # Risk score
+    risk_score = 0.0
+    try:
+        vuln_data = await _load_vulnerability_data(db, project_id)
+        risk_assessment = assess_risk(project, vulnerability_data=vuln_data)
+        risk_score = risk_assessment.overall_score
+    except Exception:
+        pass
+
+    # Validation results
+    error_count = 0
+    warning_count = 0
+    try:
+        validation_report = validate_project(project)
+        error_count = validation_report.error_count
+        warning_count = validation_report.warning_count
+    except Exception:
+        pass
+
+    snapshot = MetricsSnapshot(
+        project_id=project_id,
+        zone_count=zone_count,
+        asset_count=asset_count,
+        conduit_count=conduit_count,
+        compliance_score=compliance_score,
+        risk_score=risk_score,
+        error_count=error_count,
+        warning_count=warning_count,
+    )
+    db.add(snapshot)
+    await db.flush()
+
+
+# Analytics response schemas
+
+
+class MetricsDataPoint(BaseModel):
+    """Single metrics data point."""
+
+    recorded_at: datetime
+    zone_count: int
+    asset_count: int
+    conduit_count: int
+    compliance_score: float
+    risk_score: float
+    error_count: int
+    warning_count: int
+
+
+class TrendDirection(BaseModel):
+    """Trend direction for a metric."""
+
+    value: float
+    direction: str  # "up", "down", "stable"
+    change: float  # absolute change
+
+
+class AnalyticsSummary(BaseModel):
+    """Summary analytics for a project."""
+
+    current: MetricsDataPoint | None
+    compliance_trend: TrendDirection | None
+    risk_trend: TrendDirection | None
+    zone_count_trend: TrendDirection | None
+    asset_count_trend: TrendDirection | None
+    min_compliance: float | None
+    max_compliance: float | None
+    min_risk: float | None
+    max_risk: float | None
+    snapshot_count: int
+
+
+@router.get("/{project_id}/analytics", response_model=list[MetricsDataPoint])
+async def get_project_analytics(
+    project_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    days: int = Query(30, ge=1, le=365, description="Number of days of history"),
+) -> list[MetricsDataPoint]:
+    """Return time-series analytics data for a project."""
+    from datetime import timedelta
+
+    from sqlalchemy import select as sa_select
+
+    from induform.db.models import MetricsSnapshot
+
+    # Check permission
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    query = (
+        sa_select(MetricsSnapshot)
+        .where(MetricsSnapshot.project_id == project_id)
+        .where(MetricsSnapshot.recorded_at >= cutoff)
+        .order_by(MetricsSnapshot.recorded_at.asc())
+    )
+    result = await db.execute(query)
+    snapshots = result.scalars().all()
+
+    return [
+        MetricsDataPoint(
+            recorded_at=s.recorded_at,
+            zone_count=s.zone_count,
+            asset_count=s.asset_count,
+            conduit_count=s.conduit_count,
+            compliance_score=s.compliance_score,
+            risk_score=s.risk_score,
+            error_count=s.error_count,
+            warning_count=s.warning_count,
+        )
+        for s in snapshots
+    ]
+
+
+@router.get("/{project_id}/analytics/summary", response_model=AnalyticsSummary)
+async def get_project_analytics_summary(
+    project_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    days: int = Query(30, ge=1, le=365, description="Number of days of history"),
+) -> AnalyticsSummary:
+    """Return summary analytics with trends for a project."""
+    from datetime import timedelta
+
+    from sqlalchemy import select as sa_select
+
+    from induform.db.models import MetricsSnapshot
+
+    # Check permission
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    query = (
+        sa_select(MetricsSnapshot)
+        .where(MetricsSnapshot.project_id == project_id)
+        .where(MetricsSnapshot.recorded_at >= cutoff)
+        .order_by(MetricsSnapshot.recorded_at.asc())
+    )
+    result = await db.execute(query)
+    snapshots = list(result.scalars().all())
+
+    if not snapshots:
+        return AnalyticsSummary(
+            current=None,
+            compliance_trend=None,
+            risk_trend=None,
+            zone_count_trend=None,
+            asset_count_trend=None,
+            min_compliance=None,
+            max_compliance=None,
+            min_risk=None,
+            max_risk=None,
+            snapshot_count=0,
+        )
+
+    current = snapshots[-1]
+    current_point = MetricsDataPoint(
+        recorded_at=current.recorded_at,
+        zone_count=current.zone_count,
+        asset_count=current.asset_count,
+        conduit_count=current.conduit_count,
+        compliance_score=current.compliance_score,
+        risk_score=current.risk_score,
+        error_count=current.error_count,
+        warning_count=current.warning_count,
+    )
+
+    # Calculate 7-day trends by comparing latest to value ~7 days ago
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    old_snapshots = [s for s in snapshots if s.recorded_at <= seven_days_ago]
+    old_ref = old_snapshots[-1] if old_snapshots else snapshots[0]
+
+    def _trend(current_val: float, old_val: float) -> TrendDirection:
+        change = current_val - old_val
+        threshold = 0.5  # Small threshold to avoid noise
+        if abs(change) < threshold:
+            direction = "stable"
+        elif change > 0:
+            direction = "up"
+        else:
+            direction = "down"
+        return TrendDirection(value=current_val, direction=direction, change=round(change, 2))
+
+    compliance_scores = [s.compliance_score for s in snapshots]
+    risk_scores = [s.risk_score for s in snapshots]
+
+    return AnalyticsSummary(
+        current=current_point,
+        compliance_trend=_trend(current.compliance_score, old_ref.compliance_score),
+        risk_trend=_trend(current.risk_score, old_ref.risk_score),
+        zone_count_trend=_trend(float(current.zone_count), float(old_ref.zone_count)),
+        asset_count_trend=_trend(float(current.asset_count), float(old_ref.asset_count)),
+        min_compliance=min(compliance_scores) if compliance_scores else None,
+        max_compliance=max(compliance_scores) if compliance_scores else None,
+        min_risk=min(risk_scores) if risk_scores else None,
+        max_risk=max(risk_scores) if risk_scores else None,
+        snapshot_count=len(snapshots),
     )

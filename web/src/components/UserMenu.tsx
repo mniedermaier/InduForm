@@ -1,13 +1,16 @@
 import { memo, useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 interface UserMenuProps {
   onOpenTeamManagement?: () => void;
   onOpenProfileSettings?: () => void;
+  onOpenAdmin?: () => void;
 }
 
-const UserMenu = memo(({ onOpenTeamManagement, onOpenProfileSettings }: UserMenuProps) => {
-  const { user, logout } = useAuth();
+const UserMenu = memo(({ onOpenTeamManagement, onOpenProfileSettings, onOpenAdmin }: UserMenuProps) => {
+  const { user, logout, refreshUser } = useAuth();
+  const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -85,6 +88,45 @@ const UserMenu = memo(({ onOpenTeamManagement, onOpenProfileSettings }: UserMenu
             >
               My Teams
             </button>
+            {user.is_admin && onOpenAdmin && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenAdmin();
+                }}
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                Admin Panel
+              </button>
+            )}
+            {!user.is_admin && (
+              <button
+                onClick={async () => {
+                  setIsOpen(false);
+                  try {
+                    const token = localStorage.getItem('induform_access_token');
+                    const response = await fetch('/api/admin/make-first-admin', {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                    });
+                    if (!response.ok) {
+                      const error = await response.json();
+                      throw new Error(error.detail || 'Failed to become admin');
+                    }
+                    toast.success('You are now an admin!');
+                    await refreshUser();
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : 'Failed to become admin');
+                  }
+                }}
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                Become Admin
+              </button>
+            )}
           </div>
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-1">

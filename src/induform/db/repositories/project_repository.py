@@ -78,11 +78,16 @@ class ProjectRepository:
         project_id: str,
         user_id: str,
         required_permission: str = "viewer",
+        is_admin: bool = False,
     ) -> ProjectDB | None:
         """Get a project if the user has the required permission."""
         project = await self.get_by_id(project_id)
         if not project:
             return None
+
+        # Admin has full access
+        if is_admin:
+            return project
 
         # Owner has full access
         if project.owner_id == user_id:
@@ -126,6 +131,7 @@ class ProjectRepository:
         skip: int = 0,
         limit: int = 100,
         load_full: bool = False,
+        is_admin: bool = False,
     ) -> list[ProjectDB]:
         """List all projects accessible to a user.
 
@@ -134,27 +140,32 @@ class ProjectRepository:
             skip: Number of records to skip
             limit: Maximum number of records to return
             load_full: If True, load all relations (zones, conduits) for risk calculation
+            is_admin: If True, return all projects (admin has full access)
         """
-        # Get user's team IDs
-        team_result = await self.session.execute(
-            select(TeamMember.team_id).where(TeamMember.user_id == user_id)
-        )
-        team_ids = [row[0] for row in team_result.fetchall()]
-
-        # Query projects where user is owner, has direct access, or team access
-        query = (
-            select(ProjectDB)
-            .distinct()
-            .outerjoin(ProjectAccess)
-            .where(
-                or_(
-                    ProjectDB.owner_id == user_id,
-                    ProjectAccess.user_id == user_id,
-                    ProjectAccess.team_id.in_(team_ids) if team_ids else False,
-                )
+        if is_admin:
+            # Admins see all projects
+            query = select(ProjectDB).options(selectinload(ProjectDB.owner))
+        else:
+            # Get user's team IDs
+            team_result = await self.session.execute(
+                select(TeamMember.team_id).where(TeamMember.user_id == user_id)
             )
-            .options(selectinload(ProjectDB.owner))
-        )
+            team_ids = [row[0] for row in team_result.fetchall()]
+
+            # Query projects where user is owner, has direct access, or team access
+            query = (
+                select(ProjectDB)
+                .distinct()
+                .outerjoin(ProjectAccess)
+                .where(
+                    or_(
+                        ProjectDB.owner_id == user_id,
+                        ProjectAccess.user_id == user_id,
+                        ProjectAccess.team_id.in_(team_ids) if team_ids else False,
+                    )
+                )
+                .options(selectinload(ProjectDB.owner))
+            )
 
         if load_full:
             query = query.options(
@@ -255,6 +266,22 @@ class ProjectRepository:
                     firmware_version=asset_db.firmware_version,
                     description=asset_db.description,
                     criticality=asset_db.criticality,
+                    os_name=asset_db.os_name,
+                    os_version=asset_db.os_version,
+                    software=asset_db.software,
+                    cpe=asset_db.cpe,
+                    subnet=asset_db.subnet,
+                    gateway=asset_db.gateway,
+                    vlan=asset_db.vlan,
+                    dns=asset_db.dns,
+                    open_ports=asset_db.open_ports,
+                    protocols=asset_db.protocols,
+                    purchase_date=asset_db.purchase_date,
+                    end_of_life=asset_db.end_of_life,
+                    warranty_expiry=asset_db.warranty_expiry,
+                    last_patched=asset_db.last_patched,
+                    patch_level=asset_db.patch_level,
+                    location=asset_db.location,
                 )
                 for asset_db in zone_db.assets
             ]
@@ -418,6 +445,22 @@ class ProjectRepository:
                     asset_db.firmware_version = asset.firmware_version
                     asset_db.description = asset.description
                     asset_db.criticality = asset.criticality or 3
+                    asset_db.os_name = asset.os_name
+                    asset_db.os_version = asset.os_version
+                    asset_db.software = asset.software
+                    asset_db.cpe = asset.cpe
+                    asset_db.subnet = asset.subnet
+                    asset_db.gateway = asset.gateway
+                    asset_db.vlan = asset.vlan
+                    asset_db.dns = asset.dns
+                    asset_db.open_ports = asset.open_ports
+                    asset_db.protocols = asset.protocols
+                    asset_db.purchase_date = asset.purchase_date
+                    asset_db.end_of_life = asset.end_of_life
+                    asset_db.warranty_expiry = asset.warranty_expiry
+                    asset_db.last_patched = asset.last_patched
+                    asset_db.patch_level = asset.patch_level
+                    asset_db.location = asset.location
                 else:
                     asset_db = AssetDB(
                         zone_db_id=zone_db.id,
@@ -431,6 +474,22 @@ class ProjectRepository:
                         firmware_version=asset.firmware_version,
                         description=asset.description,
                         criticality=asset.criticality or 3,
+                        os_name=asset.os_name,
+                        os_version=asset.os_version,
+                        software=asset.software,
+                        cpe=asset.cpe,
+                        subnet=asset.subnet,
+                        gateway=asset.gateway,
+                        vlan=asset.vlan,
+                        dns=asset.dns,
+                        open_ports=asset.open_ports,
+                        protocols=asset.protocols,
+                        purchase_date=asset.purchase_date,
+                        end_of_life=asset.end_of_life,
+                        warranty_expiry=asset.warranty_expiry,
+                        last_patched=asset.last_patched,
+                        patch_level=asset.patch_level,
+                        location=asset.location,
                     )
                     self.session.add(asset_db)
 

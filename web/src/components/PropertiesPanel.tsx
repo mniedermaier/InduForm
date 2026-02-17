@@ -607,6 +607,21 @@ const PropertiesPanel = memo(({
             )}
           </div>
 
+          {/* Vulnerabilities count for assets in this zone */}
+          {selectedZone.assets.length > 0 && projectId && (
+            <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-gray-500 dark:text-gray-400">Vulnerabilities</label>
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  {selectedZone.assets.length} asset{selectedZone.assets.length !== 1 ? 's' : ''} trackable
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Use the Vulnerabilities panel to track CVEs for assets in this zone.
+              </p>
+            </div>
+          )}
+
           {/* Edit/Delete Zone Buttons */}
           {apiConnected && (onEditZone || onDeleteZone) && (
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">

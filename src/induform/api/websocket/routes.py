@@ -120,6 +120,7 @@ async def project_websocket(
         user_id: str = payload.get("sub")
         username: str = payload.get("username", "Unknown")
         display_name: str = payload.get("display_name")
+        is_admin: bool = payload.get("is_admin", False)
 
         if user_id is None:
             await websocket.close(code=4001, reason="Invalid token")
@@ -135,7 +136,9 @@ async def project_websocket(
 
     # Check project access
     async for db in get_db():
-        has_access = await check_project_permission(db, project_id, user_id, Permission.VIEWER)
+        has_access = await check_project_permission(
+            db, project_id, user_id, Permission.VIEWER, is_admin=is_admin
+        )
         if not has_access:
             await websocket.close(code=4003, reason="Access denied")
             return
@@ -210,7 +213,7 @@ async def project_websocket(
                 # Verify user has edit permission
                 async for db in get_db():
                     has_edit_access = await check_project_permission(
-                        db, project_id, user_id, Permission.EDITOR
+                        db, project_id, user_id, Permission.EDITOR, is_admin=is_admin
                     )
                     if not has_edit_access:
                         await manager.send_to_user(

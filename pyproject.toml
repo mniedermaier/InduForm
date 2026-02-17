@@ -48,6 +48,8 @@ dependencies = [
     "reportlab>=4.0",
     # Rate limiting
     "slowapi>=0.1.9",
+    # CVE lookup
+    "httpx>=0.24.0",
 ]
 
 [project.optional-dependencies]

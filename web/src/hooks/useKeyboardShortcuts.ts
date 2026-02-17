@@ -14,6 +14,8 @@ export interface KeyboardShortcutHandlers {
   onDelete?: () => void;
   onEscape?: () => boolean; // Returns true if handled
   onValidate?: () => void;
+  onAutoLayout?: () => void;
+  onGlobalSearch?: () => void;
 }
 
 export interface KeyboardShortcutState {
@@ -23,6 +25,7 @@ export interface KeyboardShortcutState {
   canCopy: boolean;
   canPaste: boolean;
   canDelete: boolean;
+  canAutoLayout: boolean;
   apiConnected: boolean;
   selectedZone?: Zone;
   selectedConduit?: Conduit;
@@ -95,6 +98,13 @@ export function useKeyboardShortcuts(
       return;
     }
 
+    // Ctrl/Cmd + K - Global Search (also handled at App level)
+    if (modifier && e.key === 'k') {
+      e.preventDefault();
+      if (handlers.onGlobalSearch) handlers.onGlobalSearch();
+      return;
+    }
+
     // Ctrl/Cmd + C - Copy
     if (modifier && e.key === 'c') {
       if (state.selectedZone && handlers.onCopy) {
@@ -128,6 +138,13 @@ export function useKeyboardShortcuts(
         const handled = handlers.onEscape();
         if (handled) e.preventDefault();
       }
+      return;
+    }
+
+    // Ctrl/Cmd + L - Auto Layout
+    if (modifier && e.key === 'l') {
+      e.preventDefault();
+      if (state.canAutoLayout && handlers.onAutoLayout) handlers.onAutoLayout();
       return;
     }
 

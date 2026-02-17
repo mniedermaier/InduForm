@@ -5,6 +5,7 @@ import UserSettingsDialog from '../components/UserSettingsDialog';
 import NotificationBell from '../components/NotificationBell';
 import ActivityLogPanel from '../components/ActivityLogPanel';
 import UserMenu from '../components/UserMenu';
+import { Sparkline } from '../components/AnalyticsPanel';
 
 interface ProjectSummary {
   id: string;
@@ -34,6 +35,8 @@ interface ProjectsPageProps {
   onCreateProject: () => void;
   onShareProject?: (projectId: string, projectName: string) => void;
   onOpenTemplates?: () => void;
+  onOpenAdmin?: () => void;
+  onOpenGlobalSearch?: () => void;
 }
 
 export default function ProjectsPage({
@@ -41,7 +44,9 @@ export default function ProjectsPage({
   onOpenTeamManagement,
   onCreateProject,
   onShareProject,
-  onOpenTemplates
+  onOpenTemplates,
+  onOpenAdmin,
+  onOpenGlobalSearch,
 }: ProjectsPageProps) {
   const toast = useToast();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -60,6 +65,7 @@ export default function ProjectsPage({
   const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [activityLogProject, setActivityLogProject] = useState<string | null>(null);
+  const [sparklineData, setSparklineData] = useState<Record<string, number[]>>({});
   const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchProjects = useCallback(async () => {
@@ -90,6 +96,39 @@ export default function ProjectsPage({
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  // Fetch sparkline data for all projects (compliance score trend over last 30 days)
+  useEffect(() => {
+    if (projects.length === 0) return;
+    const token = localStorage.getItem('induform_access_token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    // Fetch analytics for each project (limited to first 20 to avoid too many requests)
+    const projectsToFetch = projects.filter(p => !p.is_archived).slice(0, 20);
+    const fetchPromises = projectsToFetch.map(async (p) => {
+      try {
+        const res = await fetch(`/api/projects/${p.id}/analytics?days=30`, { headers });
+        if (!res.ok) return { id: p.id, data: [] as number[] };
+        const data = await res.json();
+        const scores = (data as Array<{ compliance_score: number }>).map(
+          (d: { compliance_score: number }) => d.compliance_score
+        );
+        return { id: p.id, data: scores };
+      } catch {
+        return { id: p.id, data: [] as number[] };
+      }
+    });
+
+    Promise.all(fetchPromises).then((results) => {
+      const sparklines: Record<string, number[]> = {};
+      for (const r of results) {
+        if (r.data.length >= 2) {
+          sparklines[r.id] = r.data;
+        }
+      }
+      setSparklineData(sparklines);
+    });
+  }, [projects]);
 
   const handleDeleteProject = useCallback(async (projectId: string) => {
     try {
@@ -398,23 +437,28 @@ export default function ProjectsPage({
     );
   };
 
-  const getComplianceBadge = (score?: number) => {
+  const getComplianceBadge = (score?: number, projectId?: string) => {
     if (score === undefined || score === null) return null;
 
     let config;
     if (score >= 90) {
-      config = { bg: 'bg-green-100 dark:bg-green-900/60', text: 'text-green-700 dark:text-green-300', icon: '\u2713' };
+      config = { bg: 'bg-green-100 dark:bg-green-900/60', text: 'text-green-700 dark:text-green-300', icon: '\u2713', color: '#22c55e' };
     } else if (score >= 70) {
-      config = { bg: 'bg-yellow-100 dark:bg-yellow-900/60', text: 'text-yellow-700 dark:text-yellow-300', icon: '!' };
+      config = { bg: 'bg-yellow-100 dark:bg-yellow-900/60', text: 'text-yellow-700 dark:text-yellow-300', icon: '!', color: '#eab308' };
     } else if (score >= 50) {
-      config = { bg: 'bg-orange-100 dark:bg-orange-900/60', text: 'text-orange-700 dark:text-orange-300', icon: '!!' };
+      config = { bg: 'bg-orange-100 dark:bg-orange-900/60', text: 'text-orange-700 dark:text-orange-300', icon: '!!', color: '#f97316' };
     } else {
-      config = { bg: 'bg-red-100 dark:bg-red-900/60', text: 'text-red-700 dark:text-red-300', icon: '\u2717' };
+      config = { bg: 'bg-red-100 dark:bg-red-900/60', text: 'text-red-700 dark:text-red-300', icon: '\u2717', color: '#ef4444' };
     }
 
+    const sparkData = projectId ? sparklineData[projectId] : undefined;
+
     return (
-      <span className={`px-2 py-0.5 text-xs rounded-full ${config.bg} ${config.text}`} title={`Compliance: ${score}%`}>
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full ${config.bg} ${config.text}`} title={`Compliance: ${score}%`}>
         {config.icon} {score}%
+        {sparkData && sparkData.length >= 2 && (
+          <Sparkline data={sparkData} width={40} height={14} color={config.color} />
+        )}
       </span>
     );
   };
@@ -480,18 +524,12 @@ export default function ProjectsPage({
                   <span className="hidden sm:inline">Templates</span>
                 </button>
               )}
-              <button
-                onClick={onOpenTeamManagement}
-                className="hidden sm:block px-3 py-1.5 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg"
-              >
-                My Teams
-              </button>
-
               <NotificationBell />
 
               <UserMenu
                 onOpenTeamManagement={onOpenTeamManagement}
                 onOpenProfileSettings={() => setShowSettings(true)}
+                onOpenAdmin={onOpenAdmin}
               />
             </div>
           </div>
@@ -522,13 +560,40 @@ export default function ProjectsPage({
             <div className="text-sm text-gray-500 dark:text-slate-400">Assets</div>
           </div>
           <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
-            <div className={`text-2xl font-bold ${
-              stats.avgCompliance === null ? 'text-gray-400 dark:text-slate-500' :
-              stats.avgCompliance >= 90 ? 'text-green-400' :
-              stats.avgCompliance >= 70 ? 'text-yellow-400' :
-              stats.avgCompliance >= 50 ? 'text-orange-400' : 'text-red-400'
-            }`}>
-              {stats.avgCompliance !== null ? `${stats.avgCompliance}%` : '-'}
+            <div className="flex items-center gap-2">
+              <div className={`text-2xl font-bold ${
+                stats.avgCompliance === null ? 'text-gray-400 dark:text-slate-500' :
+                stats.avgCompliance >= 90 ? 'text-green-400' :
+                stats.avgCompliance >= 70 ? 'text-yellow-400' :
+                stats.avgCompliance >= 50 ? 'text-orange-400' : 'text-red-400'
+              }`}>
+                {stats.avgCompliance !== null ? `${stats.avgCompliance}%` : '-'}
+              </div>
+              {/* Show aggregated compliance sparkline */}
+              {(() => {
+                const allSparklines = Object.values(sparklineData).filter(s => s.length >= 2);
+                if (allSparklines.length === 0) return null;
+                // Average compliance scores across all projects at each time index
+                const maxLen = Math.max(...allSparklines.map(s => s.length));
+                const avgScores: number[] = [];
+                for (let i = 0; i < maxLen; i++) {
+                  let sum = 0;
+                  let count = 0;
+                  for (const s of allSparklines) {
+                    const idx = Math.floor((i / maxLen) * s.length);
+                    if (idx < s.length) {
+                      sum += s[idx];
+                      count++;
+                    }
+                  }
+                  if (count > 0) avgScores.push(sum / count);
+                }
+                if (avgScores.length < 2) return null;
+                const sparkColor = stats.avgCompliance !== null && stats.avgCompliance >= 90 ? '#22c55e' :
+                  stats.avgCompliance !== null && stats.avgCompliance >= 70 ? '#eab308' :
+                  stats.avgCompliance !== null && stats.avgCompliance >= 50 ? '#f97316' : '#ef4444';
+                return <Sparkline data={avgScores} width={50} height={20} color={sparkColor} />;
+              })()}
             </div>
             <div className="text-sm text-gray-500 dark:text-slate-400">Avg Compliance</div>
           </div>
@@ -661,6 +726,23 @@ export default function ProjectsPage({
                   </button>
                 )}
               </div>
+
+              {/* Global search button */}
+              {onOpenGlobalSearch && (
+                <button
+                  onClick={onOpenGlobalSearch}
+                  className="px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors bg-gray-100 dark:bg-slate-700/50 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                  title="Search all projects (Ctrl+K)"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <span className="hidden sm:inline">Search All</span>
+                  <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-gray-200 dark:bg-slate-600 border border-gray-300 dark:border-slate-500 rounded text-xs text-gray-500 dark:text-slate-400">
+                    Ctrl+K
+                  </kbd>
+                </button>
+              )}
 
               {/* Filter toggle */}
               <button
@@ -903,7 +985,7 @@ export default function ProjectsPage({
                         </h3>
                         {getPermissionBadge(project.permission)}
                         {getRiskBadge(project.risk_level, project.risk_score)}
-                        {getComplianceBadge(project.compliance_score)}
+                        {getComplianceBadge(project.compliance_score, project.id)}
                       </div>
 
                       {project.description && (

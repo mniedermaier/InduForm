@@ -43,4 +43,26 @@ class Asset(BaseModel):
         description="Criticality level (1=low, 5=critical)",
     )
 
+    # OS & Software
+    os_name: str | None = Field(None, description="Operating system name")
+    os_version: str | None = Field(None, description="Operating system version")
+    software: str | None = Field(None, description="Installed software (comma-separated)")
+    cpe: str | None = Field(None, description="CPE 2.3 identifier")
+
+    # Network
+    subnet: str | None = Field(None, description="Subnet (e.g., 10.10.1.0/24)")
+    gateway: str | None = Field(None, description="Default gateway IP")
+    vlan: int | None = Field(None, description="VLAN ID")
+    dns: str | None = Field(None, description="DNS server address")
+    open_ports: str | None = Field(None, description="Open ports (comma-separated)")
+    protocols: str | None = Field(None, description="Network protocols in use")
+
+    # Lifecycle
+    purchase_date: str | None = Field(None, description="Purchase date (YYYY-MM-DD)")
+    end_of_life: str | None = Field(None, description="End of life date (YYYY-MM-DD)")
+    warranty_expiry: str | None = Field(None, description="Warranty expiry date (YYYY-MM-DD)")
+    last_patched: str | None = Field(None, description="Last patched date (YYYY-MM-DD)")
+    patch_level: str | None = Field(None, description="Current patch level")
+    location: str | None = Field(None, description="Physical location")
+
     model_config = {"extra": "forbid"}

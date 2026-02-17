@@ -11,17 +11,17 @@ interface CSVImportDialogProps {
 type ImportType = 'zones' | 'assets';
 
 const ZONE_CSV_HEADER = 'id,name,type,security_level_target,parent_zone,description';
-const ASSET_CSV_HEADER = 'zone_id,id,name,type,ip_address,vendor,model';
+const ASSET_CSV_HEADER = 'zone_id,id,name,type,ip_address,mac_address,vendor,model,firmware_version,criticality,description,os_name,os_version,software,cpe,subnet,gateway,vlan,dns,open_ports,protocols,purchase_date,end_of_life,warranty_expiry,last_patched,patch_level,location';
 
 const ZONE_EXAMPLE = `id,name,type,security_level_target,parent_zone,description
 enterprise,Enterprise Network,enterprise,1,,Corporate IT network
 site_dmz,Site DMZ,dmz,3,enterprise,Demilitarized zone
 cell_01,Production Cell 01,cell,2,,Main production area`;
 
-const ASSET_EXAMPLE = `zone_id,id,name,type,ip_address,vendor,model
-cell_01,plc_01,Main PLC,plc,10.10.1.10,Siemens,S7-1500
-cell_01,hmi_01,Operator HMI,hmi,10.10.1.20,Wonderware,
-site_dmz,historian,Site Historian,historian,10.1.1.50,OSIsoft,PI`;
+const ASSET_EXAMPLE = `zone_id,id,name,type,ip_address,mac_address,vendor,model,firmware_version,criticality,description,os_name,os_version,software,cpe,subnet,gateway,vlan,dns,open_ports,protocols,purchase_date,end_of_life,warranty_expiry,last_patched,patch_level,location
+cell_01,plc_01,Main PLC,plc,10.10.1.10,,Siemens,S7-1500,4.5.2,4,,Linux,4.19,Step 7,,10.10.1.0/24,10.10.1.1,100,,102,S7,2023-01-15,2030-12-31,,,SP3,Building A
+cell_01,hmi_01,Operator HMI,hmi,10.10.1.20,,Wonderware,,,,,,,,,,,,,,,,,,,,
+site_dmz,historian,Site Historian,historian,10.1.1.50,,OSIsoft,PI,,,,,,,,,,,,,,,,,,,`;
 
 const VALID_ZONE_TYPES: ZoneType[] = ['enterprise', 'site', 'area', 'cell', 'dmz', 'safety'];
 const VALID_ASSET_TYPES: AssetType[] = ['plc', 'hmi', 'scada', 'engineering_workstation', 'historian', 'jump_host', 'firewall', 'switch', 'other'];
@@ -168,8 +168,34 @@ const CSVImportDialog = memo(({
       const nameIdx = header.indexOf('name');
       const typeIdx = header.indexOf('type');
       const ipIdx = header.indexOf('ip_address');
+      const macIdx = header.indexOf('mac_address');
       const vendorIdx = header.indexOf('vendor');
       const modelIdx = header.indexOf('model');
+      const firmwareIdx = header.indexOf('firmware_version');
+      const criticalityIdx = header.indexOf('criticality');
+      const descIdx = header.indexOf('description');
+      const osNameIdx = header.indexOf('os_name');
+      const osVersionIdx = header.indexOf('os_version');
+      const softwareIdx = header.indexOf('software');
+      const cpeIdx = header.indexOf('cpe');
+      const subnetIdx = header.indexOf('subnet');
+      const gatewayIdx = header.indexOf('gateway');
+      const vlanIdx = header.indexOf('vlan');
+      const dnsIdx = header.indexOf('dns');
+      const openPortsIdx = header.indexOf('open_ports');
+      const protocolsIdx = header.indexOf('protocols');
+      const purchaseDateIdx = header.indexOf('purchase_date');
+      const endOfLifeIdx = header.indexOf('end_of_life');
+      const warrantyIdx = header.indexOf('warranty_expiry');
+      const lastPatchedIdx = header.indexOf('last_patched');
+      const patchLevelIdx = header.indexOf('patch_level');
+      const locationIdx = header.indexOf('location');
+
+      const getOpt = (row: string[], idx: number): string | undefined => {
+        if (idx < 0) return undefined;
+        const val = row[idx]?.trim();
+        return val || undefined;
+      };
 
       const assets: { zoneId: string; asset: Asset }[] = [];
       const errors: string[] = [];
@@ -181,9 +207,6 @@ const CSVImportDialog = memo(({
         const id = row[idIdx]?.trim();
         const name = row[nameIdx]?.trim();
         const type = row[typeIdx]?.trim().toLowerCase() as AssetType;
-        const ip = ipIdx >= 0 ? row[ipIdx]?.trim() : undefined;
-        const vendor = vendorIdx >= 0 ? row[vendorIdx]?.trim() : undefined;
-        const model = modelIdx >= 0 ? row[modelIdx]?.trim() : undefined;
 
         if (!zoneId) {
           errors.push(`Row ${rowIdx + 2}: Missing zone_id`);
@@ -213,15 +236,38 @@ const CSVImportDialog = memo(({
           return;
         }
 
+        const critStr = getOpt(row, criticalityIdx);
+        const vlanStr = getOpt(row, vlanIdx);
+
         assets.push({
           zoneId,
           asset: {
             id,
             name,
             type,
-            ...(ip && { ip_address: ip }),
-            ...(vendor && { vendor }),
-            ...(model && { model }),
+            ...(getOpt(row, ipIdx) && { ip_address: getOpt(row, ipIdx) }),
+            ...(getOpt(row, macIdx) && { mac_address: getOpt(row, macIdx) }),
+            ...(getOpt(row, vendorIdx) && { vendor: getOpt(row, vendorIdx) }),
+            ...(getOpt(row, modelIdx) && { model: getOpt(row, modelIdx) }),
+            ...(getOpt(row, firmwareIdx) && { firmware_version: getOpt(row, firmwareIdx) }),
+            ...(critStr && { criticality: parseInt(critStr) || undefined }),
+            ...(getOpt(row, descIdx) && { description: getOpt(row, descIdx) }),
+            ...(getOpt(row, osNameIdx) && { os_name: getOpt(row, osNameIdx) }),
+            ...(getOpt(row, osVersionIdx) && { os_version: getOpt(row, osVersionIdx) }),
+            ...(getOpt(row, softwareIdx) && { software: getOpt(row, softwareIdx) }),
+            ...(getOpt(row, cpeIdx) && { cpe: getOpt(row, cpeIdx) }),
+            ...(getOpt(row, subnetIdx) && { subnet: getOpt(row, subnetIdx) }),
+            ...(getOpt(row, gatewayIdx) && { gateway: getOpt(row, gatewayIdx) }),
+            ...(vlanStr && { vlan: parseInt(vlanStr) || undefined }),
+            ...(getOpt(row, dnsIdx) && { dns: getOpt(row, dnsIdx) }),
+            ...(getOpt(row, openPortsIdx) && { open_ports: getOpt(row, openPortsIdx) }),
+            ...(getOpt(row, protocolsIdx) && { protocols: getOpt(row, protocolsIdx) }),
+            ...(getOpt(row, purchaseDateIdx) && { purchase_date: getOpt(row, purchaseDateIdx) }),
+            ...(getOpt(row, endOfLifeIdx) && { end_of_life: getOpt(row, endOfLifeIdx) }),
+            ...(getOpt(row, warrantyIdx) && { warranty_expiry: getOpt(row, warrantyIdx) }),
+            ...(getOpt(row, lastPatchedIdx) && { last_patched: getOpt(row, lastPatchedIdx) }),
+            ...(getOpt(row, patchLevelIdx) && { patch_level: getOpt(row, patchLevelIdx) }),
+            ...(getOpt(row, locationIdx) && { location: getOpt(row, locationIdx) }),
           },
         });
       });

@@ -40,11 +40,13 @@ class TokenData:
         token_type: str = "access",
         exp: datetime | None = None,
         jti: str | None = None,
+        iat: datetime | None = None,
     ):
         self.user_id = user_id
         self.token_type = token_type
         self.exp = exp
         self.jti = jti
+        self.iat = iat
 
 
 def create_access_token(
@@ -52,6 +54,7 @@ def create_access_token(
     expires_delta: timedelta | None = None,
     username: str | None = None,
     display_name: str | None = None,
+    is_admin: bool = False,
 ) -> str:
     """Create a JWT access token."""
     if expires_delta is None:
@@ -72,6 +75,8 @@ def create_access_token(
         to_encode["username"] = username
     if display_name is not None:
         to_encode["display_name"] = display_name
+    if is_admin:
+        to_encode["is_admin"] = True
 
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -126,12 +131,16 @@ def decode_token(token: str) -> TokenData | None:
         token_type: str = payload.get("type", "access")
         exp = payload.get("exp")
         jti = payload.get("jti")
+        iat = payload.get("iat")
 
         if user_id is None:
             return None
 
         exp_datetime = datetime.fromtimestamp(exp) if exp else None
-        return TokenData(user_id=user_id, token_type=token_type, exp=exp_datetime, jti=jti)
+        iat_datetime = datetime.utcfromtimestamp(iat) if iat else None
+        return TokenData(
+            user_id=user_id, token_type=token_type, exp=exp_datetime, jti=jti, iat=iat_datetime
+        )
 
     except JWTError:
         return None

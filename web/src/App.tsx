@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import type { Project } from './types/models';
 import { setAuthErrorCallback } from './api/client';
@@ -8,21 +8,47 @@ import ErrorBoundary from './components/ErrorBoundary';
 import TeamManagementDialog from './components/TeamManagementDialog';
 import CreateProjectDialog from './components/CreateProjectDialog';
 import ShareProjectDialog from './components/ShareProjectDialog';
+import GlobalSearchDialog from './components/GlobalSearchDialog';
 import ProjectEditor from './components/ProjectEditor';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ProjectsPage from './pages/ProjectsPage';
+import AdminPage from './pages/AdminPage';
 
 // Auth wrapper that handles login/register flow and navigation
 function AuthWrapper() {
   const { isAuthenticated, isLoading: authLoading, logout, refreshToken } = useAuth();
   const toast = useToast();
-  const [authPage, setAuthPage] = useState<'login' | 'register'>('login');
-  const [currentView, setCurrentView] = useState<'projects' | 'editor'>('projects');
+  const [authPage, setAuthPage] = useState<'login' | 'register' | 'forgot-password'>('login');
+  const [currentView, setCurrentView] = useState<'projects' | 'editor' | 'admin'>('projects');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [showTeamManagement, setShowTeamManagement] = useState(false);
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [shareProject, setShareProject] = useState<{ id: string; name: string } | null>(null);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+
+  // Global Ctrl+K shortcut to open search
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+      if (modifier && e.key === 'k') {
+        e.preventDefault();
+        setShowGlobalSearch(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAuthenticated]);
+
+  const handleOpenGlobalSearch = useCallback(() => {
+    setShowGlobalSearch(true);
+  }, []);
 
   // Set up auth error callback
   useEffect(() => {
@@ -49,12 +75,20 @@ function AuthWrapper() {
     );
   }
 
-  // Show login/register if not authenticated
+  // Show login/register/forgot-password if not authenticated
   if (!isAuthenticated) {
     if (authPage === 'register') {
       return <RegisterPage onSwitchToLogin={() => setAuthPage('login')} />;
     }
-    return <LoginPage onSwitchToRegister={() => setAuthPage('register')} />;
+    if (authPage === 'forgot-password') {
+      return <ForgotPasswordPage onSwitchToLogin={() => setAuthPage('login')} />;
+    }
+    return (
+      <LoginPage
+        onSwitchToRegister={() => setAuthPage('register')}
+        onSwitchToForgotPassword={() => setAuthPage('forgot-password')}
+      />
+    );
   }
 
   const handleOpenProject = (projectId: string) => {
@@ -120,6 +154,13 @@ function AuthWrapper() {
     }
   };
 
+  // Show admin page
+  if (currentView === 'admin') {
+    return (
+      <AdminPage onBackToProjects={handleBackToProjects} />
+    );
+  }
+
   // Show projects landing page
   if (currentView === 'projects') {
     return (
@@ -129,6 +170,8 @@ function AuthWrapper() {
           onOpenTeamManagement={() => setShowTeamManagement(true)}
           onCreateProject={() => setShowCreateProject(true)}
           onShareProject={(id, name) => setShareProject({ id, name })}
+          onOpenAdmin={() => setCurrentView('admin')}
+          onOpenGlobalSearch={handleOpenGlobalSearch}
         />
 
         {showTeamManagement && (
@@ -149,16 +192,34 @@ function AuthWrapper() {
             onClose={() => setShareProject(null)}
           />
         )}
+
+        {showGlobalSearch && (
+          <GlobalSearchDialog
+            onClose={() => setShowGlobalSearch(false)}
+            onNavigateToProject={handleOpenProject}
+          />
+        )}
       </>
     );
   }
 
   // Show project editor
   return (
-    <ProjectEditor
-      projectId={currentProjectId!}
-      onBackToProjects={handleBackToProjects}
-    />
+    <>
+      <ProjectEditor
+        projectId={currentProjectId!}
+        onBackToProjects={handleBackToProjects}
+        onOpenGlobalSearch={handleOpenGlobalSearch}
+        onOpenAdmin={() => setCurrentView('admin')}
+      />
+
+      {showGlobalSearch && (
+        <GlobalSearchDialog
+          onClose={() => setShowGlobalSearch(false)}
+          onNavigateToProject={handleOpenProject}
+        />
+      )}
+    </>
   );
 }
 

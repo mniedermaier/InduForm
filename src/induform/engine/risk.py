@@ -1,5 +1,7 @@
 """Risk scoring engine for IEC 62443 security zones."""
 
+from __future__ import annotations
+
 from enum import StrEnum
 
 from pydantic import BaseModel, Field
@@ -15,6 +17,15 @@ class RiskLevel(StrEnum):
     MEDIUM = "medium"
     LOW = "low"
     MINIMAL = "minimal"
+
+
+class VulnInfo(BaseModel):
+    """Vulnerability info used for risk scoring."""
+
+    cve_id: str
+    severity: str
+    cvss_score: float | None = None
+    status: str = "open"
 
 
 class RiskFactors(BaseModel):
@@ -35,6 +46,10 @@ class RiskFactors(BaseModel):
     sl_gap_risk: float = Field(
         ...,
         description="Risk from SL differences with connected zones",
+    )
+    vulnerability_risk: float = Field(
+        default=0.0,
+        description="Risk from known vulnerabilities, mitigated by zone SL",
     )
 
     model_config = {"extra": "forbid"}
@@ -77,10 +92,11 @@ class RiskAssessment(BaseModel):
 
 # Risk weights for calculating overall score
 RISK_FACTOR_WEIGHTS = {
-    "sl_base": 0.30,
-    "asset_criticality": 0.25,
-    "exposure": 0.20,
-    "sl_gap": 0.25,
+    "sl_base": 0.25,
+    "asset_criticality": 0.20,
+    "exposure": 0.15,
+    "sl_gap": 0.20,
+    "vulnerability": 0.20,
 }
 
 # Base risk scores for Security Level Targets
@@ -96,6 +112,25 @@ DEFAULT_ASSET_CRITICALITY = 5
 
 # Maximum asset criticality value
 MAX_ASSET_CRITICALITY = 10
+
+# SL mitigation factor: higher SL zones mitigate vulnerability impact more
+SL_MITIGATION_FACTOR = {1: 1.0, 2: 0.85, 3: 0.65, 4: 0.45}
+
+# Status discount: how much each vulnerability status reduces its risk
+VULN_STATUS_DISCOUNT = {
+    "open": 1.0,
+    "accepted": 0.75,
+    "mitigated": 0.3,
+    "false_positive": 0.0,
+}
+
+# Severity base score: used when cvss_score is not available
+SEVERITY_BASE_SCORE = {
+    "critical": 9.5,
+    "high": 7.5,
+    "medium": 5.0,
+    "low": 2.5,
+}
 
 
 def classify_risk_level(score: float) -> RiskLevel:
@@ -119,12 +154,17 @@ def classify_risk_level(score: float) -> RiskLevel:
         return RiskLevel.MINIMAL
 
 
-def calculate_zone_risk(project: Project, zone_id: str) -> ZoneRisk:
+def calculate_zone_risk(
+    project: Project,
+    zone_id: str,
+    zone_vulns: list[VulnInfo] | None = None,
+) -> ZoneRisk:
     """Calculate risk score for a single zone.
 
     Args:
         project: The project containing zones and conduits
         zone_id: ID of the zone to assess
+        zone_vulns: Optional list of vulnerabilities associated with this zone
 
     Returns:
         ZoneRisk with score, level, and factors breakdown
@@ -179,12 +219,36 @@ def calculate_zone_risk(project: Project, zone_id: str) -> ZoneRisk:
         avg_gap = total_gap / len(conduits)
         sl_gap_risk = min(avg_gap * 10.0, 40.0)
 
+    # 5. Vulnerability Risk: CVEs weighted by CVSS, mitigated by zone SL
+    vulnerability_risk = 0.0
+    if zone_vulns:
+        sl_mitigation = SL_MITIGATION_FACTOR.get(zone.security_level_target, 1.0)
+        effective_scores: list[float] = []
+        for v in zone_vulns:
+            cvss = (
+                v.cvss_score
+                if v.cvss_score is not None
+                else SEVERITY_BASE_SCORE.get(v.severity, 5.0)
+            )
+            status_discount = VULN_STATUS_DISCOUNT.get(v.status, 1.0)
+            effective_scores.append(cvss * sl_mitigation * status_discount)
+
+        active = [s for s in effective_scores if s > 0]
+        if active:
+            avg_effective = sum(active) / len(active)
+            # Scale avg (0-10) to 0-40 range
+            vulnerability_risk = avg_effective * 4.0
+            # Volume boost: +2 pts per extra vuln beyond the first, capped at 10
+            volume_boost = min((len(active) - 1) * 2.0, 10.0)
+            vulnerability_risk = min(vulnerability_risk + volume_boost, 40.0)
+
     # Calculate weighted total score
     weighted_score = (
         sl_base_risk * RISK_FACTOR_WEIGHTS["sl_base"]
         + asset_criticality_risk * RISK_FACTOR_WEIGHTS["asset_criticality"]
         + exposure_risk * RISK_FACTOR_WEIGHTS["exposure"]
         + sl_gap_risk * RISK_FACTOR_WEIGHTS["sl_gap"]
+        + vulnerability_risk * RISK_FACTOR_WEIGHTS["vulnerability"]
     )
 
     # Ensure score is in valid range
@@ -195,6 +259,7 @@ def calculate_zone_risk(project: Project, zone_id: str) -> ZoneRisk:
         asset_criticality_risk=asset_criticality_risk,
         exposure_risk=exposure_risk,
         sl_gap_risk=sl_gap_risk,
+        vulnerability_risk=vulnerability_risk,
     )
 
     return ZoneRisk(
@@ -204,12 +269,17 @@ def calculate_zone_risk(project: Project, zone_id: str) -> ZoneRisk:
     )
 
 
-def generate_recommendations(project: Project, zone_risks: dict[str, ZoneRisk]) -> list[str]:
+def generate_recommendations(
+    project: Project,
+    zone_risks: dict[str, ZoneRisk],
+    vulnerability_data: dict[str, list[VulnInfo]] | None = None,
+) -> list[str]:
     """Generate risk mitigation recommendations based on assessment.
 
     Args:
         project: The project being assessed
         zone_risks: Risk assessment for each zone
+        vulnerability_data: Optional vulnerability data keyed by zone_id
 
     Returns:
         List of recommendation strings
@@ -265,6 +335,29 @@ def generate_recommendations(project: Project, zone_risks: dict[str, ZoneRisk]) 
                 "Assess and document the actual security capability."
             )
 
+    # Vulnerability-aware recommendations
+    if vulnerability_data:
+        for zone_id, vulns in vulnerability_data.items():
+            zone = project.get_zone(zone_id)
+            if not zone:
+                continue
+            open_critical = [v for v in vulns if v.severity == "critical" and v.status == "open"]
+            if open_critical and zone.security_level_target <= 2:
+                zone_name = zone.name or zone_id
+                recommendations.append(
+                    f"URGENT: Zone '{zone_name}' (SL-{zone.security_level_target}) has"
+                    f" {len(open_critical)} open critical CVE(s). Patch or mitigate immediately."
+                )
+
+        # Check for zones without any vulnerability data (unscanned)
+        scanned_zones = set(vulnerability_data.keys())
+        for zone in project.zones:
+            if zone.id not in scanned_zones and zone.assets:
+                recommendations.append(
+                    f"Zone '{zone.name or zone.id}' has assets but no vulnerability data."
+                    " Consider running a CVE scan."
+                )
+
     # General recommendations based on overall risk
     overall_risk_avg = (
         sum(r.score for r in zone_risks.values()) / len(zone_risks) if zone_risks else 0
@@ -278,11 +371,15 @@ def generate_recommendations(project: Project, zone_risks: dict[str, ZoneRisk]) 
     return recommendations
 
 
-def assess_risk(project: Project) -> RiskAssessment:
+def assess_risk(
+    project: Project,
+    vulnerability_data: dict[str, list[VulnInfo]] | None = None,
+) -> RiskAssessment:
     """Perform complete risk assessment for a project.
 
     Args:
         project: The project to assess
+        vulnerability_data: Optional vulnerability data keyed by zone_id
 
     Returns:
         RiskAssessment with zone risks, overall score, and recommendations
@@ -291,7 +388,8 @@ def assess_risk(project: Project) -> RiskAssessment:
 
     # Calculate risk for each zone
     for zone in project.zones:
-        zone_risks[zone.id] = calculate_zone_risk(project, zone.id)
+        zone_vulns = (vulnerability_data or {}).get(zone.id)
+        zone_risks[zone.id] = calculate_zone_risk(project, zone.id, zone_vulns=zone_vulns)
 
     # Calculate overall score (weighted average by zone criticality)
     if zone_risks:
@@ -318,7 +416,7 @@ def assess_risk(project: Project) -> RiskAssessment:
     overall_level = classify_risk_level(overall_score)
 
     # Generate recommendations
-    recommendations = generate_recommendations(project, zone_risks)
+    recommendations = generate_recommendations(project, zone_risks, vulnerability_data)
 
     return RiskAssessment(
         zone_risks=zone_risks,

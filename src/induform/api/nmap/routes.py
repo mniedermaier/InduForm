@@ -43,7 +43,9 @@ async def upload_nmap_scan(
 ) -> NmapScanResponse:
     """Upload and parse an Nmap XML scan."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -113,7 +115,9 @@ async def list_scans(
 ) -> list[NmapScanResponse]:
     """List Nmap scans for a project with pagination."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -155,7 +159,9 @@ async def get_scan(
 ) -> NmapScanDetailResponse:
     """Get a specific Nmap scan with host details."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -236,7 +242,9 @@ async def import_hosts_as_assets(
 ) -> dict[str, Any]:
     """Import selected hosts as assets in specified zones."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -320,7 +328,9 @@ async def delete_scan(
 ) -> None:
     """Delete an Nmap scan and its host records."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

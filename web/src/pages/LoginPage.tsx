@@ -4,9 +4,10 @@ import ParticleBackground from '../components/ParticleBackground';
 
 interface LoginPageProps {
   onSwitchToRegister: () => void;
+  onSwitchToForgotPassword: () => void;
 }
 
-export default function LoginPage({ onSwitchToRegister }: LoginPageProps) {
+export default function LoginPage({ onSwitchToRegister, onSwitchToForgotPassword }: LoginPageProps) {
   const { login, isLoading, error, clearError } = useAuth();
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -96,6 +97,16 @@ export default function LoginPage({ onSwitchToRegister }: LoginPageProps) {
                 autoComplete="current-password"
                 disabled={isLoading}
               />
+            </div>
+
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={onSwitchToForgotPassword}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+              >
+                Forgot password?
+              </button>
             </div>
 
             <button

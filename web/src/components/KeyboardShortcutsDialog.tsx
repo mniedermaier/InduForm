@@ -40,6 +40,12 @@ const shortcutCategories: ShortcutCategory[] = [
     ],
   },
   {
+    title: 'Layout',
+    shortcuts: [
+      { keys: [modKey, 'L'], description: 'Auto layout (Purdue model)' },
+    ],
+  },
+  {
     title: 'Navigation',
     shortcuts: [
       { keys: ['Escape'], description: 'Close dialog / Deselect' },

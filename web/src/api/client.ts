@@ -1,6 +1,6 @@
 // API client for InduForm backend
 
-import type { Project, ProjectResponse, ValidationReport, PolicyViolation, Zone, Conduit } from '../types/models';
+import type { Project, ProjectResponse, ValidationReport, PolicyViolation, Zone, Conduit, Vulnerability, VulnerabilitySummary } from '../types/models';
 
 const API_BASE = '/api';
 
@@ -395,6 +395,195 @@ export const api = {
   async compareVersions(projectId: string, versionAId: string, versionBId: string): Promise<VersionDiff> {
     return fetchJson(`/projects/${projectId}/versions/${versionAId}/compare/${versionBId}`);
   },
+
+  // Vulnerabilities
+  async listVulnerabilities(projectId: string, options?: { severity?: string; status?: string; zone_id?: string }): Promise<Vulnerability[]> {
+    const params = new URLSearchParams();
+    if (options?.severity) params.set('severity', options.severity);
+    if (options?.status) params.set('vuln_status', options.status);
+    if (options?.zone_id) params.set('zone_id', options.zone_id);
+    const query = params.toString();
+    return fetchJson(`/projects/${projectId}/vulnerabilities${query ? `?${query}` : ''}`);
+  },
+
+  async createVulnerability(projectId: string, zoneId: string, assetId: string, data: {
+    cve_id: string;
+    title: string;
+    description?: string;
+    severity: string;
+    cvss_score?: number;
+    status?: string;
+  }): Promise<Vulnerability> {
+    return fetchJson(`/projects/${projectId}/zones/${zoneId}/assets/${assetId}/vulnerabilities`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateVulnerability(projectId: string, vulnId: string, data: {
+    status?: string;
+    mitigation_notes?: string;
+    severity?: string;
+    cvss_score?: number;
+    title?: string;
+    description?: string;
+  }): Promise<Vulnerability> {
+    return fetchJson(`/projects/${projectId}/vulnerabilities/${vulnId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteVulnerability(projectId: string, vulnId: string): Promise<void> {
+    return fetchJson(`/projects/${projectId}/vulnerabilities/${vulnId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getVulnerabilitySummary(projectId: string): Promise<VulnerabilitySummary> {
+    return fetchJson(`/projects/${projectId}/vulnerability-summary`);
+  },
+
+  // CVE Auto-Scan
+  async lookupCve(projectId: string, cveId: string): Promise<CveLookupResponse> {
+    return fetchJson(`/projects/${projectId}/cve-lookup/${cveId}`);
+  },
+
+  async scanAssetCves(projectId: string, zoneId: string, assetId: string): Promise<AssetScanResponse> {
+    return fetchJson(`/projects/${projectId}/zones/${zoneId}/assets/${assetId}/scan-cves`, {
+      method: 'POST',
+    });
+  },
+
+  async scanAllCves(projectId: string): Promise<ScanStatusResponse> {
+    return fetchJson(`/projects/${projectId}/scan-all-cves`, {
+      method: 'POST',
+    });
+  },
+
+  async getScanStatus(projectId: string, jobId: string): Promise<ScanStatusResponse> {
+    return fetchJson(`/projects/${projectId}/scan-status/${jobId}`);
+  },
+
+  async exportAssetsCsv(projectId: string): Promise<Blob> {
+    const token = localStorage.getItem('induform_access_token');
+    const response = await fetch(`${API_BASE}/projects/${projectId}/export/assets-csv`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) throw new ApiError({ message: 'Failed to export assets CSV', status: response.status });
+    return response.blob();
+  },
+
+  async downloadAssetsCsvTemplate(projectId: string): Promise<Blob> {
+    const token = localStorage.getItem('induform_access_token');
+    const response = await fetch(`${API_BASE}/projects/${projectId}/export/assets-csv-template`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) throw new ApiError({ message: 'Failed to download template', status: response.status });
+    return response.blob();
+  },
+
+  // Admin
+  async adminListProjects(options?: { skip?: number; limit?: number; search?: string }): Promise<AdminProject[]> {
+    const params = new URLSearchParams();
+    if (options?.skip !== undefined) params.set('skip', String(options.skip));
+    if (options?.limit !== undefined) params.set('limit', String(options.limit));
+    if (options?.search) params.set('search', options.search);
+    const query = params.toString();
+    return fetchJson(`/admin/projects${query ? `?${query}` : ''}`);
+  },
+
+  async adminArchiveProject(projectId: string, isArchived: boolean): Promise<AdminProject> {
+    return fetchJson(`/admin/projects/${projectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_archived: isArchived }),
+    });
+  },
+
+  async adminDeleteProject(projectId: string): Promise<void> {
+    return fetchJson(`/admin/projects/${projectId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async adminListActivity(options?: { skip?: number; limit?: number; action?: string; user_id?: string }): Promise<AdminActivity[]> {
+    const params = new URLSearchParams();
+    if (options?.skip !== undefined) params.set('skip', String(options.skip));
+    if (options?.limit !== undefined) params.set('limit', String(options.limit));
+    if (options?.action) params.set('action', options.action);
+    if (options?.user_id) params.set('user_id', options.user_id);
+    const query = params.toString();
+    return fetchJson(`/admin/activity${query ? `?${query}` : ''}`);
+  },
+
+  // Admin - enhanced
+  async adminGetHealth(): Promise<AdminHealth> {
+    return fetchJson('/admin/health');
+  },
+
+  async adminListSessions(): Promise<AdminSession[]> {
+    return fetchJson('/admin/sessions');
+  },
+
+  async adminForceLogout(userId: string): Promise<void> {
+    await fetchJson(`/admin/sessions/${userId}/revoke-all`, { method: 'POST' });
+  },
+
+  async adminTransferProject(projectId: string, newOwnerId: string): Promise<AdminProject> {
+    return fetchJson(`/admin/projects/${projectId}/transfer`, {
+      method: 'PATCH',
+      body: JSON.stringify({ new_owner_id: newOwnerId }),
+    });
+  },
+
+  async adminExportActivityCSV(): Promise<Blob> {
+    const token = localStorage.getItem('induform_access_token');
+    const response = await fetch(`${API_BASE}/admin/activity/export`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) throw new ApiError({ message: 'Failed to export activity CSV', status: response.status });
+    return response.blob();
+  },
+
+  async adminBulkUpdateUsers(userIds: string[], updates: { is_active?: boolean; is_admin?: boolean }): Promise<{ updated_count: number }> {
+    return fetchJson('/admin/users/bulk-update', {
+      method: 'POST',
+      body: JSON.stringify({ user_ids: userIds, ...updates }),
+    });
+  },
+
+  async adminListLoginHistory(options?: { skip?: number; limit?: number; user_id?: string; success?: string }): Promise<AdminLoginAttempt[]> {
+    const params = new URLSearchParams();
+    if (options?.skip !== undefined) params.set('skip', String(options.skip));
+    if (options?.limit !== undefined) params.set('limit', String(options.limit));
+    if (options?.user_id) params.set('user_id', options.user_id);
+    if (options?.success) params.set('success', options.success);
+    const query = params.toString();
+    return fetchJson(`/admin/login-history${query ? `?${query}` : ''}`);
+  },
+
+  async adminListUsers(options?: { skip?: number; limit?: number }): Promise<AdminUser[]> {
+    const params = new URLSearchParams();
+    if (options?.skip !== undefined) params.set('skip', String(options.skip));
+    if (options?.limit !== undefined) params.set('limit', String(options.limit));
+    const query = params.toString();
+    return fetchJson(`/admin/users${query ? `?${query}` : ''}`);
+  },
+
+  // Password reset
+  async forgotPassword(email: string): Promise<{ message: string; reset_token?: string }> {
+    return fetchJson('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    return fetchJson('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+  },
 };
 
 // Risk Assessment types
@@ -403,6 +592,34 @@ export interface RiskFactors {
   asset_criticality_risk: number;
   exposure_risk: number;
   sl_gap_risk: number;
+  vulnerability_risk: number;
+}
+
+export interface CveLookupResponse {
+  cve_id: string;
+  title: string;
+  description: string | null;
+  severity: string;
+  cvss_score: number | null;
+}
+
+export interface AssetScanResponse {
+  asset_id: string;
+  asset_name: string;
+  cves_found: number;
+  cves_created: number;
+  cves_skipped: number;
+  vulnerabilities: Vulnerability[];
+}
+
+export interface ScanStatusResponse {
+  job_id: string;
+  status: string;
+  total_assets: number;
+  assets_scanned: number;
+  total_cves_found: number;
+  total_cves_created: number;
+  errors: string[];
 }
 
 export interface ZoneRisk {
@@ -477,4 +694,70 @@ export interface VersionDiff {
     modified: Array<{ id: string; changes: Record<string, { from: unknown; to: unknown }> }>;
   };
   summary: Record<string, number>;
+}
+
+// Admin types
+export interface AdminProject {
+  id: string;
+  name: string;
+  description: string | null;
+  owner_id: string;
+  owner_username: string;
+  is_archived: boolean;
+  zone_count: number;
+  conduit_count: number;
+  asset_count: number;
+  risk_score: number | null;
+  compliance_score: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminActivity {
+  id: string;
+  user_id: string;
+  username: string;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  entity_name: string | null;
+  project_id: string;
+  project_name: string | null;
+  details: string | null;
+  created_at: string;
+}
+
+export interface AdminHealth {
+  db_status: string;
+  uptime_seconds: number;
+  table_counts: Record<string, number>;
+}
+
+export interface AdminSession {
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  is_active: boolean;
+  last_login_at: string | null;
+}
+
+export interface AdminLoginAttempt {
+  id: string;
+  user_id: string | null;
+  username_attempted: string;
+  ip_address: string | null;
+  success: boolean;
+  failure_reason: string | null;
+  created_at: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  username: string;
+  display_name: string | null;
+  is_active: boolean;
+  is_admin: boolean;
+  created_at: string;
+  project_count: number;
 }

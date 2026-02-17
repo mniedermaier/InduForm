@@ -11,7 +11,13 @@ from induform.engine.resolver import resolve_security_controls
 from induform.engine.risk import RiskAssessment, assess_risk
 from induform.engine.validator import ValidationReport, validate_project
 from induform.generators.compliance import generate_compliance_report
-from induform.generators.firewall import export_rules_json, generate_firewall_rules
+from induform.generators.firewall import (
+    export_rules_cisco_asa,
+    export_rules_fortinet,
+    export_rules_json,
+    export_rules_paloalto,
+    generate_firewall_rules,
+)
 from induform.generators.vlan import generate_vlan_mapping
 from induform.models.conduit import Conduit
 from induform.models.project import Project, ProjectMetadata
@@ -336,7 +342,19 @@ async def generate(request_body: GenerateRequest) -> GenerateResponse:
             log_allowed=options.get("log_allowed", False),
             log_denied=options.get("log_denied", True),
         )
-        content = export_rules_json(ruleset)
+        fw_format = options.get("format", "json")
+        if fw_format == "iptables":
+            from induform.generators.firewall import export_rules_iptables
+
+            content = export_rules_iptables(ruleset)
+        elif fw_format == "fortinet":
+            content = export_rules_fortinet(ruleset)
+        elif fw_format == "paloalto":
+            content = export_rules_paloalto(ruleset)
+        elif fw_format == "cisco_asa":
+            content = export_rules_cisco_asa(ruleset)
+        else:
+            content = export_rules_json(ruleset)
 
     elif generator == "vlan":
         mapping = generate_vlan_mapping(

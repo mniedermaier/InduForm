@@ -95,9 +95,12 @@ async def _ensure_columns() -> None:
             inspector = sa_inspect(conn_sync)
             proj_cols = {c["name"] for c in inspector.get_columns("projects")}
             zone_cols = {c["name"] for c in inspector.get_columns("zones")}
-            return proj_cols, zone_cols
+            user_cols = {c["name"] for c in inspector.get_columns("users")}
+            asset_cols = {c["name"] for c in inspector.get_columns("assets")}
+            tables = set(inspector.get_table_names())
+            return proj_cols, zone_cols, user_cols, asset_cols, tables
 
-        proj_cols, zone_cols = await conn.run_sync(_get_columns)
+        proj_cols, zone_cols, user_cols, asset_cols, tables = await conn.run_sync(_get_columns)
 
         if "compliance_standards" not in proj_cols:
             await conn.execute(text("ALTER TABLE projects ADD COLUMN compliance_standards TEXT"))
@@ -122,6 +125,136 @@ async def _ensure_columns() -> None:
             await conn.execute(text("ALTER TABLE zones ADD COLUMN x_position REAL"))
             await conn.execute(text("ALTER TABLE zones ADD COLUMN y_position REAL"))
             logger.info("Added x_position, y_position columns to zones table")
+
+        if "is_admin" not in user_cols:
+            await conn.execute(
+                text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0 NOT NULL")
+            )
+            logger.info("Added is_admin column to users table")
+
+        # Ensure extended asset columns exist
+        new_asset_cols = {
+            "os_name": "VARCHAR(255)",
+            "os_version": "VARCHAR(100)",
+            "software": "TEXT",
+            "cpe": "VARCHAR(255)",
+            "subnet": "VARCHAR(45)",
+            "gateway": "VARCHAR(45)",
+            "vlan": "INTEGER",
+            "dns": "VARCHAR(255)",
+            "open_ports": "TEXT",
+            "protocols": "TEXT",
+            "purchase_date": "VARCHAR(10)",
+            "end_of_life": "VARCHAR(10)",
+            "warranty_expiry": "VARCHAR(10)",
+            "last_patched": "VARCHAR(10)",
+            "patch_level": "VARCHAR(100)",
+            "location": "VARCHAR(255)",
+        }
+        added_asset_cols = []
+        for col_name, col_type in new_asset_cols.items():
+            if col_name not in asset_cols:
+                await conn.execute(text(f"ALTER TABLE assets ADD COLUMN {col_name} {col_type}"))
+                added_asset_cols.append(col_name)
+        if added_asset_cols:
+            logger.info("Added columns to assets table: %s", ", ".join(added_asset_cols))
+
+        # Ensure metrics_snapshots table exists (for environments not using Alembic)
+        if "metrics_snapshots" not in tables:
+            await conn.execute(
+                text(
+                    "CREATE TABLE IF NOT EXISTS metrics_snapshots ("
+                    "  id VARCHAR(36) PRIMARY KEY,"
+                    "  project_id VARCHAR(36) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,"
+                    "  recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    "  zone_count INTEGER DEFAULT 0,"
+                    "  asset_count INTEGER DEFAULT 0,"
+                    "  conduit_count INTEGER DEFAULT 0,"
+                    "  compliance_score REAL DEFAULT 0.0,"
+                    "  risk_score REAL DEFAULT 0.0,"
+                    "  error_count INTEGER DEFAULT 0,"
+                    "  warning_count INTEGER DEFAULT 0"
+                    ")"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_metrics_snapshots_project_id "
+                    "ON metrics_snapshots(project_id)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_metrics_snapshots_recorded_at "
+                    "ON metrics_snapshots(recorded_at)"
+                )
+            )
+            logger.info("Created metrics_snapshots table")
+
+        # Ensure User columns for login tracking / force logout
+        if "last_login_at" not in user_cols:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME"))
+            logger.info("Added last_login_at column to users table")
+        if "force_logout_at" not in user_cols:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN force_logout_at DATETIME"))
+            logger.info("Added force_logout_at column to users table")
+
+        # Ensure login_attempts table exists
+        if "login_attempts" not in tables:
+            await conn.execute(
+                text(
+                    "CREATE TABLE IF NOT EXISTS login_attempts ("
+                    "  id VARCHAR(36) PRIMARY KEY,"
+                    "  user_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,"
+                    "  username_attempted VARCHAR(255) NOT NULL,"
+                    "  ip_address VARCHAR(45),"
+                    "  success BOOLEAN NOT NULL,"
+                    "  failure_reason VARCHAR(100),"
+                    "  created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
+                    ")"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_login_attempts_user_id "
+                    "ON login_attempts(user_id)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_login_attempts_created_at "
+                    "ON login_attempts(created_at)"
+                )
+            )
+            logger.info("Created login_attempts table")
+
+        # Ensure vulnerabilities table exists (for environments not using Alembic)
+        if "vulnerabilities" not in tables:
+            await conn.execute(
+                text(
+                    "CREATE TABLE IF NOT EXISTS vulnerabilities ("
+                    "  id VARCHAR(36) PRIMARY KEY,"
+                    "  asset_db_id VARCHAR(36) NOT NULL REFERENCES assets(id) ON DELETE CASCADE,"
+                    "  cve_id VARCHAR(20) NOT NULL,"
+                    "  title VARCHAR(500) NOT NULL,"
+                    "  description TEXT,"
+                    "  severity VARCHAR(20) NOT NULL,"
+                    "  cvss_score REAL,"
+                    "  status VARCHAR(20) DEFAULT 'open',"
+                    "  mitigation_notes TEXT,"
+                    "  discovered_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    "  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    "  added_by VARCHAR(36) NOT NULL REFERENCES users(id)"
+                    ")"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_vulnerabilities_asset_db_id "
+                    "ON vulnerabilities(asset_db_id)"
+                )
+            )
+            logger.info("Created vulnerabilities table")
 
 
 async def close_db() -> None:

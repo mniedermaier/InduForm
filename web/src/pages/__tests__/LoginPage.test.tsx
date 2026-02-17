@@ -22,13 +22,14 @@ vi.mock('../../components/ParticleBackground', () => ({
 
 describe('LoginPage', () => {
   const mockSwitchToRegister = vi.fn();
+  const mockSwitchToForgotPassword = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders the login form', () => {
-    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
+    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} onSwitchToForgotPassword={mockSwitchToForgotPassword} />);
 
     expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
     expect(screen.getByLabelText('Email or Username')).toBeInTheDocument();
@@ -37,7 +38,7 @@ describe('LoginPage', () => {
   });
 
   it('shows validation error when email is empty', async () => {
-    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
+    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} onSwitchToForgotPassword={mockSwitchToForgotPassword} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
 
@@ -46,7 +47,7 @@ describe('LoginPage', () => {
   });
 
   it('shows validation error when password is empty', async () => {
-    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
+    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} onSwitchToForgotPassword={mockSwitchToForgotPassword} />);
 
     fireEvent.change(screen.getByLabelText('Email or Username'), {
       target: { value: 'user@test.com' },
@@ -60,7 +61,7 @@ describe('LoginPage', () => {
   it('calls login with correct credentials on submit', async () => {
     mockLogin.mockResolvedValue(undefined);
 
-    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
+    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} onSwitchToForgotPassword={mockSwitchToForgotPassword} />);
 
     fireEvent.change(screen.getByLabelText('Email or Username'), {
       target: { value: 'user@test.com' },
@@ -74,14 +75,21 @@ describe('LoginPage', () => {
   });
 
   it('has a link to switch to register page', () => {
-    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
+    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} onSwitchToForgotPassword={mockSwitchToForgotPassword} />);
 
     fireEvent.click(screen.getByText('Create one'));
     expect(mockSwitchToRegister).toHaveBeenCalled();
   });
 
+  it('has a link to switch to forgot password page', () => {
+    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} onSwitchToForgotPassword={mockSwitchToForgotPassword} />);
+
+    fireEvent.click(screen.getByText('Forgot password?'));
+    expect(mockSwitchToForgotPassword).toHaveBeenCalled();
+  });
+
   it('displays the InduForm branding', () => {
-    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} />);
+    render(<LoginPage onSwitchToRegister={mockSwitchToRegister} onSwitchToForgotPassword={mockSwitchToForgotPassword} />);
 
     expect(screen.getByText('InduForm')).toBeInTheDocument();
     expect(screen.getByText('IEC 62443 Zone/Conduit Security Editor')).toBeInTheDocument();

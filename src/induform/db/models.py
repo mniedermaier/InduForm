@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -31,6 +31,10 @@ class User(Base):
     display_name: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
+    force_logout_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     # Relationships
     owned_projects: Mapped[list["ProjectDB"]] = relationship(
@@ -221,8 +225,33 @@ class AssetDB(Base):
     description: Mapped[str | None] = mapped_column(Text)
     criticality: Mapped[int] = mapped_column(Integer, default=3)
 
+    # OS & Software
+    os_name: Mapped[str | None] = mapped_column(String(255))
+    os_version: Mapped[str | None] = mapped_column(String(100))
+    software: Mapped[str | None] = mapped_column(Text)
+    cpe: Mapped[str | None] = mapped_column(String(255))
+
+    # Network
+    subnet: Mapped[str | None] = mapped_column(String(45))
+    gateway: Mapped[str | None] = mapped_column(String(45))
+    vlan: Mapped[int | None] = mapped_column(Integer)
+    dns: Mapped[str | None] = mapped_column(String(255))
+    open_ports: Mapped[str | None] = mapped_column(Text)
+    protocols: Mapped[str | None] = mapped_column(Text)
+
+    # Lifecycle
+    purchase_date: Mapped[str | None] = mapped_column(String(10))
+    end_of_life: Mapped[str | None] = mapped_column(String(10))
+    warranty_expiry: Mapped[str | None] = mapped_column(String(10))
+    last_patched: Mapped[str | None] = mapped_column(String(10))
+    patch_level: Mapped[str | None] = mapped_column(String(100))
+    location: Mapped[str | None] = mapped_column(String(255))
+
     # Relationships
     zone: Mapped["ZoneDB"] = relationship("ZoneDB", back_populates="assets")
+    vulnerabilities: Mapped[list["Vulnerability"]] = relationship(
+        "Vulnerability", back_populates="asset", cascade="all, delete-orphan"
+    )
 
 
 class ConduitDB(Base):
@@ -465,6 +494,31 @@ class PasswordResetToken(Base):
     used: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class MetricsSnapshot(Base):
+    """Time-series metrics snapshot for projects."""
+
+    __tablename__ = "metrics_snapshots"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    project_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    zone_count: Mapped[int] = mapped_column(Integer, default=0)
+    asset_count: Mapped[int] = mapped_column(Integer, default=0)
+    conduit_count: Mapped[int] = mapped_column(Integer, default=0)
+    compliance_score: Mapped[float] = mapped_column(Float, default=0.0)  # 0-100
+    risk_score: Mapped[float] = mapped_column(Float, default=0.0)  # 0-100
+    error_count: Mapped[int] = mapped_column(Integer, default=0)
+    warning_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Relationships
+    project: Mapped["ProjectDB"] = relationship("ProjectDB")
+
+
 class ProjectVersion(Base):
     """Project version/snapshot model for version history."""
 
@@ -488,3 +542,54 @@ class ProjectVersion(Base):
     # Relationships
     project: Mapped["ProjectDB"] = relationship("ProjectDB")
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
+
+
+class Vulnerability(Base):
+    """Asset vulnerability tracking model."""
+
+    __tablename__ = "vulnerabilities"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    asset_db_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("assets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    cve_id: Mapped[str] = mapped_column(String(20), nullable=False)  # e.g. CVE-2024-12345
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False)  # critical, high, medium, low
+    cvss_score: Mapped[float | None] = mapped_column(Float, nullable=True)  # 0.0 - 10.0
+    status: Mapped[str] = mapped_column(
+        String(20), default="open"
+    )  # open, mitigated, accepted, false_positive
+    mitigation_notes: Mapped[str | None] = mapped_column(Text)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+    added_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+
+    # Relationships
+    asset: Mapped["AssetDB"] = relationship("AssetDB", back_populates="vulnerabilities")
+    reporter: Mapped["User"] = relationship("User", foreign_keys=[added_by])
+
+
+class LoginAttempt(Base):
+    """Login attempt tracking model."""
+
+    __tablename__ = "login_attempts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    username_attempted: Mapped[str] = mapped_column(String(255), nullable=False)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    success: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    failure_reason: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    # Relationships
+    user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[user_id])

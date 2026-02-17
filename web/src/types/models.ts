@@ -31,6 +31,25 @@ export interface Asset {
   firmware_version?: string;
   description?: string;
   criticality?: number;
+  // OS & Software
+  os_name?: string;
+  os_version?: string;
+  software?: string;
+  cpe?: string;
+  // Network
+  subnet?: string;
+  gateway?: string;
+  vlan?: number;
+  dns?: string;
+  open_ports?: string;
+  protocols?: string;
+  // Lifecycle
+  purchase_date?: string;
+  end_of_life?: string;
+  warranty_expiry?: string;
+  last_patched?: string;
+  patch_level?: string;
+  location?: string;
 }
 
 export interface Zone {
@@ -138,6 +157,31 @@ export interface PolicyViolation {
   message: string;
   affected_entities: string[];
   remediation?: string;
+}
+
+export interface Vulnerability {
+  id: string;
+  asset_db_id: string;
+  asset_name?: string;
+  zone_name?: string;
+  cve_id: string;
+  title: string;
+  description?: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  cvss_score?: number;
+  status: 'open' | 'mitigated' | 'accepted' | 'false_positive';
+  mitigation_notes?: string;
+  discovered_at: string;
+  updated_at?: string;
+  added_by?: string;
+  reporter_username?: string;
+}
+
+export interface VulnerabilitySummary {
+  total: number;
+  by_severity: Record<string, number>;
+  by_status: Record<string, number>;
+  top_affected_assets: Array<{ asset_id: string; asset_name: string; count: number }>;
 }
 
 export interface ProjectResponse {

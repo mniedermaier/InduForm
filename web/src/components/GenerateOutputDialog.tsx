@@ -1,9 +1,11 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect, useCallback } from 'react';
 import type { Project } from '../types/models';
 import { api } from '../api/client';
 import DialogShell from './DialogShell';
 
 type GeneratorType = 'firewall' | 'vlan' | 'report';
+
+type FirewallFormat = 'json' | 'iptables' | 'fortinet' | 'paloalto' | 'cisco_asa';
 
 interface GenerateOutputDialogProps {
   project: Project;
@@ -31,6 +33,14 @@ const GENERATOR_INFO: Record<GeneratorType, { title: string; description: string
   },
 };
 
+const FIREWALL_FORMAT_OPTIONS: { value: FirewallFormat; label: string; extension: string; mimeType: string }[] = [
+  { value: 'json', label: 'JSON (Generic)', extension: 'json', mimeType: 'application/json' },
+  { value: 'iptables', label: 'iptables (Linux)', extension: 'rules', mimeType: 'text/plain' },
+  { value: 'fortinet', label: 'Fortinet FortiGate (FortiOS CLI)', extension: 'conf', mimeType: 'text/plain' },
+  { value: 'paloalto', label: 'Palo Alto (PAN-OS)', extension: 'conf', mimeType: 'text/plain' },
+  { value: 'cisco_asa', label: 'Cisco ASA (ACL)', extension: 'conf', mimeType: 'text/plain' },
+];
+
 const GenerateOutputDialog = memo(({
   project,
   generator,
@@ -39,26 +49,36 @@ const GenerateOutputDialog = memo(({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState<unknown>(null);
+  const [firewallFormat, setFirewallFormat] = useState<FirewallFormat>('json');
 
   const info = GENERATOR_INFO[generator];
 
-  useEffect(() => {
-    const generateContent = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await api.generate(project, generator);
-        setContent(result.content);
-      } catch (err: unknown) {
-        console.error('Generate error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to generate output');
-      } finally {
-        setLoading(false);
+  const generateContent = useCallback(async (format?: FirewallFormat) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const options: Record<string, unknown> = {};
+      if (generator === 'firewall' && format) {
+        options.format = format;
       }
-    };
-
-    generateContent();
+      const result = await api.generate(project, generator, options);
+      setContent(result.content);
+    } catch (err: unknown) {
+      console.error('Generate error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate output');
+    } finally {
+      setLoading(false);
+    }
   }, [project, generator]);
+
+  useEffect(() => {
+    generateContent(generator === 'firewall' ? firewallFormat : undefined);
+  }, [generateContent, generator, firewallFormat]);
+
+  const handleFormatChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newFormat = e.target.value as FirewallFormat;
+    setFirewallFormat(newFormat);
+  };
 
   const handleCopy = () => {
     const text = formatContent(content);
@@ -68,8 +88,21 @@ const GenerateOutputDialog = memo(({
   const handleDownload = () => {
     const text = formatContent(content);
 
-    const extension = generator === 'report' ? 'md' : 'json';
-    const mimeType = generator === 'report' ? 'text/markdown' : 'application/json';
+    let extension: string;
+    let mimeType: string;
+
+    if (generator === 'firewall') {
+      const formatInfo = FIREWALL_FORMAT_OPTIONS.find(f => f.value === firewallFormat);
+      extension = formatInfo?.extension ?? 'json';
+      mimeType = formatInfo?.mimeType ?? 'application/json';
+    } else if (generator === 'report') {
+      extension = 'md';
+      mimeType = 'text/markdown';
+    } else {
+      extension = 'json';
+      mimeType = 'application/json';
+    }
+
     const filename = `${project.project.name.replace(/\s+/g, '_')}_${generator}.${extension}`;
 
     const blob = new Blob([text], { type: mimeType });
@@ -88,6 +121,27 @@ const GenerateOutputDialog = memo(({
         <div className="px-6 pb-2 -mt-2">
           <p className="text-sm text-gray-500 dark:text-gray-400">{info.description}</p>
         </div>
+
+        {/* Format selector for firewall generator */}
+        {generator === 'firewall' && (
+          <div className="px-6 pb-3">
+            <label htmlFor="firewall-format" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Export Format
+            </label>
+            <select
+              id="firewall-format"
+              value={firewallFormat}
+              onChange={handleFormatChange}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {FIREWALL_FORMAT_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-auto p-4">

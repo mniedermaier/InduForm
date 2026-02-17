@@ -30,6 +30,7 @@ class UserResponse(BaseModel):
     display_name: str | None
     created_at: datetime
     is_active: bool
+    is_admin: bool = False
 
     model_config = {"from_attributes": True}
 

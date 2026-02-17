@@ -11,7 +11,13 @@ from rich.table import Table
 from induform.engine.policy import evaluate_policies
 from induform.engine.validator import ValidationSeverity, validate_yaml_file
 from induform.generators.compliance import generate_compliance_report
-from induform.generators.firewall import export_rules_json, generate_firewall_rules
+from induform.generators.firewall import (
+    export_rules_cisco_asa,
+    export_rules_fortinet,
+    export_rules_json,
+    export_rules_paloalto,
+    generate_firewall_rules,
+)
 from induform.generators.vlan import export_vlan_csv, generate_vlan_mapping
 from induform.models.project import Project, ProjectMetadata
 
@@ -130,7 +136,12 @@ def generate(
     ] = Path("induform.yaml"),
     output: Annotated[Path | None, typer.Option("--output", "-o", help="Output file path")] = None,
     format: Annotated[
-        str, typer.Option("--format", "-f", help="Output format (json, csv, md, iptables, cisco)")
+        str,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format (json, csv, md, iptables, fortinet, paloalto, cisco_asa, cisco)",
+        ),
     ] = "json",
 ) -> None:
     """Generate outputs from a configuration file."""
@@ -154,6 +165,12 @@ def generate(
             from induform.generators.firewall import export_rules_iptables
 
             content = export_rules_iptables(ruleset)
+        elif format == "fortinet":
+            content = export_rules_fortinet(ruleset)
+        elif format == "paloalto":
+            content = export_rules_paloalto(ruleset)
+        elif format == "cisco_asa":
+            content = export_rules_cisco_asa(ruleset)
         else:
             console.print(f"[red]Error:[/red] Unsupported format for firewall: {format}")
             raise typer.Exit(1)

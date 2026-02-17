@@ -14,6 +14,7 @@ from induform.engine.policy import (
     PolicySeverity,
 )
 from induform.engine.risk import (
+    VulnInfo,
     assess_risk,
     calculate_zone_risk,
     classify_risk_level,
@@ -595,6 +596,73 @@ class TestRiskAssessment:
         assessment = assess_risk(project)
         cap_recs = [r for r in assessment.recommendations if "SL-C" in r]
         assert len(cap_recs) >= 1
+
+
+class TestVulnerabilityRisk:
+    """Tests for vulnerability-aware risk scoring."""
+
+    def test_no_vulns_zero_vulnerability_risk(self):
+        project = _make_project(zones=[_zone("z1", sl_t=2)])
+        risk = calculate_zone_risk(project, "z1")
+        assert risk.factors.vulnerability_risk == 0.0
+
+    def test_critical_cve_raises_risk(self):
+        project = _make_project(zones=[_zone("z1", sl_t=2)])
+        vulns = [VulnInfo(cve_id="CVE-2024-0001", severity="critical", cvss_score=9.8)]
+        risk_with = calculate_zone_risk(project, "z1", zone_vulns=vulns)
+        risk_without = calculate_zone_risk(project, "z1")
+        assert risk_with.factors.vulnerability_risk > 0
+        assert risk_with.score > risk_without.score
+
+    def test_sl4_mitigates_more_than_sl1(self):
+        """Same CVE should produce lower vulnerability risk in SL-4 zone."""
+        vulns = [VulnInfo(cve_id="CVE-2024-0001", severity="high", cvss_score=7.5)]
+        project_sl1 = _make_project(zones=[_zone("z1", sl_t=1)])
+        project_sl4 = _make_project(zones=[_zone("z1", sl_t=4)])
+        risk_sl1 = calculate_zone_risk(project_sl1, "z1", zone_vulns=vulns)
+        risk_sl4 = calculate_zone_risk(project_sl4, "z1", zone_vulns=vulns)
+        assert risk_sl1.factors.vulnerability_risk > risk_sl4.factors.vulnerability_risk
+
+    def test_mitigated_status_lowers_risk(self):
+        project = _make_project(zones=[_zone("z1", sl_t=2)])
+        open_vuln = [VulnInfo(cve_id="CVE-2024-0001", severity="high", cvss_score=7.5, status="open")]
+        mitigated_vuln = [VulnInfo(cve_id="CVE-2024-0001", severity="high", cvss_score=7.5, status="mitigated")]
+        risk_open = calculate_zone_risk(project, "z1", zone_vulns=open_vuln)
+        risk_mitigated = calculate_zone_risk(project, "z1", zone_vulns=mitigated_vuln)
+        assert risk_open.factors.vulnerability_risk > risk_mitigated.factors.vulnerability_risk
+
+    def test_false_positive_zero_risk(self):
+        project = _make_project(zones=[_zone("z1", sl_t=2)])
+        vulns = [VulnInfo(cve_id="CVE-2024-0001", severity="critical", cvss_score=9.8, status="false_positive")]
+        risk = calculate_zone_risk(project, "z1", zone_vulns=vulns)
+        assert risk.factors.vulnerability_risk == 0.0
+
+    def test_volume_boost(self):
+        """More vulnerabilities should produce higher risk than fewer."""
+        project = _make_project(zones=[_zone("z1", sl_t=2)])
+        one_vuln = [VulnInfo(cve_id="CVE-2024-0001", severity="medium", cvss_score=5.0)]
+        five_vulns = [
+            VulnInfo(cve_id=f"CVE-2024-000{i}", severity="medium", cvss_score=5.0)
+            for i in range(1, 6)
+        ]
+        risk_one = calculate_zone_risk(project, "z1", zone_vulns=one_vuln)
+        risk_five = calculate_zone_risk(project, "z1", zone_vulns=five_vulns)
+        assert risk_five.factors.vulnerability_risk > risk_one.factors.vulnerability_risk
+
+    def test_backward_compat_assess_risk_no_vuln_data(self):
+        """assess_risk() still works without vulnerability data."""
+        project = _make_project(zones=[_zone("z1", sl_t=2)])
+        assessment = assess_risk(project)
+        assert "z1" in assessment.zone_risks
+        assert assessment.zone_risks["z1"].factors.vulnerability_risk == 0.0
+
+    def test_assess_risk_with_vuln_data(self):
+        project = _make_project(zones=[_zone("z1", sl_t=2, assets=[_asset()])])
+        vuln_data = {
+            "z1": [VulnInfo(cve_id="CVE-2024-0001", severity="critical", cvss_score=9.0)]
+        }
+        assessment = assess_risk(project, vulnerability_data=vuln_data)
+        assert assessment.zone_risks["z1"].factors.vulnerability_risk > 0
 
 
 # ══════════════════════════════════════════════════════════════════════

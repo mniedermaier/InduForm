@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +23,7 @@ from induform.api.auth.schemas import (
     UserUpdate,
 )
 from induform.api.rate_limit import limiter
-from induform.db import PasswordResetToken, RevokedToken, User, get_db
+from induform.db import LoginAttempt, PasswordResetToken, RevokedToken, User, get_db
 from induform.db.repositories import UserRepository
 from induform.security.jwt import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -81,35 +82,68 @@ async def login(
     request: Request,
     credentials: UserLogin,
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> TokenResponse:
+) -> TokenResponse | JSONResponse:
     """Authenticate and receive access and refresh tokens."""
+    client_ip = request.client.host if request.client else None
     user_repo = UserRepository(db)
 
     user = await user_repo.get_by_email_or_username(credentials.email_or_username)
 
     if user is None:
         logger.warning("Failed login attempt for: %s", credentials.email_or_username)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+        db.add(
+            LoginAttempt(
+                username_attempted=credentials.email_or_username,
+                ip_address=client_ip,
+                success=False,
+                failure_reason="user_not_found",
+            )
         )
+        await db.flush()
+        return JSONResponse(status_code=401, content={"detail": "Invalid credentials"})
 
     if not user.is_active:
         logger.warning("Login attempt for disabled account: %s", credentials.email_or_username)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Account is disabled",
+        db.add(
+            LoginAttempt(
+                user_id=user.id,
+                username_attempted=credentials.email_or_username,
+                ip_address=client_ip,
+                success=False,
+                failure_reason="account_disabled",
+            )
         )
+        await db.flush()
+        return JSONResponse(status_code=401, content={"detail": "Account is disabled"})
 
     if not verify_password(credentials.password, user.password_hash):
         logger.warning("Failed login (bad password) for user: %s", user.username)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+        db.add(
+            LoginAttempt(
+                user_id=user.id,
+                username_attempted=credentials.email_or_username,
+                ip_address=client_ip,
+                success=False,
+                failure_reason="invalid_password",
+            )
         )
+        await db.flush()
+        return JSONResponse(status_code=401, content={"detail": "Invalid credentials"})
+
+    # Success
+    db.add(
+        LoginAttempt(
+            user_id=user.id,
+            username_attempted=credentials.email_or_username,
+            ip_address=client_ip,
+            success=True,
+        )
+    )
+    user.last_login_at = datetime.utcnow()
+    await db.flush()
 
     access_token = create_access_token(
-        user.id, username=user.username, display_name=user.display_name
+        user.id, username=user.username, display_name=user.display_name, is_admin=user.is_admin
     )
     refresh_token = create_refresh_token(user.id)
 
@@ -223,7 +257,7 @@ async def refresh_token(
         )
 
     access_token = create_access_token(
-        user.id, username=user.username, display_name=user.display_name
+        user.id, username=user.username, display_name=user.display_name, is_admin=user.is_admin
     )
     refresh_token = create_refresh_token(user.id)
 

@@ -86,6 +86,15 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Check if admin forced logout (token issued before force_logout_at)
+    if user.force_logout_at and token_data.iat:
+        if token_data.iat < user.force_logout_at:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session invalidated by admin",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
     return user
 
 
@@ -112,6 +121,11 @@ async def get_current_user_optional(
 
     if user is None or not user.is_active:
         return None
+
+    # Check if admin forced logout
+    if user.force_logout_at and token_data.iat:
+        if token_data.iat < user.force_logout_at:
+            return None
 
     return user
 

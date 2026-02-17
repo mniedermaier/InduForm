@@ -65,7 +65,9 @@ async def list_versions(
 ) -> list[VersionSummary]:
     """List all versions for a project."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -111,7 +113,9 @@ async def get_version_count(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> dict:
     """Get total version count for a project."""
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -133,7 +137,9 @@ async def get_version(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> VersionDetail:
     """Get a specific version with full snapshot."""
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -179,7 +185,9 @@ async def create_version(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> VersionSummary:
     """Create a manual version snapshot."""
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -249,7 +257,9 @@ async def restore_version(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> VersionSummary:
     """Restore a project to a previous version. Creates a new version with current state first."""
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.EDITOR)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -353,7 +363,9 @@ async def compare_versions(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> VersionDiff:
     """Compare two versions and return the differences."""
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

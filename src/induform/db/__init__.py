@@ -7,6 +7,8 @@ from induform.db.models import (
     Base,
     Comment,
     ConduitDB,
+    LoginAttempt,
+    MetricsSnapshot,
     NmapHost,
     NmapScan,
     Notification,
@@ -20,6 +22,7 @@ from induform.db.models import (
     TeamMember,
     TemplateDB,
     User,
+    Vulnerability,
     ZoneDB,
 )
 
@@ -47,4 +50,7 @@ __all__ = [
     "RevokedToken",
     "PasswordResetToken",
     "ProjectVersion",
+    "MetricsSnapshot",
+    "Vulnerability",
+    "LoginAttempt",
 ]

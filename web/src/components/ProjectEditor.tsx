@@ -5,6 +5,7 @@ import type { Project, Zone, Conduit, Asset } from '../types/models';
 import { useProject, useDialogs, useKeyboardShortcuts } from '../hooks';
 import { useProjectWebSocket } from '../hooks/useWebSocket';
 import { useToast } from '../contexts/ToastContext';
+import { autoLayoutZones } from '../utils/autoLayout';
 import ZoneEditor, { ExportContext } from './ZoneEditor';
 import PropertiesPanel from './PropertiesPanel';
 import Toolbar from './Toolbar';
@@ -31,14 +32,18 @@ const NmapImportDialog = lazy(() => import('./NmapImportDialog'));
 const UserSettingsDialog = lazy(() => import('./UserSettingsDialog'));
 const KeyboardShortcutsDialog = lazy(() => import('./KeyboardShortcutsDialog'));
 const ComplianceSettingsDialog = lazy(() => import('./ComplianceSettingsDialog'));
+const AnalyticsPanel = lazy(() => import('./AnalyticsPanel'));
+const VulnerabilityPanel = lazy(() => import('./VulnerabilityPanel'));
 const Zone3DEditor = lazy(() => import('./Zone3DEditor'));
 
 interface ProjectEditorProps {
   projectId: string;
   onBackToProjects: () => void;
+  onOpenGlobalSearch?: () => void;
+  onOpenAdmin?: () => void;
 }
 
-export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEditorProps) {
+export default function ProjectEditor({ projectId, onBackToProjects, onOpenGlobalSearch, onOpenAdmin }: ProjectEditorProps) {
   const toast = useToast();
   const ws = useProjectWebSocket(projectId);
 
@@ -169,6 +174,14 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
   const handleRearrangeLayout = useCallback(() => {
     setRearrangeKey(prev => prev + 1);
   }, []);
+
+  // Auto-layout using dagre (Purdue model hierarchy)
+  const handleAutoLayout = useCallback(() => {
+    if (!project || project.zones.length < 2) return;
+    const layoutedZones = autoLayoutZones(project.zones, project.conduits);
+    updateProject({ ...project, zones: layoutedZones });
+    toast.info('Auto layout applied (Purdue model hierarchy)', 2500);
+  }, [project, updateProject, toast]);
 
   // Handle zone position changes from drag
   const handleZonePositionsChange = useCallback((positions: Map<string, { x: number; y: number }>) => {
@@ -450,12 +463,13 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
           { label: 'Add Conduit', icon: '🔗', onClick: () => dialogActions.openAddConduit(), disabled: project!.zones.length < 2 },
           { label: '', divider: true, onClick: () => {} },
           { label: 'Rearrange Layout', icon: '🔄', onClick: handleRearrangeLayout, disabled: project!.zones.length < 2 },
+          { label: 'Auto Layout (Purdue)', icon: '📐', onClick: handleAutoLayout, disabled: project!.zones.length < 2 },
         ];
 
       default:
         return [];
     }
-  }, [dialogs.contextMenu, canEdit, project, selectZone, selectConduit, dialogActions, handleDeleteZone, handleDeleteConduit, handleRearrangeLayout]);
+  }, [dialogs.contextMenu, canEdit, project, selectZone, selectConduit, dialogActions, handleDeleteZone, handleDeleteConduit, handleRearrangeLayout, handleAutoLayout]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts(
@@ -482,6 +496,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
         return false;
       },
       onValidate: handleValidate,
+      onAutoLayout: handleAutoLayout,
     },
     {
       canUndo,
@@ -490,6 +505,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
       canCopy: !!selectedZone,
       canPaste: !!copiedZone && canEdit,
       canDelete: !!(selectedZone || selectedConduit) && canEdit,
+      canAutoLayout: canEdit && (project?.zones.length ?? 0) >= 2,
       apiConnected: true,
       selectedZone,
       selectedConduit,
@@ -593,13 +609,25 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
 
         <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           {/* Search - full on md+, icon button on mobile */}
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-1">
             <SearchBox
               zones={project.zones}
               conduits={project.conduits}
               onSelectZone={selectZone}
               onSelectConduit={selectConduit}
             />
+            {onOpenGlobalSearch && (
+              <button
+                onClick={onOpenGlobalSearch}
+                className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                title="Search all projects (Ctrl+K)"
+                aria-label="Search all projects"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </button>
+            )}
           </div>
           <button
             onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
@@ -663,6 +691,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
           <UserMenu
             onOpenTeamManagement={dialogActions.openTeamManagement}
             onOpenProfileSettings={dialogActions.openProfileSettings}
+            onOpenAdmin={onOpenAdmin}
           />
         </div>
       </header>
@@ -686,6 +715,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
         onSave={save}
         onValidate={handleValidate}
         onRearrange={handleRearrangeLayout}
+        onAutoLayout={canEdit ? handleAutoLayout : undefined}
         onUndo={undo}
         onRedo={redo}
         onProjectSettings={dialogActions.openProjectSettings}
@@ -699,6 +729,8 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
         onAssetInventory={dialogActions.openAssetTable}
         onShare={canEdit ? dialogActions.openShareDialog : undefined}
         onNmapImport={dialogActions.openNmapImport}
+        onAnalytics={dialogActions.openAnalytics}
+        onVulnerabilities={dialogActions.openVulnerabilities}
         onToggleRiskOverlay={toggleRiskOverlay}
         riskOverlayEnabled={riskOverlayEnabled}
         canUndo={canUndo}
@@ -911,6 +943,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
           project={project}
           validationResults={validationResults}
           policyViolations={policyViolations}
+          projectId={projectId}
           onClose={dialogActions.closeComplianceDashboard}
         />
       )}
@@ -942,6 +975,7 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
       {dialogs.showAssetTable && (
         <AssetTable
           project={project}
+          projectId={projectId}
           onClose={dialogActions.closeAssetTable}
           onUpdateAsset={canEdit ? handleUpdateAsset : undefined}
           onDeleteAsset={canEdit ? handleDeleteAsset : undefined}
@@ -994,6 +1028,29 @@ export default function ProjectEditor({ projectId, onBackToProjects }: ProjectEd
           enabledStandards={project.project.compliance_standards || ['IEC62443']}
           onClose={dialogActions.closeComplianceSettings}
         />
+      )}
+
+      {dialogs.showAnalytics && (
+        <AnalyticsPanel
+          projectId={projectId}
+          onClose={dialogActions.closeAnalytics}
+        />
+      )}
+
+      {dialogs.showVulnerabilities && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[85vh] flex flex-col">
+            <VulnerabilityPanel
+              projectId={projectId}
+              zones={project.zones.map(z => ({
+                id: z.id,
+                name: z.name,
+                assets: (z.assets || []).map(a => ({ id: a.id, name: a.name, vendor: a.vendor })),
+              }))}
+              onClose={dialogActions.closeVulnerabilities}
+            />
+          </div>
+        </div>
       )}
       </Suspense>
 

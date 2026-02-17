@@ -163,6 +163,124 @@ def _build_zone_ip_map(project: Project) -> dict[str, list[str]]:
     return zone_ips
 
 
+# Protocol to port mapping for vendor-specific formats
+_PROTOCOL_PORT_MAP: dict[str, int] = {
+    "http": 80,
+    "https": 443,
+    "ssh": 22,
+    "modbus_tcp": 502,
+    "modbus": 502,
+    "opcua": 4840,
+    "opc-ua": 4840,
+    "dnp3": 20000,
+    "s7comm": 102,
+    "bacnet": 47808,
+    "ethernet_ip": 44818,
+    "ethernetip": 44818,
+    "profinet": 34964,
+    "mqtt": 1883,
+    "snmp": 161,
+    "syslog": 514,
+    "ntp": 123,
+    "ftp": 21,
+    "tftp": 69,
+    "rdp": 3389,
+    "telnet": 23,
+    "icmp": 0,
+}
+
+# Protocol to FortiGate service name mapping
+_FORTINET_SERVICE_MAP: dict[str, str] = {
+    "http": "HTTP",
+    "https": "HTTPS",
+    "ssh": "SSH",
+    "modbus_tcp": "MODBUS",
+    "modbus": "MODBUS",
+    "opcua": "OPC-UA",
+    "opc-ua": "OPC-UA",
+    "dnp3": "DNP3",
+    "s7comm": "S7COMM",
+    "bacnet": "BACnet",
+    "ethernet_ip": "EtherNet-IP",
+    "ethernetip": "EtherNet-IP",
+    "profinet": "PROFINET",
+    "mqtt": "MQTT",
+    "snmp": "SNMP",
+    "syslog": "SYSLOG",
+    "ntp": "NTP",
+    "ftp": "FTP",
+    "tftp": "TFTP",
+    "rdp": "RDP",
+    "telnet": "TELNET",
+    "icmp": "PING",
+    "any": "ALL",
+}
+
+# Protocol to PAN-OS application name mapping
+_PALOALTO_APP_MAP: dict[str, str] = {
+    "http": "web-browsing",
+    "https": "ssl",
+    "ssh": "ssh",
+    "modbus_tcp": "modbus",
+    "modbus": "modbus",
+    "opcua": "opc-ua",
+    "opc-ua": "opc-ua",
+    "dnp3": "dnp3",
+    "s7comm": "siemens-s7",
+    "bacnet": "bacnet",
+    "ethernet_ip": "ethernet-ip",
+    "ethernetip": "ethernet-ip",
+    "profinet": "profinet",
+    "mqtt": "mqtt",
+    "snmp": "snmp",
+    "syslog": "syslog",
+    "ntp": "ntp",
+    "ftp": "ftp",
+    "tftp": "tftp",
+    "rdp": "ms-rdp",
+    "telnet": "telnet",
+    "icmp": "ping",
+}
+
+# Protocol to IP protocol type mapping (tcp/udp/icmp)
+_PROTOCOL_TYPE_MAP: dict[str, str] = {
+    "http": "tcp",
+    "https": "tcp",
+    "ssh": "tcp",
+    "modbus_tcp": "tcp",
+    "modbus": "tcp",
+    "opcua": "tcp",
+    "opc-ua": "tcp",
+    "dnp3": "tcp",
+    "s7comm": "tcp",
+    "bacnet": "udp",
+    "ethernet_ip": "tcp",
+    "ethernetip": "tcp",
+    "profinet": "udp",
+    "mqtt": "tcp",
+    "snmp": "udp",
+    "syslog": "udp",
+    "ntp": "udp",
+    "ftp": "tcp",
+    "tftp": "udp",
+    "rdp": "tcp",
+    "telnet": "tcp",
+    "icmp": "icmp",
+}
+
+
+def _get_ip_protocol(protocol: str) -> str:
+    """Get the IP protocol type (tcp/udp/icmp) for a given protocol name."""
+    return _PROTOCOL_TYPE_MAP.get(protocol.lower(), "tcp")
+
+
+def _get_port(rule: FirewallRule) -> int | None:
+    """Get the port number for a rule, using the protocol map as fallback."""
+    if rule.port:
+        return rule.port
+    return _PROTOCOL_PORT_MAP.get(rule.protocol.lower())
+
+
 def export_rules_json(ruleset: FirewallRuleset) -> dict[str, Any]:
     """Export firewall rules to JSON format."""
     return ruleset.model_dump(mode="json")
@@ -221,3 +339,243 @@ def export_rules_iptables(ruleset: FirewallRuleset) -> str:
 
     lines.append("COMMIT")
     return "\n".join(lines)
+
+
+def export_rules_fortinet(ruleset: FirewallRuleset) -> str:
+    """Export firewall rules to Fortinet FortiGate FortiOS CLI format.
+
+    Generates a complete FortiOS CLI configuration block with:
+    - ``config firewall policy`` wrapper
+    - Per-rule ``edit <id>`` blocks with source/destination interfaces,
+      addresses, service mapping, action, logging, and comments
+    - Proper ``next`` / ``end`` termination
+
+    Protocol names are mapped to FortiGate service names (e.g. HTTP, HTTPS,
+    OPC-UA, MODBUS). Unknown protocols fall back to a custom TCP/UDP service
+    specification with port number.
+    """
+    lines = [
+        "# Auto-generated FortiGate firewall policy",
+        f"# Ruleset: {ruleset.name}",
+        "",
+        "config firewall policy",
+    ]
+
+    for idx, rule in enumerate(sorted(ruleset.rules, key=lambda r: r.order), start=1):
+        action = "accept" if rule.action == FirewallAction.ALLOW else "deny"
+        log_traffic = "all" if rule.log else "disable"
+
+        # Map protocol to FortiGate service name
+        service = _FORTINET_SERVICE_MAP.get(
+            rule.protocol.lower(), "ALL"
+        )
+        # If unknown protocol but we have a port, create a custom service ref
+        if service == "ALL" and rule.protocol.lower() != "any":
+            port = _get_port(rule)
+            if port:
+                ip_proto = _get_ip_protocol(rule.protocol).upper()
+                service = f"custom-{rule.protocol}-{ip_proto}/{port}"
+
+        # Source/dest addresses
+        src_addr = " ".join(rule.source_addresses) if rule.source_addresses else "all"
+        dst_addr = " ".join(rule.destination_addresses) if rule.destination_addresses else "all"
+
+        lines.append(f"    edit {idx}")
+        lines.append(f'        set name "{rule.name or rule.id}"')
+        lines.append(f'        set srcintf "{rule.source_zone}"')
+        lines.append(f'        set dstintf "{rule.destination_zone}"')
+        lines.append(f'        set srcaddr "{src_addr}"')
+        lines.append(f'        set dstaddr "{dst_addr}"')
+        lines.append(f'        set service "{service}"')
+        lines.append(f"        set action {action}")
+        lines.append(f"        set logtraffic {log_traffic}")
+        lines.append("        set status enable")
+        if rule.comment:
+            lines.append(f'        set comments "{rule.comment}"')
+        lines.append("    next")
+
+    lines.append("end")
+    return "\n".join(lines)
+
+
+def export_rules_paloalto(ruleset: FirewallRuleset) -> str:
+    """Export firewall rules to Palo Alto PAN-OS set-command format.
+
+    Generates PAN-OS ``set rulebase security rules`` CLI commands with:
+    - Source/destination zones and addresses
+    - Application-aware service mapping (e.g. ``web-browsing``, ``opc-ua``,
+      ``modbus``)
+    - Action (allow/deny) and end-of-session logging
+
+    Unknown protocols fall back to ``application-default`` with the port
+    number when available.
+    """
+    lines = [
+        "# Auto-generated Palo Alto PAN-OS security rules",
+        f"# Ruleset: {ruleset.name}",
+        "",
+    ]
+
+    for rule in sorted(ruleset.rules, key=lambda r: r.order):
+        action = "allow" if rule.action == FirewallAction.ALLOW else "deny"
+        rule_name = (rule.name or rule.id).replace(" ", "_")
+
+        # Map protocol to PAN-OS application name
+        app = _PALOALTO_APP_MAP.get(rule.protocol.lower())
+        port = _get_port(rule)
+
+        # Source/dest addresses
+        src_addrs = rule.source_addresses if rule.source_addresses else ["any"]
+        dst_addrs = rule.destination_addresses if rule.destination_addresses else ["any"]
+
+        if rule.comment:
+            lines.append(f"# {rule.comment}")
+
+        base = f'set rulebase security rules "{rule_name}"'
+        lines.append(f'{base} from "{rule.source_zone}"')
+        lines.append(f'{base} to "{rule.destination_zone}"')
+
+        for addr in src_addrs:
+            lines.append(f'{base} source "{addr}"')
+        for addr in dst_addrs:
+            lines.append(f'{base} destination "{addr}"')
+
+        if app:
+            lines.append(f'{base} application "{app}"')
+            lines.append(f"{base} service application-default")
+        elif rule.protocol.lower() == "any":
+            lines.append(f'{base} application "any"')
+            lines.append(f"{base} service any")
+        else:
+            # Unknown protocol: use port-based service
+            ip_proto = _get_ip_protocol(rule.protocol)
+            if port:
+                lines.append(f'{base} application "any"')
+                lines.append(
+                    f'{base} service "custom-{rule.protocol}-{ip_proto}-{port}"'
+                )
+            else:
+                lines.append(f'{base} application "any"')
+                lines.append(f"{base} service any")
+
+        lines.append(f"{base} action {action}")
+        lines.append(f"{base} log-end yes")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def export_rules_cisco_asa(ruleset: FirewallRuleset) -> str:
+    """Export firewall rules to Cisco ASA ACL format.
+
+    Generates a complete Cisco ASA configuration with:
+    - Object-group network definitions for zone IP addresses
+    - Extended access-list entries with permit/deny, protocol, source,
+      destination, and port
+    - ``access-group`` statements binding the ACL to interfaces
+
+    Rules without explicit IP addresses use the ``any`` keyword.
+    """
+    lines = [
+        "! Auto-generated Cisco ASA firewall rules",
+        f"! Ruleset: {ruleset.name}",
+        "!",
+    ]
+
+    # Collect all zones that have addresses, for object-group definitions
+    zone_addresses: dict[str, set[str]] = {}
+    for rule in ruleset.rules:
+        if rule.source_addresses and rule.source_addresses != ["any"]:
+            zone_addresses.setdefault(rule.source_zone, set()).update(
+                rule.source_addresses
+            )
+        if rule.destination_addresses and rule.destination_addresses != ["any"]:
+            zone_addresses.setdefault(rule.destination_zone, set()).update(
+                rule.destination_addresses
+            )
+
+    # Generate object-group definitions
+    if zone_addresses:
+        lines.append("! --- Object Groups ---")
+        lines.append("!")
+        for zone_id, addresses in sorted(zone_addresses.items()):
+            group_name = f"zone-{zone_id}".replace(" ", "_")
+            lines.append(f"object-group network {group_name}")
+            for addr in sorted(addresses):
+                # Determine if it's a host IP or network
+                if "/" in addr:
+                    # CIDR notation - convert to subnet mask
+                    ip_part, prefix_len = addr.split("/")
+                    mask = _cidr_to_netmask(int(prefix_len))
+                    lines.append(f" network-object {ip_part} {mask}")
+                else:
+                    lines.append(f" network-object host {addr}")
+            lines.append("!")
+
+    # Collect unique interface pairs for access-group statements
+    acl_name = f"ACL-{ruleset.name}".replace(" ", "-")
+    interface_zones: set[str] = set()
+
+    lines.append("! --- Access Control Entries ---")
+    lines.append("!")
+
+    for rule in sorted(ruleset.rules, key=lambda r: r.order):
+        action = "permit" if rule.action == FirewallAction.ALLOW else "deny"
+        ip_proto = _get_ip_protocol(rule.protocol)
+        port = _get_port(rule)
+
+        # Determine source spec
+        if rule.source_addresses and rule.source_addresses != ["any"]:
+            group_name = f"zone-{rule.source_zone}".replace(" ", "_")
+            src_spec = f"object-group {group_name}"
+        else:
+            src_spec = "any"
+
+        # Determine destination spec
+        if rule.destination_addresses and rule.destination_addresses != ["any"]:
+            group_name = f"zone-{rule.destination_zone}".replace(" ", "_")
+            dst_spec = f"object-group {group_name}"
+        else:
+            dst_spec = "any"
+
+        if rule.comment:
+            lines.append(f"! {rule.comment}")
+
+        if rule.protocol.lower() == "any" or ip_proto == "icmp":
+            proto = "ip" if rule.protocol.lower() == "any" else "icmp"
+            lines.append(
+                f"access-list {acl_name} extended {action} {proto} {src_spec} {dst_spec}"
+            )
+        elif port:
+            lines.append(
+                f"access-list {acl_name} extended {action} {ip_proto} "
+                f"{src_spec} {dst_spec} eq {port}"
+            )
+        else:
+            lines.append(
+                f"access-list {acl_name} extended {action} {ip_proto} "
+                f"{src_spec} {dst_spec}"
+            )
+
+        if rule.log:
+            # Append log keyword by rewriting last line
+            lines[-1] += " log"
+
+        interface_zones.add(rule.source_zone)
+
+    lines.append("")
+    lines.append("! --- Access Group Bindings ---")
+    lines.append("!")
+    for zone in sorted(interface_zones):
+        iface_name = zone.replace(" ", "_")
+        lines.append(f"access-group {acl_name} in interface {iface_name}")
+
+    return "\n".join(lines)
+
+
+def _cidr_to_netmask(prefix_len: int) -> str:
+    """Convert a CIDR prefix length to a dotted-decimal subnet mask."""
+    if prefix_len < 0 or prefix_len > 32:
+        prefix_len = max(0, min(32, prefix_len))
+    mask = (0xFFFFFFFF << (32 - prefix_len)) & 0xFFFFFFFF
+    return f"{(mask >> 24) & 0xFF}.{(mask >> 16) & 0xFF}.{(mask >> 8) & 0xFF}.{mask & 0xFF}"

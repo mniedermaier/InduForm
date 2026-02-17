@@ -1,11 +1,17 @@
 """InduForm validation and policy engine."""
 
+from induform.engine.gap_analysis import (
+    GapAnalysisReport,
+    ZoneGapAnalysis,
+    analyze_gaps,
+)
 from induform.engine.policy import PolicyRule, evaluate_policies
 from induform.engine.resolver import resolve_security_controls
 from induform.engine.risk import (
     RiskAssessment,
     RiskFactors,
     RiskLevel,
+    VulnInfo,
     ZoneRisk,
     assess_risk,
     calculate_zone_risk,
@@ -18,13 +24,17 @@ from induform.engine.validator import (
 )
 
 __all__ = [
+    "GapAnalysisReport",
     "PolicyRule",
     "RiskAssessment",
     "RiskFactors",
     "RiskLevel",
+    "VulnInfo",
     "ValidationResult",
     "ValidationSeverity",
+    "ZoneGapAnalysis",
     "ZoneRisk",
+    "analyze_gaps",
     "assess_risk",
     "calculate_zone_risk",
     "classify_risk_level",

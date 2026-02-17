@@ -1,8 +1,10 @@
 import { memo, useState, useMemo } from 'react';
 import type { Project, Zone, Asset, AssetType } from '../types/models';
+import { api } from '../api/client';
 
 interface AssetTableProps {
   project: Project;
+  projectId?: string;
   onClose: () => void;
   onUpdateAsset?: (zoneId: string, assetId: string, asset: Asset) => void;
   onDeleteAsset?: (zoneId: string, assetId: string) => void;
@@ -19,7 +21,26 @@ const ASSET_TYPES: AssetType[] = [
   'jump_host', 'firewall', 'switch', 'router', 'server', 'rtu', 'ied', 'dcs', 'other'
 ];
 
-const AssetTable = memo(({ project, onClose, onUpdateAsset, onDeleteAsset, onAddAsset }: AssetTableProps) => {
+function CollapsibleSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-gray-200 dark:border-gray-600 rounded-md">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full px-3 py-2 flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md"
+      >
+        {title}
+        <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && <div className="px-3 pb-3 space-y-3">{children}</div>}
+    </div>
+  );
+}
+
+const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteAsset, onAddAsset }: AssetTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterZone, setFilterZone] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('');
@@ -41,11 +62,15 @@ const AssetTable = memo(({ project, onClose, onUpdateAsset, onDeleteAsset, onAdd
   // Filter assets
   const filteredAssets = useMemo(() => {
     return allAssets.filter(({ zone, asset }) => {
+      const term = searchTerm.toLowerCase();
       const matchesSearch = searchTerm === '' ||
-        asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        asset.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.name.toLowerCase().includes(term) ||
+        asset.id.toLowerCase().includes(term) ||
         (asset.ip_address && asset.ip_address.includes(searchTerm)) ||
-        (asset.vendor && asset.vendor.toLowerCase().includes(searchTerm.toLowerCase()));
+        (asset.vendor && asset.vendor.toLowerCase().includes(term)) ||
+        (asset.os_name && asset.os_name.toLowerCase().includes(term)) ||
+        (asset.location && asset.location.toLowerCase().includes(term)) ||
+        (asset.protocols && asset.protocols.toLowerCase().includes(term));
 
       const matchesZone = filterZone === '' || zone.id === filterZone;
       const matchesType = filterType === '' || asset.type === filterType;
@@ -75,6 +100,21 @@ const AssetTable = memo(({ project, onClose, onUpdateAsset, onDeleteAsset, onAdd
     if (onAddAsset) {
       onAddAsset(newAssetZone, asset);
       setShowAddForm(false);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    if (!projectId) return;
+    try {
+      const blob = await api.exportAssetsCsv(projectId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.project.name.replace(/\s+/g, '_')}_assets.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export CSV:', err);
     }
   };
 
@@ -126,6 +166,18 @@ const AssetTable = memo(({ project, onClose, onUpdateAsset, onDeleteAsset, onAdd
             ))}
           </select>
           <div className="flex-1" />
+          {projectId && (
+            <button
+              onClick={handleExportCsv}
+              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-1"
+              aria-label="Export CSV"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              CSV
+            </button>
+          )}
           {canEdit && (
             <button
               onClick={() => setShowAddForm(true)}
@@ -282,21 +334,23 @@ const AssetEditModal = memo(({
   };
 
   const inputClass = "w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
+  const labelClass = "block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Edit Asset</h3>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+          {/* Basic */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">ID</label>
+              <label className={labelClass}>ID</label>
               <input type="text" value={form.id} disabled className={`${inputClass} opacity-50`} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+              <label className={labelClass}>Name *</label>
               <input
                 type="text"
                 value={form.name}
@@ -308,7 +362,7 @@ const AssetEditModal = memo(({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Type *</label>
+              <label className={labelClass}>Type *</label>
               <select
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value as AssetType })}
@@ -320,39 +374,7 @@ const AssetEditModal = memo(({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">IP Address</label>
-              <input
-                type="text"
-                value={form.ip_address || ''}
-                onChange={(e) => setForm({ ...form, ip_address: e.target.value || undefined })}
-                placeholder="e.g., 10.0.1.10"
-                className={inputClass}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Vendor</label>
-              <input
-                type="text"
-                value={form.vendor || ''}
-                onChange={(e) => setForm({ ...form, vendor: e.target.value || undefined })}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
-              <input
-                type="text"
-                value={form.model || ''}
-                onChange={(e) => setForm({ ...form, model: e.target.value || undefined })}
-                className={inputClass}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Criticality (1-5)</label>
+              <label className={labelClass}>Criticality (1-5)</label>
               <input
                 type="number"
                 min="1"
@@ -362,19 +384,9 @@ const AssetEditModal = memo(({
                 className={inputClass}
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">MAC Address</label>
-              <input
-                type="text"
-                value={form.mac_address || ''}
-                onChange={(e) => setForm({ ...form, mac_address: e.target.value || undefined })}
-                placeholder="e.g., 00:1A:2B:3C:4D:5E"
-                className={inputClass}
-              />
-            </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+            <label className={labelClass}>Description</label>
             <textarea
               value={form.description || ''}
               onChange={(e) => setForm({ ...form, description: e.target.value || undefined })}
@@ -382,6 +394,109 @@ const AssetEditModal = memo(({
               className={inputClass}
             />
           </div>
+
+          {/* Network */}
+          <CollapsibleSection title="Network" defaultOpen={!!(form.ip_address || form.subnet || form.vlan)}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>IP Address</label>
+                <input type="text" value={form.ip_address || ''} onChange={(e) => setForm({ ...form, ip_address: e.target.value || undefined })} placeholder="e.g., 10.0.1.10" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>MAC Address</label>
+                <input type="text" value={form.mac_address || ''} onChange={(e) => setForm({ ...form, mac_address: e.target.value || undefined })} placeholder="e.g., 00:1A:2B:3C:4D:5E" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Subnet</label>
+                <input type="text" value={form.subnet || ''} onChange={(e) => setForm({ ...form, subnet: e.target.value || undefined })} placeholder="e.g., 10.10.1.0/24" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Gateway</label>
+                <input type="text" value={form.gateway || ''} onChange={(e) => setForm({ ...form, gateway: e.target.value || undefined })} placeholder="e.g., 10.10.1.1" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>VLAN</label>
+                <input type="number" value={form.vlan ?? ''} onChange={(e) => setForm({ ...form, vlan: e.target.value ? parseInt(e.target.value) : undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>DNS</label>
+                <input type="text" value={form.dns || ''} onChange={(e) => setForm({ ...form, dns: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Open Ports</label>
+                <input type="text" value={form.open_ports || ''} onChange={(e) => setForm({ ...form, open_ports: e.target.value || undefined })} placeholder="e.g., 80,443,502" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Protocols</label>
+                <input type="text" value={form.protocols || ''} onChange={(e) => setForm({ ...form, protocols: e.target.value || undefined })} placeholder="e.g., Modbus,S7" className={inputClass} />
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          {/* OS & Software */}
+          <CollapsibleSection title="OS & Software" defaultOpen={!!(form.os_name || form.firmware_version)}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>OS Name</label>
+                <input type="text" value={form.os_name || ''} onChange={(e) => setForm({ ...form, os_name: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>OS Version</label>
+                <input type="text" value={form.os_version || ''} onChange={(e) => setForm({ ...form, os_version: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Firmware Version</label>
+                <input type="text" value={form.firmware_version || ''} onChange={(e) => setForm({ ...form, firmware_version: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>CPE</label>
+                <input type="text" value={form.cpe || ''} onChange={(e) => setForm({ ...form, cpe: e.target.value || undefined })} className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Software</label>
+              <input type="text" value={form.software || ''} onChange={(e) => setForm({ ...form, software: e.target.value || undefined })} placeholder="Comma-separated" className={inputClass} />
+            </div>
+          </CollapsibleSection>
+
+          {/* Lifecycle */}
+          <CollapsibleSection title="Lifecycle" defaultOpen={!!(form.vendor || form.purchase_date)}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Vendor</label>
+                <input type="text" value={form.vendor || ''} onChange={(e) => setForm({ ...form, vendor: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Model</label>
+                <input type="text" value={form.model || ''} onChange={(e) => setForm({ ...form, model: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Purchase Date</label>
+                <input type="date" value={form.purchase_date || ''} onChange={(e) => setForm({ ...form, purchase_date: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>End of Life</label>
+                <input type="date" value={form.end_of_life || ''} onChange={(e) => setForm({ ...form, end_of_life: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Warranty Expiry</label>
+                <input type="date" value={form.warranty_expiry || ''} onChange={(e) => setForm({ ...form, warranty_expiry: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Last Patched</label>
+                <input type="date" value={form.last_patched || ''} onChange={(e) => setForm({ ...form, last_patched: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Patch Level</label>
+                <input type="text" value={form.patch_level || ''} onChange={(e) => setForm({ ...form, patch_level: e.target.value || undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Location</label>
+                <input type="text" value={form.location || ''} onChange={(e) => setForm({ ...form, location: e.target.value || undefined })} className={inputClass} />
+              </div>
+            </div>
+          </CollapsibleSection>
+
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
@@ -451,30 +566,48 @@ const AssetAddModal = memo(({
       name: form.name.trim(),
       type: form.type as AssetType,
       ip_address: form.ip_address || undefined,
+      mac_address: form.mac_address || undefined,
       vendor: form.vendor || undefined,
       model: form.model || undefined,
+      firmware_version: form.firmware_version || undefined,
       criticality: form.criticality,
-      mac_address: form.mac_address || undefined,
       description: form.description || undefined,
+      os_name: form.os_name || undefined,
+      os_version: form.os_version || undefined,
+      software: form.software || undefined,
+      cpe: form.cpe || undefined,
+      subnet: form.subnet || undefined,
+      gateway: form.gateway || undefined,
+      vlan: form.vlan,
+      dns: form.dns || undefined,
+      open_ports: form.open_ports || undefined,
+      protocols: form.protocols || undefined,
+      purchase_date: form.purchase_date || undefined,
+      end_of_life: form.end_of_life || undefined,
+      warranty_expiry: form.warranty_expiry || undefined,
+      last_patched: form.last_patched || undefined,
+      patch_level: form.patch_level || undefined,
+      location: form.location || undefined,
     });
   };
 
   const inputClass = "w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
+  const labelClass = "block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Add New Asset</h3>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           {error && (
             <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-3 py-2 rounded text-sm">
               {error}
             </div>
           )}
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Zone *</label>
+            <label className={labelClass}>Zone *</label>
             <select
               value={selectedZone}
               onChange={(e) => onZoneChange(e.target.value)}
@@ -487,7 +620,7 @@ const AssetAddModal = memo(({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">ID *</label>
+              <label className={labelClass}>ID *</label>
               <input
                 type="text"
                 value={form.id || ''}
@@ -498,7 +631,7 @@ const AssetAddModal = memo(({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+              <label className={labelClass}>Name *</label>
               <input
                 type="text"
                 value={form.name || ''}
@@ -511,7 +644,7 @@ const AssetAddModal = memo(({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Type *</label>
+              <label className={labelClass}>Type *</label>
               <select
                 value={form.type || 'plc'}
                 onChange={(e) => setForm({ ...form, type: e.target.value as AssetType })}
@@ -523,50 +656,121 @@ const AssetAddModal = memo(({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">IP Address</label>
+              <label className={labelClass}>Criticality (1-5)</label>
               <input
-                type="text"
-                value={form.ip_address || ''}
-                onChange={(e) => setForm({ ...form, ip_address: e.target.value })}
-                placeholder="e.g., 10.0.1.10"
+                type="number"
+                min="1"
+                max="5"
+                value={form.criticality || ''}
+                onChange={(e) => setForm({ ...form, criticality: e.target.value ? parseInt(e.target.value) : undefined })}
+                placeholder="1 = Low, 5 = Critical"
                 className={inputClass}
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          {/* Network */}
+          <CollapsibleSection title="Network">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>IP Address</label>
+                <input type="text" value={form.ip_address || ''} onChange={(e) => setForm({ ...form, ip_address: e.target.value })} placeholder="e.g., 10.0.1.10" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>MAC Address</label>
+                <input type="text" value={form.mac_address || ''} onChange={(e) => setForm({ ...form, mac_address: e.target.value })} placeholder="e.g., 00:1A:2B:3C:4D:5E" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Subnet</label>
+                <input type="text" value={form.subnet || ''} onChange={(e) => setForm({ ...form, subnet: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Gateway</label>
+                <input type="text" value={form.gateway || ''} onChange={(e) => setForm({ ...form, gateway: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>VLAN</label>
+                <input type="number" value={form.vlan ?? ''} onChange={(e) => setForm({ ...form, vlan: e.target.value ? parseInt(e.target.value) : undefined })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>DNS</label>
+                <input type="text" value={form.dns || ''} onChange={(e) => setForm({ ...form, dns: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Open Ports</label>
+                <input type="text" value={form.open_ports || ''} onChange={(e) => setForm({ ...form, open_ports: e.target.value })} placeholder="e.g., 80,443,502" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Protocols</label>
+                <input type="text" value={form.protocols || ''} onChange={(e) => setForm({ ...form, protocols: e.target.value })} placeholder="e.g., Modbus,S7" className={inputClass} />
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          {/* OS & Software */}
+          <CollapsibleSection title="OS & Software">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>OS Name</label>
+                <input type="text" value={form.os_name || ''} onChange={(e) => setForm({ ...form, os_name: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>OS Version</label>
+                <input type="text" value={form.os_version || ''} onChange={(e) => setForm({ ...form, os_version: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Firmware Version</label>
+                <input type="text" value={form.firmware_version || ''} onChange={(e) => setForm({ ...form, firmware_version: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>CPE</label>
+                <input type="text" value={form.cpe || ''} onChange={(e) => setForm({ ...form, cpe: e.target.value })} className={inputClass} />
+              </div>
+            </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Vendor</label>
-              <input
-                type="text"
-                value={form.vendor || ''}
-                onChange={(e) => setForm({ ...form, vendor: e.target.value })}
-                placeholder="e.g., Siemens"
-                className={inputClass}
-              />
+              <label className={labelClass}>Software</label>
+              <input type="text" value={form.software || ''} onChange={(e) => setForm({ ...form, software: e.target.value })} placeholder="Comma-separated" className={inputClass} />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
-              <input
-                type="text"
-                value={form.model || ''}
-                onChange={(e) => setForm({ ...form, model: e.target.value })}
-                placeholder="e.g., S7-1500"
-                className={inputClass}
-              />
+          </CollapsibleSection>
+
+          {/* Lifecycle */}
+          <CollapsibleSection title="Lifecycle">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Vendor</label>
+                <input type="text" value={form.vendor || ''} onChange={(e) => setForm({ ...form, vendor: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Model</label>
+                <input type="text" value={form.model || ''} onChange={(e) => setForm({ ...form, model: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Purchase Date</label>
+                <input type="date" value={form.purchase_date || ''} onChange={(e) => setForm({ ...form, purchase_date: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>End of Life</label>
+                <input type="date" value={form.end_of_life || ''} onChange={(e) => setForm({ ...form, end_of_life: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Warranty Expiry</label>
+                <input type="date" value={form.warranty_expiry || ''} onChange={(e) => setForm({ ...form, warranty_expiry: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Last Patched</label>
+                <input type="date" value={form.last_patched || ''} onChange={(e) => setForm({ ...form, last_patched: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Patch Level</label>
+                <input type="text" value={form.patch_level || ''} onChange={(e) => setForm({ ...form, patch_level: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Location</label>
+                <input type="text" value={form.location || ''} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} />
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Criticality (1-5)</label>
-            <input
-              type="number"
-              min="1"
-              max="5"
-              value={form.criticality || ''}
-              onChange={(e) => setForm({ ...form, criticality: e.target.value ? parseInt(e.target.value) : undefined })}
-              placeholder="1 = Low, 5 = Critical"
-              className={inputClass}
-            />
-          </div>
+          </CollapsibleSection>
+
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"

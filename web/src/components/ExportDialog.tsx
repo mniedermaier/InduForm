@@ -706,7 +706,13 @@ function zonesToCSV(project: Project): string {
 }
 
 function assetsToCSV(project: Project): string {
-  const headers = ['zone_id', 'zone_name', 'asset_id', 'asset_name', 'type', 'ip_address', 'vendor', 'model', 'criticality'];
+  const headers = [
+    'zone_id', 'zone_name', 'asset_id', 'asset_name', 'type', 'ip_address', 'mac_address',
+    'vendor', 'model', 'firmware_version', 'criticality', 'description',
+    'os_name', 'os_version', 'software', 'cpe',
+    'subnet', 'gateway', 'vlan', 'dns', 'open_ports', 'protocols',
+    'purchase_date', 'end_of_life', 'warranty_expiry', 'last_patched', 'patch_level', 'location',
+  ];
   const rows: string[][] = [];
 
   for (const zone of project.zones) {
@@ -718,9 +724,28 @@ function assetsToCSV(project: Project): string {
         asset.name,
         asset.type,
         asset.ip_address || '',
+        asset.mac_address || '',
         asset.vendor || '',
         asset.model || '',
+        asset.firmware_version || '',
         asset.criticality?.toString() || '',
+        asset.description || '',
+        asset.os_name || '',
+        asset.os_version || '',
+        asset.software || '',
+        asset.cpe || '',
+        asset.subnet || '',
+        asset.gateway || '',
+        asset.vlan?.toString() || '',
+        asset.dns || '',
+        asset.open_ports || '',
+        asset.protocols || '',
+        asset.purchase_date || '',
+        asset.end_of_life || '',
+        asset.warranty_expiry || '',
+        asset.last_patched || '',
+        asset.patch_level || '',
+        asset.location || '',
       ]);
     }
   }

@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect, type ReactNode } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface ToolbarProps {
@@ -10,6 +10,7 @@ interface ToolbarProps {
   onOpenFile?: () => void;
   onSaveAs?: () => void;
   onRearrange: () => void;
+  onAutoLayout?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   onProjectSettings?: () => void;
@@ -26,6 +27,8 @@ interface ToolbarProps {
   onShare?: () => void;
   onNmapImport?: () => void;
   onVersionHistory?: () => void;
+  onAnalytics?: () => void;
+  onVulnerabilities?: () => void;
   onToggleRiskOverlay?: () => void;
   riskOverlayEnabled?: boolean;
   versionCount?: number;
@@ -50,17 +53,19 @@ interface DropdownItem {
   disabled?: boolean;
   shortcut?: string;
   divider?: boolean;
+  icon?: ReactNode;
 }
 
 interface DropdownMenuProps {
   label: string;
+  icon?: ReactNode;
   items: DropdownItem[];
   isOpen: boolean;
   onToggle: () => void;
   onClose: () => void;
 }
 
-function DropdownMenu({ label, items, isOpen, onToggle, onClose }: DropdownMenuProps) {
+function DropdownMenu({ label, icon, items, isOpen, onToggle, onClose }: DropdownMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -82,14 +87,15 @@ function DropdownMenu({ label, items, isOpen, onToggle, onClose }: DropdownMenuP
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className={`px-3 py-1 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-200 ${
+        className={`px-3 py-1 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-200 flex items-center gap-1.5 ${
           isOpen ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
+        {icon && <span className="w-4 h-4 opacity-70">{icon}</span>}
         {label}
       </button>
       {isOpen && (
-        <div role="menu" aria-label={label} className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[180px] z-50">
+        <div role="menu" aria-label={label} className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[200px] z-50">
           {items.map((item, index) => (
             item.divider ? (
               <div key={index} className="border-t border-gray-200 dark:border-gray-700 my-1" />
@@ -110,7 +116,10 @@ function DropdownMenu({ label, items, isOpen, onToggle, onClose }: DropdownMenuP
                     : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
               >
-                <span>{item.label}</span>
+                <span className="flex items-center gap-2">
+                  {item.icon && <span className="w-4 h-4 opacity-60 flex-shrink-0">{item.icon}</span>}
+                  {item.label}
+                </span>
                 {item.shortcut && (
                   <span className="text-xs text-gray-400 dark:text-gray-500 ml-4">{item.shortcut}</span>
                 )}
@@ -123,6 +132,47 @@ function DropdownMenu({ label, items, isOpen, onToggle, onClose }: DropdownMenuP
   );
 }
 
+// Vertical divider between menu groups
+function MenuDivider() {
+  return <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1" />;
+}
+
+// Menu bar icons (small inline SVGs)
+const icons = {
+  file: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  ),
+  edit: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+  ),
+  plus: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+    </svg>
+  ),
+  analyze: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+  ),
+  generate: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  view: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  ),
+};
+
 const Toolbar = memo(({
   onAddZone,
   onAddConduit,
@@ -132,6 +182,7 @@ const Toolbar = memo(({
   onOpenFile,
   onSaveAs,
   onRearrange,
+  onAutoLayout,
   onUndo,
   onRedo,
   onProjectSettings,
@@ -148,6 +199,8 @@ const Toolbar = memo(({
   onShare,
   onNmapImport,
   onVersionHistory,
+  onAnalytics,
+  onVulnerabilities,
   onToggleRiskOverlay,
   riskOverlayEnabled = false,
   versionCount = 0,
@@ -176,7 +229,7 @@ const Toolbar = memo(({
     setOpenMenu(null);
   };
 
-  const projectItems: DropdownItem[] = [
+  const fileItems: DropdownItem[] = [
     ...(onNewFile ? [{ label: 'New Project', onClick: onNewFile, disabled: !apiConnected, shortcut: 'Ctrl+N' }] : []),
     { label: 'New from Template...', onClick: onNewFromTemplate || (() => {}), disabled: !apiConnected || !onNewFromTemplate },
     ...(onOpenFile ? [{ label: 'Open...', onClick: onOpenFile, disabled: !apiConnected, shortcut: 'Ctrl+O' }] : []),
@@ -208,6 +261,7 @@ const Toolbar = memo(({
     { label: 'Paste Zone', onClick: onPaste || (() => {}), disabled: !copiedZone || !onPaste, shortcut: 'Ctrl+V' },
     { label: '', onClick: () => {}, divider: true },
     { label: 'Rearrange Layout', onClick: onRearrange, disabled: zoneCount < 2 },
+    { label: 'Auto Layout (Purdue)', onClick: onAutoLayout || (() => {}), disabled: zoneCount < 2 || !onAutoLayout, shortcut: 'Ctrl+L' },
   ];
 
   const addItems: DropdownItem[] = [
@@ -215,21 +269,28 @@ const Toolbar = memo(({
     { label: 'Conduit', onClick: onAddConduit, disabled: !apiConnected },
   ];
 
-  const toolsItems: DropdownItem[] = [
+  const analyzeItems: DropdownItem[] = [
     { label: 'Validate', onClick: onValidate, disabled: !apiConnected, shortcut: 'F5' },
+    { label: 'Risk Assessment', onClick: onRiskDashboard || (() => {}), disabled: !onRiskDashboard },
+    { label: '', onClick: () => {}, divider: true },
     { label: 'Compliance Dashboard', onClick: onComplianceDashboard || (() => {}), disabled: !onComplianceDashboard },
     { label: 'Compliance Settings...', onClick: onComplianceSettings || (() => {}), disabled: !onComplianceSettings },
-    { label: 'Risk Assessment', onClick: onRiskDashboard || (() => {}), disabled: !onRiskDashboard },
-    { label: 'Asset Inventory', onClick: onAssetInventory || (() => {}), disabled: !onAssetInventory },
     { label: '', onClick: () => {}, divider: true },
-    { label: 'Generate Firewall Rules', onClick: onGenerateFirewall || (() => {}), disabled: !apiConnected || !onGenerateFirewall },
-    { label: 'Generate Compliance Report', onClick: onGenerateReport || (() => {}), disabled: !apiConnected || !onGenerateReport },
+    { label: 'Vulnerabilities', onClick: onVulnerabilities || (() => {}), disabled: !onVulnerabilities },
+  ];
+
+  const generateItems: DropdownItem[] = [
+    { label: 'Firewall Rules', onClick: onGenerateFirewall || (() => {}), disabled: !apiConnected || !onGenerateFirewall },
+    { label: 'PDF Report', onClick: onExport || (() => {}), disabled: !onExport },
+    { label: 'Compliance Report', onClick: onGenerateReport || (() => {}), disabled: !apiConnected || !onGenerateReport },
   ];
 
   const viewItems: DropdownItem[] = [
     { label: viewMode === '2d' ? '3D View' : '2D View', onClick: onToggleViewMode || (() => {}), disabled: !onToggleViewMode, shortcut: 'Ctrl+3' },
     { label: '', onClick: () => {}, divider: true },
     { label: riskOverlayEnabled ? 'Hide Risk Overlay' : 'Show Risk Overlay', onClick: onToggleRiskOverlay || (() => {}), disabled: !onToggleRiskOverlay },
+    { label: 'Analytics', onClick: onAnalytics || (() => {}), disabled: !onAnalytics },
+    { label: 'Asset Inventory', onClick: onAssetInventory || (() => {}), disabled: !onAssetInventory },
     { label: '', onClick: () => {}, divider: true },
     { label: theme === 'dark' ? 'Light Mode' : 'Dark Mode', onClick: toggleTheme },
   ];
@@ -238,10 +299,11 @@ const Toolbar = memo(({
 
   // All menu groups for mobile slide-out
   const mobileMenuGroups = [
-    { label: 'Project', items: projectItems },
+    { label: 'File', items: fileItems },
     { label: 'Edit', items: editItems },
     { label: 'Add', items: addItems },
-    { label: 'Tools', items: toolsItems },
+    { label: 'Analyze', items: analyzeItems },
+    { label: 'Generate', items: generateItems },
     { label: 'View', items: viewItems },
   ];
 
@@ -317,36 +379,62 @@ const Toolbar = memo(({
 
       {/* Desktop menu bar — hidden on <md */}
       <div className="hidden md:flex items-center gap-1">
+        {/* File + Edit group */}
         <DropdownMenu
-          label="Project"
-          items={projectItems}
-          isOpen={openMenu === 'project'}
-          onToggle={() => handleToggle('project')}
+          label="File"
+          icon={icons.file}
+          items={fileItems}
+          isOpen={openMenu === 'file'}
+          onToggle={() => handleToggle('file')}
           onClose={handleClose}
         />
         <DropdownMenu
           label="Edit"
+          icon={icons.edit}
           items={editItems}
           isOpen={openMenu === 'edit'}
           onToggle={() => handleToggle('edit')}
           onClose={handleClose}
         />
+
+        <MenuDivider />
+
+        {/* Add group */}
         <DropdownMenu
           label="Add"
+          icon={icons.plus}
           items={addItems}
           isOpen={openMenu === 'add'}
           onToggle={() => handleToggle('add')}
           onClose={handleClose}
         />
+
+        <MenuDivider />
+
+        {/* Analyze + Generate group */}
         <DropdownMenu
-          label="Tools"
-          items={toolsItems}
-          isOpen={openMenu === 'tools'}
-          onToggle={() => handleToggle('tools')}
+          label="Analyze"
+          icon={icons.analyze}
+          items={analyzeItems}
+          isOpen={openMenu === 'analyze'}
+          onToggle={() => handleToggle('analyze')}
           onClose={handleClose}
         />
         <DropdownMenu
+          label="Generate"
+          icon={icons.generate}
+          items={generateItems}
+          isOpen={openMenu === 'generate'}
+          onToggle={() => handleToggle('generate')}
+          onClose={handleClose}
+        />
+
+        <MenuDivider />
+
+        {/* View group */}
+        <DropdownMenu
           label="View"
+          icon={icons.view}
           items={viewItems}
           isOpen={openMenu === 'view'}
           onToggle={() => handleToggle('view')}

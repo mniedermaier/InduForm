@@ -209,7 +209,7 @@ async def create_template(
     from induform.security.permissions import Permission, check_project_permission
 
     has_access = await check_project_permission(
-        db, data.project_id, current_user.id, Permission.EDITOR
+        db, data.project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
     )
     if not has_access:
         raise HTTPException(

@@ -32,6 +32,7 @@ describe('useKeyboardShortcuts', () => {
     canCopy: true,
     canPaste: true,
     canDelete: true,
+    canAutoLayout: true,
     apiConnected: true,
     selectedZone: { id: 'z1', name: 'Zone 1', type: 'cell', security_level_target: 2, assets: [] },
     selectedConduit: undefined,

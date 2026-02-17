@@ -55,7 +55,9 @@ async def list_comments(
 ) -> list[CommentResponse]:
     """List comments for a project, optionally filtered by entity."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -89,7 +91,9 @@ async def get_comment_count(
 ) -> CommentCountResponse:
     """Get comment counts for a project."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -116,7 +120,9 @@ async def create_comment(
 ) -> CommentResponse:
     """Create a new comment on a project entity."""
     # Check permission - viewers can comment
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -171,7 +177,9 @@ async def get_comment(
 ) -> CommentResponse:
     """Get a specific comment."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -200,7 +208,9 @@ async def update_comment(
 ) -> CommentResponse:
     """Update a comment. Only the author can edit."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -240,7 +250,9 @@ async def delete_comment(
 ) -> None:
     """Delete a comment. Only the author can delete."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -275,7 +287,9 @@ async def resolve_comment(
 ) -> CommentResponse:
     """Mark a comment as resolved. Editors and authors can resolve."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -295,7 +309,7 @@ async def resolve_comment(
     can_resolve = comment.author_id == current_user.id
     if not can_resolve:
         can_resolve = await check_project_permission(
-            db, project_id, current_user.id, Permission.EDITOR
+            db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
         )
 
     if not can_resolve:
@@ -342,7 +356,9 @@ async def unresolve_comment(
 ) -> CommentResponse:
     """Mark a comment as unresolved. Editors and authors can unresolve."""
     # Check permission
-    has_access = await check_project_permission(db, project_id, current_user.id, Permission.VIEWER)
+    has_access = await check_project_permission(
+        db, project_id, current_user.id, Permission.VIEWER, is_admin=current_user.is_admin
+    )
     if not has_access:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -362,7 +378,7 @@ async def unresolve_comment(
     can_unresolve = comment.author_id == current_user.id
     if not can_unresolve:
         can_unresolve = await check_project_permission(
-            db, project_id, current_user.id, Permission.EDITOR
+            db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
         )
 
     if not can_unresolve:
