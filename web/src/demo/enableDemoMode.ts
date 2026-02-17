@@ -9,6 +9,10 @@ export async function enableDemoMode() {
   await worker.start({
     quiet: true,
     onUnhandledRequest: 'bypass',
+    serviceWorker: {
+      // Must match the base path so GitHub Pages can find the script
+      url: `${import.meta.env.BASE_URL}mockServiceWorker.js`,
+    },
   });
 
   // Inject fake tokens so AuthContext considers us logged in
