@@ -370,10 +370,14 @@ export const handlers = [
   ),
 
   // Scan single asset CVEs
-  http.post('/api/projects/:id/scan-cves', () =>
+  http.post('/api/projects/:id/zones/:zoneId/assets/:assetId/scan-cves', ({ params }) =>
     HttpResponse.json({
-      message: 'CVE scanning is not available in demo mode.',
-      vulnerabilities_found: 0,
+      asset_id: params.assetId as string,
+      asset_name: 'Demo Asset',
+      cves_found: 0,
+      cves_created: 0,
+      cves_skipped: 0,
+      vulnerabilities: [],
     }),
   ),
 
@@ -382,19 +386,24 @@ export const handlers = [
     HttpResponse.json({
       job_id: 'demo-scan-' + Date.now(),
       status: 'completed',
-      message: 'CVE scanning is simulated in demo mode.',
+      total_assets: 0,
+      assets_scanned: 0,
+      total_cves_found: 0,
+      total_cves_created: 0,
+      errors: [],
     }),
   ),
 
   // Scan status
-  http.get('/api/projects/:id/scan-status/:jobId', () =>
+  http.get('/api/projects/:id/scan-status/:jobId', ({ params }) =>
     HttpResponse.json({
-      job_id: 'demo-scan',
+      job_id: params.jobId as string,
       status: 'completed',
-      progress: 100,
-      total_assets: 22,
-      scanned_assets: 22,
-      vulnerabilities_found: 0,
+      total_assets: 0,
+      assets_scanned: 0,
+      total_cves_found: 0,
+      total_cves_created: 0,
+      errors: [],
     }),
   ),
 
