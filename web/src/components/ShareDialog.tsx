@@ -1,47 +1,12 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-
-interface ProjectAccess {
-  id: string;
-  user_id: string | null;
-  user_email: string | null;
-  user_username: string | null;
-  team_id: string | null;
-  team_name: string | null;
-  permission: string;
-  granted_at: string;
-}
-
-interface Team {
-  id: string;
-  name: string;
-}
+import { api } from '../api/client';
+import type { ProjectAccess, Team } from '../api/client';
 
 interface ShareDialogProps {
   projectId: string;
   projectName: string;
   isOwner: boolean;
   onClose: () => void;
-}
-
-const API_BASE = '/api';
-
-async function fetchWithAuth<T>(url: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('induform_access_token');
-  const response = await fetch(`${API_BASE}${url}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || 'Request failed');
-  }
-
-  return response.json();
 }
 
 const ShareDialog = memo(({ projectId, projectName, isOwner, onClose }: ShareDialogProps) => {
@@ -63,8 +28,8 @@ const ShareDialog = memo(({ projectId, projectName, isOwner, onClose }: ShareDia
       try {
         setLoading(true);
         const [access, userTeams] = await Promise.all([
-          fetchWithAuth<ProjectAccess[]>(`/projects/${projectId}/access`),
-          fetchWithAuth<Team[]>('/teams/'),
+          api.listProjectAccess(projectId),
+          api.listTeams(),
         ]);
         setAccessList(access);
         setTeams(userTeams);
@@ -96,17 +61,14 @@ const ShareDialog = memo(({ projectId, projectName, isOwner, onClose }: ShareDia
       setSharing(true);
       setError(null);
 
-      const body: Record<string, string> = { permission };
+      const body: { user_id?: string; team_id?: string; permission: string } = { permission };
       if (shareType === 'user') {
         body.user_id = userId.trim();
       } else {
         body.team_id = teamId;
       }
 
-      const newAccess = await fetchWithAuth<ProjectAccess>(`/projects/${projectId}/access`, {
-        method: 'POST',
-        body: JSON.stringify(body),
-      });
+      const newAccess = await api.grantAccess(projectId, body);
 
       setAccessList((prev) => [...prev, newAccess]);
       setUserId('');
@@ -123,9 +85,7 @@ const ShareDialog = memo(({ projectId, projectName, isOwner, onClose }: ShareDia
       if (!confirm('Are you sure you want to revoke this access?')) return;
 
       try {
-        await fetchWithAuth(`/projects/${projectId}/access/${accessId}`, {
-          method: 'DELETE',
-        });
+        await api.revokeAccess(projectId, accessId);
         setAccessList((prev) => prev.filter((a) => a.id !== accessId));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to revoke access');

@@ -3,7 +3,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from induform.api.auth.dependencies import get_current_user
@@ -13,6 +13,7 @@ from induform.api.comments.schemas import (
     CommentResponse,
     CommentUpdate,
 )
+from induform.api.rate_limit import limiter
 from induform.db import User, get_db
 from induform.db.repositories import CommentRepository, ProjectRepository
 from induform.security.permissions import Permission, check_project_permission
@@ -112,7 +113,9 @@ async def get_comment_count(
 
 
 @router.post("/", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 async def create_comment(
+    request: Request,
     project_id: str,
     comment_data: CommentCreate,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -199,7 +202,9 @@ async def get_comment(
 
 
 @router.put("/{comment_id}", response_model=CommentResponse)
+@limiter.limit("30/minute")
 async def update_comment(
+    request: Request,
     project_id: str,
     comment_id: str,
     comment_data: CommentUpdate,
@@ -242,7 +247,9 @@ async def update_comment(
 
 
 @router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute")
 async def delete_comment(
+    request: Request,
     project_id: str,
     comment_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -279,7 +286,9 @@ async def delete_comment(
 
 
 @router.post("/{comment_id}/resolve", response_model=CommentResponse)
+@limiter.limit("30/minute")
 async def resolve_comment(
+    request: Request,
     project_id: str,
     comment_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -348,7 +357,9 @@ async def resolve_comment(
 
 
 @router.post("/{comment_id}/unresolve", response_model=CommentResponse)
+@limiter.limit("30/minute")
 async def unresolve_comment(
+    request: Request,
     project_id: str,
     comment_id: str,
     current_user: Annotated[User, Depends(get_current_user)],

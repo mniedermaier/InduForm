@@ -240,7 +240,7 @@ export function useProjectTabs(): UseProjectTabsResult {
         setApiConnected(true);
         setError(null);
       } catch (err) {
-        console.warn('API not available, using sample data:', err);
+        // API not available, fall back to sample data
         const demoTab: TabState = {
           id: generateTabId(),
           project: sampleProject,
@@ -301,7 +301,7 @@ export function useProjectTabs(): UseProjectTabsResult {
               ? { ...tab, originalProject: activeTab.project }
               : tab
           ));
-          console.log('Auto-saved project');
+          // Auto-save succeeded
         } catch (err) {
           console.error('Auto-save error:', err);
         }

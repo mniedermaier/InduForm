@@ -64,6 +64,38 @@ export const handlers = [
     }),
   ),
 
+  http.post('/api/auth/register', () =>
+    HttpResponse.json(DEMO_USER, { status: 201 }),
+  ),
+
+  http.post('/api/auth/logout', () =>
+    new HttpResponse(null, { status: 204 }),
+  ),
+
+  http.post('/api/auth/revoke-all-sessions', () =>
+    new HttpResponse(null, { status: 204 }),
+  ),
+
+  http.post('/api/auth/change-password', () =>
+    new HttpResponse(null, { status: 204 }),
+  ),
+
+  http.post('/api/auth/forgot-password', () =>
+    HttpResponse.json({
+      message: 'If the email exists, a reset link has been generated.',
+      reset_token: 'demo-reset-token',
+    }),
+  ),
+
+  http.post('/api/auth/reset-password', () =>
+    HttpResponse.json({ message: 'Password has been reset successfully' }),
+  ),
+
+  http.put('/api/auth/me', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({ ...DEMO_USER, ...body });
+  }),
+
   // ── Projects ──────────────────────────────────────────
   http.get('/api/projects/', () => HttpResponse.json(DEMO_PROJECT_LIST)),
 
@@ -107,6 +139,39 @@ export const handlers = [
       updated_at: new Date().toISOString(),
     });
   }),
+
+  http.post('/api/projects/:id/archive', () =>
+    HttpResponse.json({ status: 'archived' }),
+  ),
+
+  http.post('/api/projects/:id/restore', () =>
+    HttpResponse.json({ status: 'restored' }),
+  ),
+
+  http.post('/api/projects/:id/duplicate', () =>
+    HttpResponse.json({
+      id: 'demo-dup-' + Date.now(),
+      name: 'Copy of Project',
+      description: '',
+      owner_id: DEMO_USER.id,
+      owner_username: DEMO_USER.username,
+      permission: 'owner',
+      zone_count: 0,
+      conduit_count: 0,
+      asset_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }),
+  ),
+
+  http.patch('/api/projects/:id', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json(body);
+  }),
+
+  http.delete('/api/projects/:id', () =>
+    new HttpResponse(null, { status: 204 }),
+  ),
 
   // ── Validation & Policies ─────────────────────────────
   http.post('/api/validate', () => HttpResponse.json(DEMO_VALIDATION)),
@@ -225,6 +290,9 @@ export const handlers = [
   // ── Notifications ─────────────────────────────────────
   http.get('/api/notifications/', () => HttpResponse.json(DEMO_NOTIFICATIONS)),
   http.post('/api/notifications/mark-read', () => HttpResponse.json({ status: 'ok' })),
+  http.delete('/api/notifications/:id', () =>
+    HttpResponse.json({ message: 'Notification deleted' }),
+  ),
 
   // ── Activity & Search ─────────────────────────────────
   http.get('/api/activity', () => HttpResponse.json(DEMO_ACTIVITY)),
@@ -476,11 +544,57 @@ export const handlers = [
   ),
 
   // ── Comments ──────────────────────────────────────────
-  http.get('/api/projects/:id/comments', () => HttpResponse.json([
-    { id: 'cmt-1', user_id: 'user-alice', username: 'alice.chen', display_name: 'Alice Chen', content: 'The SL gap on the field device network is our top priority. I\'ve requested quotes for industrial IDS from Claroty and Nozomi.', created_at: '2026-02-14T10:30:00Z', zone_id: 'zone-field' },
-    { id: 'cmt-2', user_id: 'user-bob', username: 'bob.mueller', display_name: 'Bob Mueller', content: 'Added firewall rules for the Modbus traffic. Still need to test Profinet Security Class 1 with the S7-1500s during the next maintenance window.', created_at: '2026-02-12T15:00:00Z', conduit_id: 'conduit-ctrl-field' },
-    { id: 'cmt-3', user_id: 'demo-user', username: 'demo', display_name: 'Demo User', content: 'Safety zone looks good. HIMA controller is properly isolated and the hard-wired interlocks are documented.', created_at: '2026-02-15T16:00:00Z', zone_id: 'zone-safety' },
+  http.get('/api/projects/:id/comments/', () => HttpResponse.json([
+    { id: 'cmt-1', user_id: 'user-alice', username: 'alice.chen', display_name: 'Alice Chen', content: 'The SL gap on the field device network is our top priority. I\'ve requested quotes for industrial IDS from Claroty and Nozomi.', created_at: '2026-02-14T10:30:00Z', zone_id: 'zone-field', is_resolved: false },
+    { id: 'cmt-2', user_id: 'user-bob', username: 'bob.mueller', display_name: 'Bob Mueller', content: 'Added firewall rules for the Modbus traffic. Still need to test Profinet Security Class 1 with the S7-1500s during the next maintenance window.', created_at: '2026-02-12T15:00:00Z', conduit_id: 'conduit-ctrl-field', is_resolved: false },
+    { id: 'cmt-3', user_id: 'demo-user', username: 'demo', display_name: 'Demo User', content: 'Safety zone looks good. HIMA controller is properly isolated and the hard-wired interlocks are documented.', created_at: '2026-02-15T16:00:00Z', zone_id: 'zone-safety', is_resolved: true },
   ])),
+
+  http.get('/api/projects/:id/comments/count', () =>
+    HttpResponse.json({ total: 3, unresolved: 2 }),
+  ),
+
+  http.post('/api/projects/:id/comments/', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      id: 'cmt-new-' + Date.now(),
+      user_id: DEMO_USER.id,
+      username: DEMO_USER.username,
+      display_name: DEMO_USER.display_name,
+      ...body,
+      is_resolved: false,
+      created_at: new Date().toISOString(),
+    }, { status: 201 });
+  }),
+
+  http.put('/api/projects/:id/comments/:commentId', async ({ params, request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      id: params.commentId,
+      ...body,
+      updated_at: new Date().toISOString(),
+    });
+  }),
+
+  http.delete('/api/projects/:id/comments/:commentId', () =>
+    new HttpResponse(null, { status: 204 }),
+  ),
+
+  http.post('/api/projects/:id/comments/:commentId/resolve', ({ params }) =>
+    HttpResponse.json({
+      id: params.commentId,
+      is_resolved: true,
+      resolved_at: new Date().toISOString(),
+    }),
+  ),
+
+  http.post('/api/projects/:id/comments/:commentId/unresolve', ({ params }) =>
+    HttpResponse.json({
+      id: params.commentId,
+      is_resolved: false,
+      resolved_at: null,
+    }),
+  ),
 
   // ── Admin ─────────────────────────────────────────────
   http.get('/api/admin/stats', () => HttpResponse.json(DEMO_ADMIN_STATS)),

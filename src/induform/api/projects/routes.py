@@ -569,9 +569,9 @@ async def delete_project(
             detail="Project not found",
         )
 
-    # Check permission (owner or editor)
+    # Check permission (owner only)
     has_access = await check_project_permission(
-        db, project_id, current_user.id, Permission.EDITOR, is_admin=current_user.is_admin
+        db, project_id, current_user.id, Permission.OWNER, is_admin=current_user.is_admin
     )
     if not has_access:
         raise HTTPException(

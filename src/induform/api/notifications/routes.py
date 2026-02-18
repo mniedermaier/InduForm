@@ -1,6 +1,6 @@
 """API routes for notifications."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +10,7 @@ from induform.api.notifications.schemas import (
     NotificationMarkRead,
     NotificationOut,
 )
+from induform.api.rate_limit import limiter
 from induform.db.models import Notification, User
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -104,7 +105,9 @@ async def list_notifications(
 
 
 @router.post("/mark-read")
+@limiter.limit("60/minute")
 async def mark_notifications_read(
+    request: Request,
     data: NotificationMarkRead,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -133,7 +136,9 @@ async def mark_notifications_read(
 
 
 @router.delete("/{notification_id}")
+@limiter.limit("30/minute")
 async def delete_notification(
+    request: Request,
     notification_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

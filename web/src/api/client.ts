@@ -178,7 +178,44 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     });
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return response.json();
+}
+
+// Comment type for API responses
+export interface Comment {
+  id: string;
+  project_id: string;
+  entity_type: string;
+  entity_id: string;
+  author_id: string;
+  author_username: string | null;
+  author_display_name: string | null;
+  text: string;
+  is_resolved: boolean;
+  resolved_by: string | null;
+  resolver_username: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectAccess {
+  id: string;
+  user_id: string | null;
+  user_email: string | null;
+  user_username: string | null;
+  team_id: string | null;
+  team_name: string | null;
+  permission: string;
+  granted_at: string;
+}
+
+export interface Team {
+  id: string;
+  name: string;
 }
 
 export const api = {
@@ -605,6 +642,71 @@ export const api = {
 
   async getAnalyticsSummary(projectId: string, days = 30): Promise<AnalyticsSummary> {
     return fetchJson(`/projects/${projectId}/analytics/summary?days=${days}`);
+  },
+
+  // Comments
+  async listComments(projectId: string, options?: { entity_type?: string; entity_id?: string; include_resolved?: boolean }): Promise<Comment[]> {
+    const params = new URLSearchParams();
+    if (options?.entity_type) params.set('entity_type', options.entity_type);
+    if (options?.entity_id) params.set('entity_id', options.entity_id);
+    if (options?.include_resolved !== undefined) params.set('include_resolved', String(options.include_resolved));
+    const query = params.toString();
+    return fetchJson(`/projects/${projectId}/comments/${query ? `?${query}` : ''}`);
+  },
+
+  async createComment(projectId: string, data: { entity_type: string; entity_id: string; text: string }): Promise<Comment> {
+    return fetchJson(`/projects/${projectId}/comments/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateComment(projectId: string, commentId: string, text: string): Promise<Comment> {
+    return fetchJson(`/projects/${projectId}/comments/${commentId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ text }),
+    });
+  },
+
+  async deleteComment(projectId: string, commentId: string): Promise<void> {
+    return fetchJson(`/projects/${projectId}/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async resolveComment(projectId: string, commentId: string): Promise<Comment> {
+    return fetchJson(`/projects/${projectId}/comments/${commentId}/resolve`, {
+      method: 'POST',
+    });
+  },
+
+  async unresolveComment(projectId: string, commentId: string): Promise<Comment> {
+    return fetchJson(`/projects/${projectId}/comments/${commentId}/unresolve`, {
+      method: 'POST',
+    });
+  },
+
+  // Project access/sharing
+  async listProjectAccess(projectId: string): Promise<ProjectAccess[]> {
+    return fetchJson(`/projects/${projectId}/access`);
+  },
+
+  async grantAccess(projectId: string, data: { user_id?: string; team_id?: string; permission: string }): Promise<ProjectAccess> {
+    return fetchJson(`/projects/${projectId}/access`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async revokeAccess(projectId: string, accessId: string): Promise<void> {
+    return fetchJson(`/projects/${projectId}/access/${accessId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Teams
+  async listTeams(): Promise<Team[]> {
+    return fetchJson('/teams/');
   },
 };
 

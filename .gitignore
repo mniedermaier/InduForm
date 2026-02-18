@@ -119,5 +119,8 @@ nmap_scans/
 *.key
 secrets/
 
+# Test results
+web/test-results/
+
 # Claude Code
 .claude/

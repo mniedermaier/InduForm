@@ -1,52 +1,12 @@
 import { memo, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-
-interface Comment {
-  id: string;
-  project_id: string;
-  entity_type: string;
-  entity_id: string;
-  author_id: string;
-  author_username: string | null;
-  author_display_name: string | null;
-  text: string;
-  is_resolved: boolean;
-  resolved_by: string | null;
-  resolver_username: string | null;
-  resolved_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import { api } from '../api/client';
+import type { Comment } from '../api/client';
 
 interface CommentsPanelProps {
   projectId: string;
   entityType: 'zone' | 'conduit' | 'asset';
   entityId: string;
-}
-
-const API_BASE = '/api';
-
-async function fetchWithAuth<T>(url: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('induform_access_token');
-  const response = await fetch(`${API_BASE}${url}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || 'Request failed');
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
 }
 
 const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelProps) => {
@@ -73,9 +33,7 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
 
       try {
         setLoading(true);
-        const data = await fetchWithAuth<Comment[]>(
-          `/projects/${projectId}/comments/?entity_type=${entityType}&entity_id=${entityId}&include_resolved=true`
-        );
+        const data = await api.listComments(projectId, { entity_type: entityType, entity_id: entityId, include_resolved: true });
         setComments(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load comments');
@@ -95,13 +53,10 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
       setSubmitting(true);
       setError(null);
 
-      const comment = await fetchWithAuth<Comment>(`/projects/${projectId}/comments/`, {
-        method: 'POST',
-        body: JSON.stringify({
-          entity_type: entityType,
-          entity_id: entityId,
-          text: newComment.trim(),
-        }),
+      const comment = await api.createComment(projectId, {
+        entity_type: entityType,
+        entity_id: entityId,
+        text: newComment.trim(),
       });
 
       setComments((prev) => [comment, ...prev]);
@@ -119,9 +74,7 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
       if (!confirm('Are you sure you want to delete this comment?')) return;
 
       try {
-        await fetchWithAuth(`/projects/${projectId}/comments/${commentId}`, {
-          method: 'DELETE',
-        });
+        await api.deleteComment(projectId, commentId);
         setComments((prev) => prev.filter((c) => c.id !== commentId));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to delete comment');
@@ -136,13 +89,7 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
       if (!editText.trim()) return;
 
       try {
-        const updated = await fetchWithAuth<Comment>(
-          `/projects/${projectId}/comments/${commentId}`,
-          {
-            method: 'PUT',
-            body: JSON.stringify({ text: editText.trim() }),
-          }
-        );
+        const updated = await api.updateComment(projectId, commentId, editText.trim());
 
         setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
         setEditingId(null);
@@ -158,11 +105,9 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
   const handleToggleResolve = useCallback(
     async (commentId: string, isResolved: boolean) => {
       try {
-        const action = isResolved ? 'unresolve' : 'resolve';
-        const updated = await fetchWithAuth<Comment>(
-          `/projects/${projectId}/comments/${commentId}/${action}`,
-          { method: 'POST' }
-        );
+        const updated = isResolved
+          ? await api.unresolveComment(projectId, commentId)
+          : await api.resolveComment(projectId, commentId);
 
         setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
       } catch (err) {
