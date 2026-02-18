@@ -86,31 +86,6 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
     } : null);
   }, []);
 
-  // Client-side risk score computation (mirrors backend formula)
-  const computeZoneRisks = useCallback((proj: Project): Map<string, { score: number; level: string }> => {
-    const risks = new Map<string, { score: number; level: string }>();
-    for (const zone of proj.zones) {
-      // SL base risk: lower SL-T means higher risk
-      const slBaseRisk = ((4 - zone.security_level_target) / 4) * 100;
-      // Asset criticality: average criticality of assets
-      const avgCriticality = zone.assets.length > 0
-        ? zone.assets.reduce((s, a) => s + (a.criticality || 3), 0) / zone.assets.length
-        : 3;
-      const assetCriticalityRisk = (avgCriticality / 5) * 100;
-      // Exposure: number of conduits
-      const conduitCount = proj.conduits.filter(c => c.from_zone === zone.id || c.to_zone === zone.id).length;
-      const exposureRisk = Math.min(conduitCount * 20, 100);
-      // SL gap
-      const slC = zone.security_level_capability ?? zone.security_level_target;
-      const slGapRisk = Math.max(0, (zone.security_level_target - slC)) * 25;
-      // Weighted
-      const score = Math.round(slBaseRisk * 0.3 + assetCriticalityRisk * 0.25 + exposureRisk * 0.2 + slGapRisk * 0.25);
-      const level = score >= 80 ? 'critical' : score >= 60 ? 'high' : score >= 40 ? 'medium' : score >= 20 ? 'low' : 'minimal';
-      risks.set(zone.id, { score, level });
-    }
-    return risks;
-  }, []);
-
   // Map remote selections to per-zone usernames (memoized to avoid new Map on every render)
   const remoteSelections = useMemo((): Map<string, string> => {
     const map = new Map<string, string>();
@@ -151,6 +126,27 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
   } = projectHook;
 
   const canEdit = permission === 'owner' || permission === 'editor';
+
+  // Client-side risk score computation (memoized — only recomputes when project data changes)
+  const zoneRisks = useMemo((): Map<string, { score: number; level: string }> | undefined => {
+    if (!riskOverlayEnabled || !project) return undefined;
+    const risks = new Map<string, { score: number; level: string }>();
+    for (const zone of project.zones) {
+      const slBaseRisk = ((4 - zone.security_level_target) / 4) * 100;
+      const avgCriticality = zone.assets.length > 0
+        ? zone.assets.reduce((s, a) => s + (a.criticality || 3), 0) / zone.assets.length
+        : 3;
+      const assetCriticalityRisk = (avgCriticality / 5) * 100;
+      const conduitCount = project.conduits.filter(c => c.from_zone === zone.id || c.to_zone === zone.id).length;
+      const exposureRisk = Math.min(conduitCount * 20, 100);
+      const slC = zone.security_level_capability ?? zone.security_level_target;
+      const slGapRisk = Math.max(0, (zone.security_level_target - slC)) * 25;
+      const score = Math.round(slBaseRisk * 0.3 + assetCriticalityRisk * 0.25 + exposureRisk * 0.2 + slGapRisk * 0.25);
+      const level = score >= 80 ? 'critical' : score >= 60 ? 'high' : score >= 40 ? 'medium' : score >= 20 ? 'low' : 'minimal';
+      risks.set(zone.id, { score, level });
+    }
+    return risks;
+  }, [riskOverlayEnabled, project]);
 
   // Show toast on undo/redo
   useEffect(() => {
@@ -784,7 +780,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
                 validationResults={validationResults}
                 policyViolations={policyViolations}
                 riskOverlayEnabled={riskOverlayEnabled}
-                zoneRisks={riskOverlayEnabled ? computeZoneRisks(project) : undefined}
+                zoneRisks={zoneRisks}
                 remoteSelections={remoteSelections}
                 onSelectionChange={setMultiSelectedZoneIds}
                 highlightedPath={highlightedPath}
@@ -806,7 +802,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
                 onSelectZone={selectZone}
                 onSelectConduit={selectConduit}
                 riskOverlayEnabled={riskOverlayEnabled}
-                zoneRisks={riskOverlayEnabled ? computeZoneRisks(project) : undefined}
+                zoneRisks={zoneRisks}
                 highlightedPath={highlightedPath}
               />
             </Suspense>

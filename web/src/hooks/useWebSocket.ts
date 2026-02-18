@@ -229,31 +229,33 @@ function useRealWebSocket(projectId: string | null) {
     return () => clearInterval(interval);
   }, [isConnected]);
 
-  // Clear stale cursors
+  // Clear stale cursors (30s interval, return prev if unchanged to avoid re-renders)
   useEffect(() => {
     const interval = setInterval(() => {
       setCursors((prev) => {
         const activeUserIds = new Set(presence.map((p) => p.user_id));
+        const keys = Object.keys(prev);
+        const stale = keys.filter(k => !activeUserIds.has(k));
+        if (stale.length === 0) return prev;
         const updated: Record<string, RemoteCursor> = {};
-        for (const [userId, cursor] of Object.entries(prev)) {
-          if (activeUserIds.has(userId)) {
-            updated[userId] = cursor;
-          }
+        for (const key of keys) {
+          if (activeUserIds.has(key)) updated[key] = prev[key];
         }
         return updated;
       });
 
       setSelections((prev) => {
         const activeUserIds = new Set(presence.map((p) => p.user_id));
+        const keys = Object.keys(prev);
+        const stale = keys.filter(k => !activeUserIds.has(k));
+        if (stale.length === 0) return prev;
         const updated: Record<string, string | null> = {};
-        for (const [userId, selection] of Object.entries(prev)) {
-          if (activeUserIds.has(userId)) {
-            updated[userId] = selection;
-          }
+        for (const key of keys) {
+          if (activeUserIds.has(key)) updated[key] = prev[key];
         }
         return updated;
       });
-    }, 5000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [presence]);

@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useRef } from 'react';
+import { memo, useState, useCallback, useRef, useMemo } from 'react';
 import {
   EdgeProps,
   getBezierPath,
@@ -87,14 +87,15 @@ const ConduitEdge = memo(({
   const warningRef = useRef<HTMLSpanElement>(null);
 
   const nodeRects = useStore(selectNodeRects, nodeRectsEqual);
-  const obstructing = findObstructingNodes(sourceX, sourceY, targetX, targetY, source, target, nodeRects);
-  const smartResult = computeSmartPath(sourceX, sourceY, targetX, targetY, obstructing);
 
-  let edgePath: string, labelX: number, labelY: number;
-  if (smartResult && smartResult.path && !smartResult.path.includes('NaN')) {
-    ({ path: edgePath, labelX, labelY } = smartResult);
-  } else {
-    [edgePath, labelX, labelY] = getBezierPath({
+  const { edgePath, labelX, labelY } = useMemo(() => {
+    const obstructing = findObstructingNodes(sourceX, sourceY, targetX, targetY, source, target, nodeRects);
+    const smartResult = computeSmartPath(sourceX, sourceY, targetX, targetY, obstructing);
+
+    if (smartResult && smartResult.path && !smartResult.path.includes('NaN')) {
+      return { edgePath: smartResult.path, labelX: smartResult.labelX, labelY: smartResult.labelY };
+    }
+    const [path, lx, ly] = getBezierPath({
       sourceX,
       sourceY,
       sourcePosition,
@@ -102,7 +103,8 @@ const ConduitEdge = memo(({
       targetY,
       targetPosition,
     });
-  }
+    return { edgePath: path, labelX: lx, labelY: ly };
+  }, [sourceX, sourceY, targetX, targetY, source, target, sourcePosition, targetPosition, nodeRects]);
 
   // Generate protocol label
   const protocolLabel = conduit?.flows

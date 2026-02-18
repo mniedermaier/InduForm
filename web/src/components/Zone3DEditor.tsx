@@ -98,9 +98,10 @@ function GridFloor({ dark }: { dark: boolean }) {
 // --- Ambient Particles ---
 
 function AmbientParticles({ dark }: { dark: boolean }) {
-  const count = 200;
+  const count = 50;
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const lastUpdateRef = useRef(0);
 
   const particles = useMemo(() => {
     return Array.from({ length: count }, () => ({
@@ -117,6 +118,9 @@ function AmbientParticles({ dark }: { dark: boolean }) {
   useFrame(({ clock }) => {
     if (!meshRef.current) return;
     const t = clock.getElapsedTime();
+    // Throttle to ~20fps
+    if (t - lastUpdateRef.current < 0.05) return;
+    lastUpdateRef.current = t;
     particles.forEach((p, i) => {
       dummy.position.set(
         p.pos[0] + Math.sin(t * p.speed * 0.3 + p.offset) * 3,
@@ -154,10 +158,14 @@ function AssetObject({
   color: string;
 }) {
   const ref = useRef<THREE.Mesh>(null);
+  const lastUpdateRef = useRef(0);
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
-    ref.current.rotation.y = clock.getElapsedTime() * 0.4;
+    const t = clock.getElapsedTime();
+    if (t - lastUpdateRef.current < 0.05) return;
+    lastUpdateRef.current = t;
+    ref.current.rotation.y = t * 0.4;
   });
 
   if (type === 'plc' || type === 'rtu' || type === 'ied' || type === 'dcs') {
@@ -221,6 +229,7 @@ function ZonePlatform({
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const lastUpdateRef = useRef(0);
   const config = ZONE_TYPE_CONFIG[zone.type];
   const slConfig = SECURITY_LEVEL_CONFIG[zone.security_level_target] || SECURITY_LEVEL_CONFIG[1];
 
@@ -235,10 +244,12 @@ function ZonePlatform({
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
-    groupRef.current.position.y = position[1] + Math.sin(clock.getElapsedTime() * 0.4 + position[0]) * 0.1;
-    // Pulse the highlight ring
+    const t = clock.getElapsedTime();
+    if (t - lastUpdateRef.current < 0.05) return;
+    lastUpdateRef.current = t;
+    groupRef.current.position.y = position[1] + Math.sin(t * 0.4 + position[0]) * 0.1;
     if (ringRef.current && highlighted) {
-      const scale = 1 + Math.sin(clock.getElapsedTime() * 3) * 0.08;
+      const scale = 1 + Math.sin(t * 3) * 0.08;
       ringRef.current.scale.set(scale, scale, scale);
     }
   });
@@ -386,10 +397,14 @@ function FlowParticle({
   reverse?: boolean;
 }) {
   const ref = useRef<THREE.Mesh>(null);
+  const lastUpdateRef = useRef(0);
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
-    const raw = ((clock.getElapsedTime() * 0.12 + offset) % 1);
+    const elapsed = clock.getElapsedTime();
+    if (elapsed - lastUpdateRef.current < 0.05) return;
+    lastUpdateRef.current = elapsed;
+    const raw = ((elapsed * 0.12 + offset) % 1);
     const t = reverse ? 1 - raw : raw;
     const point = curve.getPointAt(t);
     ref.current.position.copy(point);
@@ -523,20 +538,15 @@ function ConduitConnection({
       {(() => {
         const dir = getConduitDirection(conduit);
         if (dir === 'bidirectional') {
-          // Half forward, half reverse
           return (
             <>
-              {[0, 0.33, 0.67].map((offset, i) => (
-                <FlowParticle key={`f${i}`} curve={curve} offset={offset} color={particleColor} />
-              ))}
-              {[0.17, 0.5, 0.83].map((offset, i) => (
-                <FlowParticle key={`r${i}`} curve={curve} offset={offset} color={particleColor} reverse />
-              ))}
+              <FlowParticle key="f0" curve={curve} offset={0} color={particleColor} />
+              <FlowParticle key="r0" curve={curve} offset={0.5} color={particleColor} reverse />
             </>
           );
         }
         const reverse = dir === 'inbound';
-        return [0, 0.17, 0.33, 0.5, 0.67, 0.83].map((offset, i) => (
+        return [0, 0.33, 0.67].map((offset, i) => (
           <FlowParticle key={i} curve={curve} offset={offset} color={particleColor} reverse={reverse} />
         ));
       })()}
