@@ -79,8 +79,8 @@ const NetworkBackground = memo(() => {
       const w = canvas.width;
       const h = canvas.height;
 
-      // Target number of zones based on screen size
-      const targetZones = Math.floor((w * h) / 25000);
+      // Target number of zones based on screen size (capped to reduce CPU)
+      const targetZones = Math.min(40, Math.floor((w * h) / 40000));
       zonesRef.current = [];
 
       // Place zones without overlap
@@ -163,8 +163,15 @@ const NetworkBackground = memo(() => {
     window.addEventListener('resize', resizeCanvas);
 
     let time = 0;
+    let lastFrameTime = 0;
+    const targetInterval = 1000 / 20; // 20fps is plenty for a background
 
-    const animate = () => {
+    const animate = (now: number) => {
+      animationRef.current = requestAnimationFrame(animate);
+
+      if (now - lastFrameTime < targetInterval) return;
+      lastFrameTime = now;
+
       const w = canvas.width;
       const h = canvas.height;
       const isDark = themeRef.current === 'dark';
@@ -318,10 +325,9 @@ const NetworkBackground = memo(() => {
         ctx.fill();
       });
 
-      animationRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);

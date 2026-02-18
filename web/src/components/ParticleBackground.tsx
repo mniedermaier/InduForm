@@ -29,8 +29,8 @@ const ParticleBackground = memo(() => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Initialize particles
-    const particleCount = Math.floor((canvas.width * canvas.height) / 15000);
+    // Initialize particles (capped to reduce CPU)
+    const particleCount = Math.min(60, Math.floor((canvas.width * canvas.height) / 25000));
     particlesRef.current = Array.from({ length: particleCount }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -40,7 +40,15 @@ const ParticleBackground = memo(() => {
       opacity: Math.random() * 0.5 + 0.2,
     }));
 
-    const animate = () => {
+    let lastFrameTime = 0;
+    const targetInterval = 1000 / 20; // 20fps is plenty for a background
+
+    const animate = (now: number) => {
+      animationRef.current = requestAnimationFrame(animate);
+
+      if (now - lastFrameTime < targetInterval) return;
+      lastFrameTime = now;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const particles = particlesRef.current;
@@ -82,11 +90,9 @@ const ParticleBackground = memo(() => {
           }
         }
       });
-
-      animationRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
