@@ -979,6 +979,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
       {dialogs.showExportDialog && (
         <ExportDialog
           project={project}
+          projectId={projectId}
           onClose={dialogActions.closeExportDialog}
           flowViewport={exportContext?.viewport}
           getNodesBounds={exportContext?.getNodesBounds}
