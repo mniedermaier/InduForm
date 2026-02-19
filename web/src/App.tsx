@@ -15,13 +15,14 @@ import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ProjectsPage from './pages/ProjectsPage';
 import AdminPage from './pages/AdminPage';
+import RollupDashboardPage from './pages/RollupDashboardPage';
 
 // Auth wrapper that handles login/register flow and navigation
 function AuthWrapper() {
   const { isAuthenticated, isLoading: authLoading, logout, refreshToken } = useAuth();
   const toast = useToast();
   const [authPage, setAuthPage] = useState<'login' | 'register' | 'forgot-password'>('login');
-  const [currentView, setCurrentView] = useState<'projects' | 'editor' | 'admin'>('projects');
+  const [currentView, setCurrentView] = useState<'projects' | 'editor' | 'admin' | 'rollup'>('projects');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [showTeamManagement, setShowTeamManagement] = useState(false);
   const [showCreateProject, setShowCreateProject] = useState(false);
@@ -154,6 +155,23 @@ function AuthWrapper() {
     }
   };
 
+  // Show rollup dashboard
+  if (currentView === 'rollup') {
+    return (
+      <>
+        <RollupDashboardPage
+          onBackToProjects={handleBackToProjects}
+          onOpenProject={handleOpenProject}
+          onOpenTeamManagement={() => setShowTeamManagement(true)}
+          onOpenAdmin={() => setCurrentView('admin')}
+        />
+        {showTeamManagement && (
+          <TeamManagementDialog onClose={() => setShowTeamManagement(false)} />
+        )}
+      </>
+    );
+  }
+
   // Show admin page
   if (currentView === 'admin') {
     return (
@@ -177,6 +195,7 @@ function AuthWrapper() {
           onShareProject={(id, name) => setShareProject({ id, name })}
           onOpenAdmin={() => setCurrentView('admin')}
           onOpenGlobalSearch={handleOpenGlobalSearch}
+          onOpenRollup={() => setCurrentView('rollup')}
         />
 
         {showTeamManagement && (

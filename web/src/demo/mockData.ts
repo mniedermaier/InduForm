@@ -1271,3 +1271,96 @@ export const DEMO_ADMIN_USERS = DEMO_USERS.map((u, i) => ({
   ...u,
   project_count: [3, 1, 1, 2][i] ?? 0,
 }));
+
+// ── Rollup Dashboard ─────────────────────────────────────────────────
+
+function generateTrends(days: number) {
+  const trends = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    trends.push({
+      date: d.toISOString().slice(0, 10),
+      avg_compliance: Math.round(72 + Math.sin(i * 0.2) * 5 + (days - i) * 0.3),
+      avg_risk: Math.round(42 - Math.sin(i * 0.15) * 4 - (days - i) * 0.1),
+      total_zones: 16,
+      total_assets: 43,
+      total_conduits: 14,
+    });
+  }
+  return trends;
+}
+
+function generateSparkline(base: number, count: number, drift: number): number[] {
+  const arr: number[] = [];
+  let v = base;
+  for (let i = 0; i < count; i++) {
+    v += (Math.random() - 0.45) * 3 + drift;
+    arr.push(Math.round(Math.max(0, Math.min(100, v)) * 10) / 10);
+  }
+  return arr;
+}
+
+export const DEMO_ROLLUP_DASHBOARD = {
+  total_projects: 3,
+  total_zones: 16,
+  total_assets: 43,
+  total_conduits: 14,
+  avg_compliance: 78.3,
+  compliance_distribution: { high: 1, medium: 1, low: 1, unknown: 0 },
+  avg_risk: 39.3,
+  risk_distribution: { critical: 0, high: 1, medium: 1, low: 1, minimal: 0, unknown: 0 },
+  worst_compliance: [
+    { id: PROJECT2_ID, name: 'Power Grid Substation', score: 68 },
+    { id: PROJECT3_ID, name: 'Gas Pipeline SCADA', score: 81 },
+    { id: DEMO_PROJECT_ID, name: 'Water Treatment Facility', score: 86 },
+  ],
+  worst_risk: [
+    { id: PROJECT2_ID, name: 'Power Grid Substation', score: 45 },
+    { id: PROJECT3_ID, name: 'Gas Pipeline SCADA', score: 38 },
+    { id: DEMO_PROJECT_ID, name: 'Water Treatment Facility', score: 35 },
+  ],
+  trends: generateTrends(30),
+  projects: [
+    {
+      id: DEMO_PROJECT_ID,
+      name: 'Water Treatment Facility',
+      description: 'Zone/conduit model for a municipal water treatment plant with full Purdue model.',
+      updated_at: '2026-02-17T08:30:00Z',
+      zone_count: 6,
+      asset_count: 19,
+      conduit_count: 5,
+      compliance_score: 86,
+      risk_score: 35,
+      compliance_sparkline: generateSparkline(82, 15, 0.3),
+      risk_sparkline: generateSparkline(38, 15, -0.15),
+    },
+    {
+      id: PROJECT2_ID,
+      name: 'Power Grid Substation',
+      description: 'NERC CIP substation model with ESP boundary and serial RTU communications.',
+      updated_at: '2026-02-12T11:00:00Z',
+      zone_count: 6,
+      asset_count: 12,
+      conduit_count: 4,
+      compliance_score: 68,
+      risk_score: 45,
+      compliance_sparkline: generateSparkline(65, 15, 0.2),
+      risk_sparkline: generateSparkline(48, 15, -0.1),
+    },
+    {
+      id: PROJECT3_ID,
+      name: 'Gas Pipeline SCADA',
+      description: 'Zone/conduit model for a natural gas pipeline SCADA system spanning 3 compressor stations.',
+      updated_at: '2026-02-10T14:00:00Z',
+      zone_count: 4,
+      asset_count: 12,
+      conduit_count: 5,
+      compliance_score: 81,
+      risk_score: 38,
+      compliance_sparkline: generateSparkline(78, 15, 0.2),
+      risk_sparkline: generateSparkline(40, 15, -0.1),
+    },
+  ],
+};

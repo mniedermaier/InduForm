@@ -25,6 +25,7 @@ import {
   DEMO_ADMIN_SESSIONS,
   DEMO_LOGIN_HISTORY,
   DEMO_ADMIN_USERS,
+  DEMO_ROLLUP_DASHBOARD,
 } from './mockData';
 
 // Map project IDs to their data for multi-project support
@@ -651,5 +652,10 @@ export const handlers = [
   // ── Attack Paths (DB-backed) ───────────────────────────
   http.post('/api/projects/:id/attack-paths', () =>
     HttpResponse.json(DEMO_ATTACK_PATHS),
+  ),
+
+  // ── Dashboard Rollup ───────────────────────────────────
+  http.get('/api/dashboard/rollup', () =>
+    HttpResponse.json(DEMO_ROLLUP_DASHBOARD),
   ),
 ];

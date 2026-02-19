@@ -16,6 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from induform.api.activity import activity_router
 from induform.api.admin import admin_router
+from induform.api.dashboard import dashboard_router
 from induform.api.auth import auth_router
 from induform.api.auth.routes import users_router
 from induform.api.comments import comments_router
@@ -216,6 +217,7 @@ app.include_router(presence_router, prefix="/api")
 app.include_router(versions_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(search_router, prefix="/api")
+app.include_router(dashboard_router, prefix="/api")
 app.include_router(vulnerabilities_router, prefix="/api")
 app.include_router(websocket_router)
 

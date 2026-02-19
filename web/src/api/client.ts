@@ -1,6 +1,6 @@
 // API client for InduForm backend
 
-import type { Project, ProjectResponse, ValidationReport, PolicyViolation, Zone, Conduit, Vulnerability, VulnerabilitySummary, GapAnalysisReport, MetricsDataPoint, AnalyticsSummary } from '../types/models';
+import type { Project, ProjectResponse, ValidationReport, PolicyViolation, Zone, Conduit, Vulnerability, VulnerabilitySummary, GapAnalysisReport, MetricsDataPoint, AnalyticsSummary, RollupDashboardData } from '../types/models';
 
 const API_BASE = '/api';
 
@@ -707,6 +707,11 @@ export const api = {
   // Teams
   async listTeams(): Promise<Team[]> {
     return fetchJson('/teams/');
+  },
+
+  // Dashboard
+  async getRollupDashboard(days = 30): Promise<RollupDashboardData> {
+    return fetchJson(`/dashboard/rollup?days=${days}`);
   },
 };
 

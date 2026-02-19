@@ -5,7 +5,7 @@ import { api } from '../api/client';
 
 // --- SVG Line Chart ---
 
-interface ChartPoint {
+export interface ChartPoint {
   x: number;
   y: number;
   label?: string;
@@ -24,7 +24,7 @@ interface LineChartProps {
   showGrid?: boolean;
 }
 
-const LineChart = memo(({
+export const LineChart = memo(({
   data,
   width = 500,
   height = 200,

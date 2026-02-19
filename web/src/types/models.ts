@@ -303,6 +303,67 @@ export const ZONE_TYPE_CONFIG: Record<ZoneType, {
   },
 };
 
+// Rollup Dashboard types
+export interface RollupProjectItem {
+  id: string;
+  name: string;
+  description: string | null;
+  updated_at: string;
+  zone_count: number;
+  asset_count: number;
+  conduit_count: number;
+  compliance_score: number | null;
+  risk_score: number | null;
+  compliance_sparkline: number[];
+  risk_sparkline: number[];
+}
+
+export interface RollupTrendPoint {
+  date: string;
+  avg_compliance: number;
+  avg_risk: number;
+  total_zones: number;
+  total_assets: number;
+  total_conduits: number;
+}
+
+export interface ComplianceTierDistribution {
+  high: number;
+  medium: number;
+  low: number;
+  unknown: number;
+}
+
+export interface RiskLevelDistribution {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  minimal: number;
+  unknown: number;
+}
+
+export interface WorstItem {
+  id: string;
+  name: string;
+  score: number;
+}
+
+export interface RollupDashboardData {
+  total_projects: number;
+  total_zones: number;
+  total_assets: number;
+  total_conduits: number;
+  avg_compliance: number | null;
+  compliance_distribution: ComplianceTierDistribution;
+  avg_risk: number | null;
+  risk_distribution: RiskLevelDistribution;
+  worst_compliance: WorstItem[];
+  worst_risk: WorstItem[];
+  trends: RollupTrendPoint[];
+  projects: RollupProjectItem[];
+}
+
 // Security Level configuration per IEC 62443
 export const SECURITY_LEVEL_CONFIG: Record<number, {
   label: string;
