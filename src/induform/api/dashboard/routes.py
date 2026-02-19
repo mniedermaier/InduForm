@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from induform.api.auth.dependencies import get_current_user
 from induform.db import get_db
-from induform.db.models import MetricsSnapshot, ProjectDB, User
+from induform.db.models import MetricsSnapshot, User
 from induform.db.repositories import ProjectRepository
 
 logger = logging.getLogger(__name__)
@@ -130,9 +130,7 @@ async def get_rollup_dashboard(
             total_assets=0,
             total_conduits=0,
             avg_compliance=None,
-            compliance_distribution=ComplianceTierDistribution(
-                high=0, medium=0, low=0, unknown=0
-            ),
+            compliance_distribution=ComplianceTierDistribution(high=0, medium=0, low=0, unknown=0),
             avg_risk=None,
             risk_distribution=RiskLevelDistribution(
                 critical=0, high=0, medium=0, low=0, minimal=0, unknown=0
@@ -248,7 +246,9 @@ async def get_rollup_dashboard(
         )
 
     # 5. Aggregates
-    avg_compliance = round(sum(compliance_scores) / len(compliance_scores), 1) if compliance_scores else None
+    avg_compliance = (
+        round(sum(compliance_scores) / len(compliance_scores), 1) if compliance_scores else None
+    )
     avg_risk = round(sum(risk_scores) / len(risk_scores), 1) if risk_scores else None
 
     # Worst compliance (bottom 5 — lowest scores)
@@ -265,14 +265,11 @@ async def get_rollup_dashboard(
 
     # Worst risk (top 5 — highest scores)
     scored_risk = [
-        (pid, latest_snapshots[pid].risk_score)
-        for pid in project_ids
-        if pid in latest_snapshots
+        (pid, latest_snapshots[pid].risk_score) for pid in project_ids if pid in latest_snapshots
     ]
     scored_risk.sort(key=lambda x: x[1], reverse=True)
     worst_risk = [
-        WorstItem(id=pid, name=project_map[pid].name, score=score)
-        for pid, score in scored_risk[:5]
+        WorstItem(id=pid, name=project_map[pid].name, score=score) for pid, score in scored_risk[:5]
     ]
 
     # 6. Trends (daily aggregated)

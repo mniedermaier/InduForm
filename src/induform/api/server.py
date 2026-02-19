@@ -16,10 +16,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from induform.api.activity import activity_router
 from induform.api.admin import admin_router
-from induform.api.dashboard import dashboard_router
 from induform.api.auth import auth_router
 from induform.api.auth.routes import users_router
 from induform.api.comments import comments_router
+from induform.api.dashboard import dashboard_router
 from induform.api.nmap import nmap_router
 from induform.api.notifications import notifications_router
 from induform.api.presence import presence_router

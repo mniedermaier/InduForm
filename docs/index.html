@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Animated network background -->
+  <canvas id="network-bg"></canvas>
+
   <!-- Hero -->
   <header class="hero">
     <div class="container">
@@ -123,5 +126,198 @@
       </p>
     </div>
   </footer>
+
+  <script>
+  (function () {
+    var canvas = document.getElementById('network-bg');
+    var ctx = canvas.getContext('2d');
+    var zones = [];
+    var conduits = [];
+    var packets = [];
+    var gridCanvas = null;
+    var time = 0;
+    var lastFrameTime = 0;
+    var TARGET_INTERVAL = 1000 / 20; // 20fps
+    var DASH_ON = [4, 4];
+    var DASH_OFF = [];
+
+    var ZONE_COLORS = [
+      { r: 14, g: 165, b: 233 },
+      { r: 168, g: 85, b: 247 },
+      { r: 34, g: 197, b: 94 },
+      { r: 251, g: 146, b: 60 },
+      { r: 236, g: 72, b: 153 },
+      { r: 56, g: 189, b: 248 },
+      { r: 129, g: 140, b: 248 },
+      { r: 52, g: 211, b: 153 }
+    ];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = document.documentElement.scrollHeight;
+      gridCanvas = null;
+      initNetwork();
+    }
+
+    function checkOverlap(x, y, r) {
+      for (var i = 0; i < zones.length; i++) {
+        var dx = x - zones[i].x;
+        var dy = y - zones[i].y;
+        if (Math.sqrt(dx * dx + dy * dy) < r + zones[i].radius + 15) return true;
+      }
+      return false;
+    }
+
+    function initNetwork() {
+      var w = canvas.width, h = canvas.height;
+      var target = Math.min(60, Math.floor((w * h) / 35000));
+      zones = [];
+      var attempts = 0, maxAttempts = target * 50;
+
+      while (zones.length < target && attempts < maxAttempts) {
+        attempts++;
+        var cfg = ZONE_COLORS[zones.length % ZONE_COLORS.length];
+        var radius = 20 + Math.random() * 35;
+        var x = radius + Math.random() * (w - radius * 2);
+        var y = radius + Math.random() * (h - radius * 2);
+        if (!checkOverlap(x, y, radius)) {
+          zones.push({
+            x: x, y: y, radius: radius,
+            r: cfg.r, g: cfg.g, b: cfg.b,
+            pulsePhase: Math.random() * Math.PI * 2
+          });
+        }
+      }
+
+      conduits = [];
+      for (var i = 0; i < zones.length; i++) {
+        var nearby = [];
+        for (var j = 0; j < zones.length; j++) {
+          if (i === j) continue;
+          var dx = zones[i].x - zones[j].x;
+          var dy = zones[i].y - zones[j].y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 200) nearby.push({ index: j, dist: dist });
+        }
+        nearby.sort(function (a, b) { return a.dist - b.dist; });
+        var count = Math.min(1 + Math.floor(Math.random() * 2), nearby.length);
+        for (var k = 0; k < count; k++) {
+          var exists = false;
+          for (var c = 0; c < conduits.length; c++) {
+            if ((conduits[c].from === i && conduits[c].to === nearby[k].index) ||
+                (conduits[c].from === nearby[k].index && conduits[c].to === i)) {
+              exists = true;
+              break;
+            }
+          }
+          if (!exists) {
+            conduits.push({
+              from: i, to: nearby[k].index,
+              r: zones[i].r, g: zones[i].g, b: zones[i].b
+            });
+          }
+        }
+      }
+
+      packets = [];
+      for (var ci = 0; ci < conduits.length; ci++) {
+        var pCount = 1 + Math.floor(Math.random() * 2);
+        for (var p = 0; p < pCount; p++) {
+          packets.push({
+            conduitIndex: ci,
+            progress: Math.random(),
+            speed: 0.002 + Math.random() * 0.003
+          });
+        }
+      }
+    }
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      if (document.hidden) return;
+      if (now - lastFrameTime < TARGET_INTERVAL) return;
+      lastFrameTime = now;
+
+      var w = canvas.width, h = canvas.height;
+
+      // Rebuild grid cache if needed
+      if (!gridCanvas) {
+        gridCanvas = document.createElement('canvas');
+        gridCanvas.width = w;
+        gridCanvas.height = h;
+        var gCtx = gridCanvas.getContext('2d');
+        gCtx.fillStyle = '#0f172a';
+        gCtx.fillRect(0, 0, w, h);
+        gCtx.strokeStyle = 'rgba(30, 41, 59, 0.25)';
+        gCtx.lineWidth = 0.5;
+        gCtx.beginPath();
+        for (var gx = 0; gx < w; gx += 50) { gCtx.moveTo(gx, 0); gCtx.lineTo(gx, h); }
+        for (var gy = 0; gy < h; gy += 50) { gCtx.moveTo(0, gy); gCtx.lineTo(w, gy); }
+        gCtx.stroke();
+      }
+      ctx.drawImage(gridCanvas, 0, 0);
+
+      time += 0.012;
+
+      // Conduits
+      for (var ci = 0; ci < conduits.length; ci++) {
+        var con = conduits[ci];
+        var zf = zones[con.from], zt = zones[con.to];
+        if (!zf || !zt) continue;
+        var dx = zt.x - zf.x, dy = zt.y - zf.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        var nx = dx / dist, ny = dy / dist;
+        ctx.strokeStyle = 'rgba(' + con.r + ',' + con.g + ',' + con.b + ',0.12)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(zf.x + nx * zf.radius, zf.y + ny * zf.radius);
+        ctx.lineTo(zt.x - nx * zt.radius, zt.y - ny * zt.radius);
+        ctx.stroke();
+      }
+
+      // Packets
+      for (var pi = 0; pi < packets.length; pi++) {
+        var pkt = packets[pi];
+        var pcon = conduits[pkt.conduitIndex];
+        if (!pcon) continue;
+        var pfrom = zones[pcon.from], pto = zones[pcon.to];
+        if (!pfrom || !pto) continue;
+        var pdx = pto.x - pfrom.x, pdy = pto.y - pfrom.y;
+        var pdist = Math.sqrt(pdx * pdx + pdy * pdy);
+        var pnx = pdx / pdist, pny = pdy / pdist;
+        var sx = pfrom.x + pnx * pfrom.radius, sy = pfrom.y + pny * pfrom.radius;
+        var ex = pto.x - pnx * pto.radius, ey = pto.y - pny * pto.radius;
+        var px = sx + (ex - sx) * pkt.progress;
+        var py = sy + (ey - sy) * pkt.progress;
+        ctx.fillStyle = 'rgba(' + pcon.r + ',' + pcon.g + ',' + pcon.b + ',0.8)';
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fill();
+        pkt.progress += pkt.speed;
+        if (pkt.progress > 1) pkt.progress = 0;
+      }
+
+      // Zones
+      ctx.setLineDash(DASH_ON);
+      for (var zi = 0; zi < zones.length; zi++) {
+        var z = zones[zi];
+        var pulse = Math.sin(time + z.pulsePhase) * 0.06 + 1;
+        var rr = z.radius * pulse;
+        ctx.fillStyle = 'rgba(' + z.r + ',' + z.g + ',' + z.b + ',0.025)';
+        ctx.beginPath(); ctx.arc(z.x, z.y, rr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(' + z.r + ',' + z.g + ',' + z.b + ',0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(z.x, z.y, rr, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = 'rgba(' + z.r + ',' + z.g + ',' + z.b + ',0.5)';
+        ctx.beginPath(); ctx.arc(z.x, z.y, 2, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.setLineDash(DASH_OFF);
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    requestAnimationFrame(animate);
+  })();
+  </script>
 </body>
 </html>

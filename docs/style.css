@@ -1,4 +1,4 @@
-/* InduForm landing page — dark theme */
+/* InduForm landing page — dark theme with animated network background */
 
 *,
 *::before,
@@ -46,6 +46,18 @@ img {
   display: block;
 }
 
+/* Animated network canvas */
+
+#network-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
 /* Layout */
 
 .container {
@@ -56,10 +68,15 @@ img {
 
 .section {
   padding: 5rem 0;
+  position: relative;
+  z-index: 1;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(4px);
 }
 
 .section-alt {
-  background: var(--bg-alt);
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(4px);
 }
 
 .section h2 {
@@ -74,11 +91,14 @@ img {
 .hero {
   text-align: center;
   padding: 6rem 1.5rem 5rem;
-  background: linear-gradient(180deg, #1e293b 0%, var(--bg) 100%);
+  position: relative;
+  z-index: 1;
 }
 
 .hero-logo {
   margin: 0 auto 1.5rem;
+  position: relative;
+  z-index: 2;
 }
 
 .hero h1 {
@@ -119,6 +139,8 @@ img {
   font-size: 1rem;
   transition: background 0.15s, transform 0.1s;
   text-decoration: none;
+  position: relative;
+  z-index: 2;
 }
 
 .btn:hover {
@@ -136,7 +158,7 @@ img {
 }
 
 .btn-secondary {
-  background: transparent;
+  background: rgba(15, 23, 42, 0.6);
   color: var(--fg);
   border: 2px solid #475569;
 }
@@ -185,7 +207,8 @@ img {
 }
 
 .card {
-  background: var(--bg);
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
   border: 1px solid #334155;
   border-radius: var(--radius);
   padding: 2rem 1.5rem;
@@ -236,7 +259,7 @@ img {
 /* Code block */
 
 .code-block {
-  background: #0d1117;
+  background: rgba(13, 17, 23, 0.9);
   border: 1px solid #334155;
   border-radius: var(--radius);
   padding: 1.25rem 1.5rem;
@@ -265,6 +288,9 @@ img {
   color: var(--fg-muted);
   font-size: 0.9rem;
   border-top: 1px solid #1e293b;
+  position: relative;
+  z-index: 1;
+  background: rgba(15, 23, 42, 0.85);
 }
 
 /* Responsive */
