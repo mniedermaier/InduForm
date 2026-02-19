@@ -97,3 +97,5 @@ The app supports a GitHub Pages demo at `/InduForm/demo/` using MSW (Mock Servic
 - **mypy**: strict mode, `continue-on-error` in CI (pre-existing errors)
 - **Vite env types**: `web/src/vite-env.d.ts` must exist for `import.meta.env` to type-check
 - **Demo mode**: `VITE_DEMO_MODE` is build-time only; never check it at runtime outside `import.meta.env`
+- **Canvas animations**: `ParticleBackground` and `NetworkBackground` must skip frames when `document.hidden` (Page Visibility API). Never allocate per-frame (no regex, no `createRadialGradient`, no `new Array` in render loops). Pre-compute colors at init time.
+- **Zone3DEditor (Three.js)**: uses `VisibilityPauser` to stop rendering when tab hidden. Keep `dpr` capped (`[1, 1.5]`), Bloom `mipmapBlur` with low `levels`, shadow maps ≤1024. Never add per-frame throttle guards — control frame rate at Canvas level instead.

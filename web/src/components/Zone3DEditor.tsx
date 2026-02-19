@@ -1,5 +1,5 @@
-import { useRef, useMemo, memo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useRef, useMemo, useEffect, memo } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Text, Billboard, QuadraticBezierLine, RoundedBox } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -16,6 +16,28 @@ interface Zone3DEditorProps {
   riskOverlayEnabled?: boolean;
   zoneRisks?: Map<string, { score: number; level: string }>;
   highlightedPath?: { zoneIds: Set<string>; conduitIds: Set<string>; riskLevel: string } | null;
+}
+
+// --- Visibility Pauser (stops rendering when tab is hidden) ---
+
+function VisibilityPauser() {
+  const invalidate = useThree((s) => s.invalidate);
+  const setFrameloop = useThree((s) => s.set);
+
+  useEffect(() => {
+    const onVisChange = () => {
+      if (document.hidden) {
+        setFrameloop({ frameloop: 'never' });
+      } else {
+        setFrameloop({ frameloop: 'always' });
+        invalidate();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisChange);
+    return () => document.removeEventListener('visibilitychange', onVisChange);
+  }, [invalidate, setFrameloop]);
+
+  return null;
 }
 
 // --- Height & Layout ---
@@ -60,8 +82,8 @@ function SceneLighting({ dark }: { dark: boolean }) {
         position={[10, 25, 15]}
         intensity={dark ? 0.7 : 0.9}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
       />
       {dark && (
         <>
@@ -101,7 +123,6 @@ function AmbientParticles({ dark }: { dark: boolean }) {
   const count = 50;
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
-  const lastUpdateRef = useRef(0);
 
   const particles = useMemo(() => {
     return Array.from({ length: count }, () => ({
@@ -118,9 +139,6 @@ function AmbientParticles({ dark }: { dark: boolean }) {
   useFrame(({ clock }) => {
     if (!meshRef.current) return;
     const t = clock.getElapsedTime();
-    // Throttle to ~20fps
-    if (t - lastUpdateRef.current < 0.05) return;
-    lastUpdateRef.current = t;
     particles.forEach((p, i) => {
       dummy.position.set(
         p.pos[0] + Math.sin(t * p.speed * 0.3 + p.offset) * 3,
@@ -158,14 +176,10 @@ function AssetObject({
   color: string;
 }) {
   const ref = useRef<THREE.Mesh>(null);
-  const lastUpdateRef = useRef(0);
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
-    const t = clock.getElapsedTime();
-    if (t - lastUpdateRef.current < 0.05) return;
-    lastUpdateRef.current = t;
-    ref.current.rotation.y = t * 0.4;
+    ref.current.rotation.y = clock.getElapsedTime() * 0.4;
   });
 
   if (type === 'plc' || type === 'rtu' || type === 'ied' || type === 'dcs') {
@@ -229,7 +243,6 @@ function ZonePlatform({
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const ringRef = useRef<THREE.Mesh>(null);
-  const lastUpdateRef = useRef(0);
   const config = ZONE_TYPE_CONFIG[zone.type];
   const slConfig = SECURITY_LEVEL_CONFIG[zone.security_level_target] || SECURITY_LEVEL_CONFIG[1];
 
@@ -245,8 +258,6 @@ function ZonePlatform({
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
     const t = clock.getElapsedTime();
-    if (t - lastUpdateRef.current < 0.05) return;
-    lastUpdateRef.current = t;
     groupRef.current.position.y = position[1] + Math.sin(t * 0.4 + position[0]) * 0.1;
     if (ringRef.current && highlighted) {
       const scale = 1 + Math.sin(t * 3) * 0.08;
@@ -397,13 +408,10 @@ function FlowParticle({
   reverse?: boolean;
 }) {
   const ref = useRef<THREE.Mesh>(null);
-  const lastUpdateRef = useRef(0);
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const elapsed = clock.getElapsedTime();
-    if (elapsed - lastUpdateRef.current < 0.05) return;
-    lastUpdateRef.current = elapsed;
     const raw = ((elapsed * 0.12 + offset) % 1);
     const t = reverse ? 1 - raw : raw;
     const point = curve.getPointAt(t);
@@ -707,12 +715,14 @@ function Scene({
         target={[0, 10, 0]}
       />
 
-      {/* Post-processing */}
-      <EffectComposer>
+      {/* Post-processing (half-res bloom to reduce GPU cost) */}
+      <EffectComposer multisampling={0}>
         <Bloom
           luminanceThreshold={dark ? 0.3 : 0.7}
           luminanceSmoothing={0.3}
           intensity={dark ? 1.2 : 0.2}
+          mipmapBlur
+          levels={3}
         />
       </EffectComposer>
     </>
@@ -729,6 +739,8 @@ const Zone3DEditor = memo(function Zone3DEditor(props: Zone3DEditorProps) {
   return (
     <div className="w-full h-full relative">
       <Canvas
+        frameloop="always"
+        dpr={[1, 1.5]}
         camera={{ position: [0, 16, 22], fov: 50 }}
         shadows
         onPointerMissed={() => {
@@ -736,8 +748,9 @@ const Zone3DEditor = memo(function Zone3DEditor(props: Zone3DEditorProps) {
           props.onSelectConduit(undefined);
         }}
         style={{ background: bgColor }}
-        gl={{ antialias: true, alpha: false }}
+        gl={{ antialias: true, alpha: false, powerPreference: 'low-power' }}
       >
+        <VisibilityPauser />
         <fog attach="fog" args={[bgColor, 35, 65]} />
         <Scene {...props} dark={dark} bgColor={bgColor} />
       </Canvas>

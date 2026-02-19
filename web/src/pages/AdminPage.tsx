@@ -6,6 +6,7 @@ import type { AdminProject, AdminActivity, AdminHealth, AdminSession, AdminLogin
 import NetworkBackground from '../components/NetworkBackground';
 import UserMenu from '../components/UserMenu';
 import NotificationBell from '../components/NotificationBell';
+import UserSettingsDialog from '../components/UserSettingsDialog';
 
 interface AdminStats {
   total_users: number;
@@ -18,6 +19,7 @@ interface AdminStats {
 
 interface AdminPageProps {
   onBackToProjects: () => void;
+  onOpenTeamManagement?: () => void;
 }
 
 type TabId = 'dashboard' | 'system' | 'users' | 'projects' | 'activity';
@@ -69,10 +71,11 @@ function formatUptime(seconds: number): string {
   return `${m}m`;
 }
 
-const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
+const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPageProps) => {
   const { user } = useAuth();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const [showSettings, setShowSettings] = useState(false);
 
   // --- Users state ---
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -448,6 +451,8 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
 
               <UserMenu
                 onOpenAdmin={() => {}}
+                onOpenProfileSettings={() => setShowSettings(true)}
+                onOpenTeamManagement={onOpenTeamManagement}
               />
             </div>
           </div>
@@ -1106,6 +1111,10 @@ const AdminPage = memo(({ onBackToProjects }: AdminPageProps) => {
           </div>
         )}
       </main>
+
+      {showSettings && (
+        <UserSettingsDialog onClose={() => setShowSettings(false)} />
+      )}
     </div>
   );
 });

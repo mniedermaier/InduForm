@@ -41,10 +41,16 @@ const ParticleBackground = memo(() => {
     }));
 
     let lastFrameTime = 0;
-    const targetInterval = 1000 / 20; // 20fps is plenty for a background
+    const targetInterval = 1000 / 20; // 20fps
+    // Use squared distance to avoid Math.sqrt per pair
+    const connectionDistance = 150;
+    const connectionDistSq = connectionDistance * connectionDistance;
 
     const animate = (now: number) => {
       animationRef.current = requestAnimationFrame(animate);
+
+      // Skip rendering when tab is hidden
+      if (document.hidden) return;
 
       if (now - lastFrameTime < targetInterval) return;
       lastFrameTime = now;
@@ -52,7 +58,6 @@ const ParticleBackground = memo(() => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const particles = particlesRef.current;
-      const connectionDistance = 150;
 
       // Update and draw particles
       particles.forEach((particle, i) => {
@@ -72,15 +77,15 @@ const ParticleBackground = memo(() => {
         ctx.fillStyle = `rgba(59, 130, 246, ${particle.opacity})`;
         ctx.fill();
 
-        // Draw connections
+        // Draw connections (squared distance, no sqrt)
         for (let j = i + 1; j < particles.length; j++) {
           const other = particles[j];
           const dx = particle.x - other.x;
           const dy = particle.y - other.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+          const distSq = dx * dx + dy * dy;
 
-          if (distance < connectionDistance) {
-            const opacity = (1 - distance / connectionDistance) * 0.3;
+          if (distSq < connectionDistSq) {
+            const opacity = (1 - Math.sqrt(distSq) / connectionDistance) * 0.3;
             ctx.beginPath();
             ctx.moveTo(particle.x, particle.y);
             ctx.lineTo(other.x, other.y);

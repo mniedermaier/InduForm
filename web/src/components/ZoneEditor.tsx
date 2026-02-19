@@ -82,6 +82,10 @@ const ZONE_TYPE_PRIORITY: Record<string, number> = {
 const HORIZONTAL_SPACING = 280;
 const VERTICAL_SPACING = 180;
 
+// Stable prop references for ReactFlow to avoid unnecessary internal reconciliation
+const CONNECTION_LINE_STYLE = { stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5,5' };
+const FIT_VIEW_OPTIONS = { padding: 0.2 };
+
 /**
  * Calculate optimal positions for zones using graph-based hierarchical layout.
  * Uses conduit connections to determine the topology, with zone types as fallback.
@@ -357,41 +361,6 @@ function optimizeLevelByBarycenter(
   });
 }
 
-/** Compute per-entity error/warning counts and filtered issues from validation results + policy violations */
-function computeEntityIssues(
-  entityId: string,
-  validationResults: ValidationResult[],
-  policyViolations: PolicyViolation[],
-): {
-  errorCount: number;
-  warningCount: number;
-  entityValidationResults: ValidationResult[];
-  entityPolicyViolations: PolicyViolation[];
-} {
-  let errorCount = 0;
-  let warningCount = 0;
-  const entityValidationResults: ValidationResult[] = [];
-  const entityPolicyViolations: PolicyViolation[] = [];
-
-  for (const r of validationResults) {
-    if (r.location?.includes(entityId)) {
-      entityValidationResults.push(r);
-      if (r.severity === 'error') errorCount++;
-      else if (r.severity === 'warning') warningCount++;
-    }
-  }
-
-  for (const v of policyViolations) {
-    if (v.affected_entities.includes(entityId)) {
-      entityPolicyViolations.push(v);
-      if (v.severity === 'critical' || v.severity === 'high') errorCount++;
-      else warningCount++;
-    }
-  }
-
-  return { errorCount, warningCount, entityValidationResults, entityPolicyViolations };
-}
-
 function ZoneEditorInner({
   project,
   selectedZone,
@@ -447,6 +416,50 @@ function ZoneEditorInner({
     [project.zones, project.conduits, rearrangeKey, allZonesHavePositions]
   );
 
+  // Pre-compute validation issues for all entities in a single pass (O(V+P) instead of O((Z+C)*(V+P)))
+  const entityIssuesMap = useMemo(() => {
+    const map = new Map<string, { errorCount: number; warningCount: number; validationResults: ValidationResult[]; policyViolations: PolicyViolation[] }>();
+    const getOrCreate = (id: string) => {
+      let entry = map.get(id);
+      if (!entry) {
+        entry = { errorCount: 0, warningCount: 0, validationResults: [], policyViolations: [] };
+        map.set(id, entry);
+      }
+      return entry;
+    };
+    for (const r of validationResults) {
+      if (!r.location) continue;
+      // Match entity IDs mentioned in location
+      for (const zone of project.zones) {
+        if (r.location.includes(zone.id)) {
+          const e = getOrCreate(zone.id);
+          e.validationResults.push(r);
+          if (r.severity === 'error') e.errorCount++;
+          else if (r.severity === 'warning') e.warningCount++;
+        }
+      }
+      for (const conduit of project.conduits) {
+        if (r.location.includes(conduit.id)) {
+          const e = getOrCreate(conduit.id);
+          e.validationResults.push(r);
+          if (r.severity === 'error') e.errorCount++;
+          else if (r.severity === 'warning') e.warningCount++;
+        }
+      }
+    }
+    for (const v of policyViolations) {
+      for (const entityId of v.affected_entities) {
+        const e = getOrCreate(entityId);
+        e.policyViolations.push(v);
+        if (v.severity === 'critical' || v.severity === 'high') e.errorCount++;
+        else e.warningCount++;
+      }
+    }
+    return map;
+  }, [validationResults, policyViolations, project.zones, project.conduits]);
+
+  const emptyIssues = useMemo(() => ({ errorCount: 0, warningCount: 0, validationResults: [] as ValidationResult[], policyViolations: [] as PolicyViolation[] }), []);
+
   // Track zone IDs and stored positions to detect changes
   const zoneIds = useMemo(() => project.zones.map(z => z.id).sort().join(','), [project.zones]);
   const conduitIds = useMemo(() => project.conduits.map(c => c.id).sort().join(','), [project.conduits]);
@@ -459,7 +472,7 @@ function ZoneEditorInner({
   const createNodes = useCallback((): Node[] => {
     return project.zones.map((zone) => {
       const position = zonePositions.get(zone.id) || { x: 0, y: 0 };
-      const { errorCount, warningCount, entityValidationResults, entityPolicyViolations } = computeEntityIssues(zone.id, validationResults, policyViolations);
+      const issues = entityIssuesMap.get(zone.id) || emptyIssues;
       const risk = zoneRisks?.get(zone.id);
       return {
         id: zone.id,
@@ -470,10 +483,10 @@ function ZoneEditorInner({
           selected: selectedZone?.id === zone.id,
           onSelect: onSelectZone,
           onEditZone,
-          errorCount,
-          warningCount,
-          validationResults: entityValidationResults,
-          policyViolations: entityPolicyViolations,
+          errorCount: issues.errorCount,
+          warningCount: issues.warningCount,
+          validationResults: issues.validationResults,
+          policyViolations: issues.policyViolations,
           riskScore: risk?.score,
           riskLevel: risk?.level,
           riskOverlay: riskOverlayEnabled,
@@ -484,13 +497,13 @@ function ZoneEditorInner({
         selected: selectedZone?.id === zone.id,
       };
     });
-  }, [project.zones, zonePositions, selectedZone, onSelectZone, onEditZone, validationResults, policyViolations, zoneRisks, riskOverlayEnabled, remoteSelections, highlightedPath]);
+  }, [project.zones, zonePositions, selectedZone, onSelectZone, onEditZone, entityIssuesMap, emptyIssues, zoneRisks, riskOverlayEnabled, remoteSelections, highlightedPath]);
 
   // Create initial edges
   const createEdges = useCallback((): Edge[] => {
     // Conduit edges
     const conduitEdges: Edge[] = project.conduits.map((conduit) => {
-      const { errorCount, warningCount, entityValidationResults, entityPolicyViolations } = computeEntityIssues(conduit.id, validationResults, policyViolations);
+      const issues = entityIssuesMap.get(conduit.id) || emptyIssues;
       return {
         id: conduit.id,
         type: 'conduit',
@@ -501,10 +514,10 @@ function ZoneEditorInner({
           selected: selectedConduit?.id === conduit.id,
           onSelect: onSelectConduit,
           onEditConduit,
-          errorCount,
-          warningCount,
-          validationResults: entityValidationResults,
-          policyViolations: entityPolicyViolations,
+          errorCount: issues.errorCount,
+          warningCount: issues.warningCount,
+          validationResults: issues.validationResults,
+          policyViolations: issues.policyViolations,
           highlighted: highlightedPath?.conduitIds.has(conduit.id) ?? false,
           highlightRiskLevel: highlightedPath?.conduitIds.has(conduit.id) ? highlightedPath.riskLevel : undefined,
         } as ConduitEdgeData,
@@ -538,7 +551,7 @@ function ZoneEditorInner({
       }));
 
     return [...hierarchyEdges, ...conduitEdges];
-  }, [project.conduits, project.zones, selectedConduit, onSelectConduit, onEditConduit, validationResults, policyViolations, highlightedPath]);
+  }, [project.conduits, project.zones, selectedConduit, onSelectConduit, onEditConduit, entityIssuesMap, emptyIssues, highlightedPath]);
 
   const [nodes, setNodes, onNodesChangeRaw] = useNodesState(createNodes());
   const [edges, setEdges, onEdgesChangeRaw] = useEdgesState(createEdges());
@@ -597,7 +610,7 @@ function ZoneEditorInner({
       currentNodes.map(node => {
         const zone = project.zones.find(z => z.id === node.id);
         if (!zone) return node;
-        const { errorCount, warningCount, entityValidationResults, entityPolicyViolations } = computeEntityIssues(zone.id, validationResults, policyViolations);
+        const issues = entityIssuesMap.get(zone.id) || emptyIssues;
         const risk = zoneRisks?.get(zone.id);
         return {
           ...node,
@@ -605,10 +618,10 @@ function ZoneEditorInner({
             zone,
             selected: selectedZone?.id === zone.id,
             onSelect: onSelectZone,
-            errorCount,
-            warningCount,
-            validationResults: entityValidationResults,
-            policyViolations: entityPolicyViolations,
+            errorCount: issues.errorCount,
+            warningCount: issues.warningCount,
+            validationResults: issues.validationResults,
+            policyViolations: issues.policyViolations,
             riskScore: risk?.score,
             riskLevel: risk?.level,
             riskOverlay: riskOverlayEnabled,
@@ -621,7 +634,7 @@ function ZoneEditorInner({
       })
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- onZonePositionsChange is a parent callback whose identity changes on every render; adding it would cause infinite node resets
-  }, [zoneIds, conduitIds, rearrangeKey, storedPositionsKey, createNodes, createEdges, setNodes, setEdges, project.zones, selectedZone, onSelectZone, onEditZone, validationResults, policyViolations, zoneRisks, riskOverlayEnabled, remoteSelections, highlightedPath]);
+  }, [zoneIds, conduitIds, rearrangeKey, storedPositionsKey, createNodes, createEdges, setNodes, setEdges, project.zones, selectedZone, onSelectZone, onEditZone, entityIssuesMap, emptyIssues, zoneRisks, riskOverlayEnabled, remoteSelections, highlightedPath]);
 
   // Update edges when conduits change or selection changes
   useEffect(() => {
@@ -636,17 +649,17 @@ function ZoneEditorInner({
         currentEdges.map(edge => {
           const conduit = project.conduits.find(c => c.id === edge.id);
           if (!conduit) return edge;
-          const { errorCount, warningCount, entityValidationResults, entityPolicyViolations } = computeEntityIssues(conduit.id, validationResults, policyViolations);
+          const issues = entityIssuesMap.get(conduit.id) || emptyIssues;
           return {
             ...edge,
             data: {
               conduit,
               selected: selectedConduit?.id === conduit.id,
               onSelect: onSelectConduit,
-              errorCount,
-              warningCount,
-              validationResults: entityValidationResults,
-              policyViolations: entityPolicyViolations,
+              errorCount: issues.errorCount,
+              warningCount: issues.warningCount,
+              validationResults: issues.validationResults,
+              policyViolations: issues.policyViolations,
               highlighted: highlightedPath?.conduitIds.has(conduit.id) ?? false,
               highlightRiskLevel: highlightedPath?.conduitIds.has(conduit.id) ? highlightedPath.riskLevel : undefined,
             },
@@ -655,7 +668,7 @@ function ZoneEditorInner({
         })
       );
     }
-  }, [conduitIds, createEdges, setEdges, project.conduits, selectedConduit, onSelectConduit, onEditConduit, validationResults, policyViolations, highlightedPath]);
+  }, [conduitIds, createEdges, setEdges, project.conduits, selectedConduit, onSelectConduit, onEditConduit, entityIssuesMap, emptyIssues, highlightedPath]);
 
   // Fit view when zones change significantly
   useEffect(() => {
@@ -800,6 +813,13 @@ function ZoneEditorInner({
     [onContextMenuProp]
   );
 
+  // Stable selection change handler for ReactFlow
+  const handleSelectionChange = useCallback((params: { nodes: Node[] }) => {
+    if (onSelectionChange) {
+      onSelectionChange(params.nodes.map(n => n.id));
+    }
+  }, [onSelectionChange]);
+
   // MiniMap node color
   const miniMapNodeColor = useCallback((node: Node) => {
     const zone = project.zones.find((z) => z.id === node.id);
@@ -829,16 +849,12 @@ function ZoneEditorInner({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Strict}
-        connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5,5' }}
+        connectionLineStyle={CONNECTION_LINE_STYLE}
         deleteKeyCode={null}
         selectionOnDrag={false}
-        onSelectionChange={(params) => {
-          if (onSelectionChange) {
-            onSelectionChange(params.nodes.map(n => n.id));
-          }
-        }}
+        onSelectionChange={handleSelectionChange}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={FIT_VIEW_OPTIONS}
         minZoom={0.1}
         maxZoom={2}
       >

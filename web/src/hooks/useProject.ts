@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { Project, Zone, Conduit, ValidationResult, PolicyViolation } from '../types/models';
 
 const MAX_HISTORY = 50;
@@ -305,13 +305,14 @@ export function useProject(projectId: string | null, onSaved?: () => void): UseP
     setSelectedConduit(undefined);
   }, []);
 
-  // Manual validation trigger
+  // Manual validation trigger — reads from ref to avoid recreating on every projectState change
   const validate = useCallback(async () => {
-    if (projectState) {
-      await validateProject(projectState.current);
+    const state = projectStateRef.current;
+    if (state) {
+      await validateProject(state.current);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- validateProject is a plain function with stable behavior; projectState is intentionally included to get latest state
-  }, [projectState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reads projectState from ref; validateProject is a plain function with stable behavior
+  }, []);
 
   // Reload project without unmounting (no loading spinner)
   const reload = useCallback(async () => {
@@ -367,10 +368,13 @@ export function useProject(projectId: string | null, onSaved?: () => void): UseP
     };
   }, []);
 
-  // Derived state
-  const hasChanges = projectState
-    ? JSON.stringify(projectState.current) !== JSON.stringify(projectState.original)
-    : false;
+  // Derived state — memoize hasChanges to avoid double JSON.stringify on every render
+  const hasChanges = useMemo(
+    () => projectState
+      ? JSON.stringify(projectState.current) !== JSON.stringify(projectState.original)
+      : false,
+    [projectState]
+  );
   const canUndo = projectState ? projectState.historyIndex > 0 : false;
   const canRedo = projectState ? projectState.historyIndex < projectState.history.length - 1 : false;
 

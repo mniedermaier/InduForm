@@ -157,7 +157,12 @@ function AuthWrapper() {
   // Show admin page
   if (currentView === 'admin') {
     return (
-      <AdminPage onBackToProjects={handleBackToProjects} />
+      <>
+        <AdminPage onBackToProjects={handleBackToProjects} onOpenTeamManagement={() => setShowTeamManagement(true)} />
+        {showTeamManagement && (
+          <TeamManagementDialog onClose={() => setShowTeamManagement(false)} />
+        )}
+      </>
     );
   }
 

@@ -5,15 +5,18 @@ interface Zone {
   x: number;
   y: number;
   radius: number;
-  color: string;
-  borderColor: string;
+  r: number;
+  g: number;
+  b: number;
   pulsePhase: number;
 }
 
 interface Conduit {
   from: number;
   to: number;
-  color: string;
+  r: number;
+  g: number;
+  b: number;
 }
 
 interface DataPacket {
@@ -22,7 +25,7 @@ interface DataPacket {
   speed: number;
 }
 
-// Subtle zone colors (used for both themes, with opacity adjustments at render time)
+// Subtle zone colors
 const ZONE_CONFIGS = [
   { r: 14, g: 165, b: 233 },   // sky
   { r: 168, g: 85, b: 247 },   // purple
@@ -34,6 +37,9 @@ const ZONE_CONFIGS = [
   { r: 52, g: 211, b: 153 },   // emerald
 ];
 
+const DASH_PATTERN = [4, 4] as const;
+const EMPTY_DASH: number[] = [];
+
 const NetworkBackground = memo(() => {
   const { theme } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,10 +48,13 @@ const NetworkBackground = memo(() => {
   const conduitsRef = useRef<Conduit[]>([]);
   const packetsRef = useRef<DataPacket[]>([]);
   const themeRef = useRef(theme);
+  const gridCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Keep theme ref in sync without re-initializing animation
   useEffect(() => {
     themeRef.current = theme;
+    // Invalidate cached grid when theme changes
+    gridCanvasRef.current = null;
   }, [theme]);
 
   useEffect(() => {
@@ -58,12 +67,14 @@ const NetworkBackground = memo(() => {
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      // Invalidate cached grid on resize
+      gridCanvasRef.current = null;
       initializeNetwork();
     };
 
     // Check if a new zone overlaps with existing zones
     const checkOverlap = (x: number, y: number, radius: number, zones: Zone[]): boolean => {
-      const padding = 15; // Minimum gap between zones
+      const padding = 15;
       for (const zone of zones) {
         const dx = x - zone.x;
         const dy = y - zone.y;
@@ -91,17 +102,14 @@ const NetworkBackground = memo(() => {
         attempts++;
 
         const config = ZONE_CONFIGS[zonesRef.current.length % ZONE_CONFIGS.length];
-        const radius = 20 + Math.random() * 35; // 20-55px radius
+        const radius = 20 + Math.random() * 35;
         const x = radius + Math.random() * (w - radius * 2);
         const y = radius + Math.random() * (h - radius * 2);
 
         if (!checkOverlap(x, y, radius, zonesRef.current)) {
           zonesRef.current.push({
-            x,
-            y,
-            radius,
-            color: `rgba(${config.r}, ${config.g}, ${config.b}, 0.025)`,
-            borderColor: `rgba(${config.r}, ${config.g}, ${config.b}, 0.2)`,
+            x, y, radius,
+            r: config.r, g: config.g, b: config.b,
             pulsePhase: Math.random() * Math.PI * 2,
           });
         }
@@ -127,7 +135,6 @@ const NetworkBackground = memo(() => {
 
         nearby.sort((a, b) => a.dist - b.dist);
 
-        // Connect to 1-2 nearest
         const count = Math.min(1 + Math.floor(Math.random() * 2), nearby.length);
         for (let k = 0; k < count; k++) {
           const exists = conduitsRef.current.find(
@@ -139,7 +146,7 @@ const NetworkBackground = memo(() => {
             conduitsRef.current.push({
               from: i,
               to: nearby[k].index,
-              color: zones[i].borderColor,
+              r: zones[i].r, g: zones[i].g, b: zones[i].b,
             });
           }
         }
@@ -164,10 +171,13 @@ const NetworkBackground = memo(() => {
 
     let time = 0;
     let lastFrameTime = 0;
-    const targetInterval = 1000 / 20; // 20fps is plenty for a background
+    const targetInterval = 1000 / 20; // 20fps
 
     const animate = (now: number) => {
       animationRef.current = requestAnimationFrame(animate);
+
+      // Skip rendering when tab is hidden
+      if (document.hidden) return;
 
       if (now - lastFrameTime < targetInterval) return;
       lastFrameTime = now;
@@ -176,27 +186,33 @@ const NetworkBackground = memo(() => {
       const h = canvas.height;
       const isDark = themeRef.current === 'dark';
 
-      // Theme-aware background
-      ctx.fillStyle = isDark ? '#0f172a' : '#f1f5f9';
-      ctx.fillRect(0, 0, w, h);
+      // Draw cached grid background (only recreated on resize/theme change)
+      if (!gridCanvasRef.current) {
+        const gridCanvas = document.createElement('canvas');
+        gridCanvas.width = w;
+        gridCanvas.height = h;
+        const gCtx = gridCanvas.getContext('2d')!;
 
-      // Theme-aware grid
-      ctx.strokeStyle = isDark ? 'rgba(30, 41, 59, 0.25)' : 'rgba(148, 163, 184, 0.12)';
-      ctx.lineWidth = 0.5;
-      const gridSize = 50;
+        gCtx.fillStyle = isDark ? '#0f172a' : '#f1f5f9';
+        gCtx.fillRect(0, 0, w, h);
 
-      for (let x = 0; x < w; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
+        gCtx.strokeStyle = isDark ? 'rgba(30, 41, 59, 0.25)' : 'rgba(148, 163, 184, 0.12)';
+        gCtx.lineWidth = 0.5;
+        const gridSize = 50;
+
+        gCtx.beginPath();
+        for (let x = 0; x < w; x += gridSize) {
+          gCtx.moveTo(x, 0);
+          gCtx.lineTo(x, h);
+        }
+        for (let y = 0; y < h; y += gridSize) {
+          gCtx.moveTo(0, y);
+          gCtx.lineTo(w, y);
+        }
+        gCtx.stroke();
+        gridCanvasRef.current = gridCanvas;
       }
-      for (let y = 0; y < h; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
+      ctx.drawImage(gridCanvasRef.current, 0, 0);
 
       const zones = zonesRef.current;
       const conduits = conduitsRef.current;
@@ -210,7 +226,7 @@ const NetworkBackground = memo(() => {
       const conduitOpacity = isDark ? 0.12 : 0.15;
       const dotOpacity = isDark ? 0.5 : 0.4;
 
-      // Draw conduits
+      // Draw conduits (pre-computed RGB, no regex)
       conduits.forEach(conduit => {
         const from = zones[conduit.from];
         const to = zones[conduit.to];
@@ -227,11 +243,7 @@ const NetworkBackground = memo(() => {
         const endX = to.x - nx * to.radius;
         const endY = to.y - ny * to.radius;
 
-        // Extract RGB from border color and apply theme opacity
-        const rgb = conduit.color.match(/\d+/g);
-        if (rgb) {
-          ctx.strokeStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${conduitOpacity})`;
-        }
+        ctx.strokeStyle = `rgba(${conduit.r},${conduit.g},${conduit.b},${conduitOpacity})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(startX, startY);
@@ -239,7 +251,7 @@ const NetworkBackground = memo(() => {
         ctx.stroke();
       });
 
-      // Draw packets
+      // Draw packets (simple filled circles instead of radial gradients)
       packets.forEach(packet => {
         const conduit = conduits[packet.conduitIndex];
         if (!conduit) return;
@@ -262,69 +274,42 @@ const NetworkBackground = memo(() => {
         const px = startX + (endX - startX) * packet.progress;
         const py = startY + (endY - startY) * packet.progress;
 
-        // Small glowing packet - adjust for theme
-        const rgb = conduit.color.match(/\d+/g);
-        const glow = ctx.createRadialGradient(px, py, 0, px, py, 5);
-        if (isDark) {
-          glow.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
-        } else {
-          glow.addColorStop(0, 'rgba(100, 100, 120, 0.6)');
-        }
-        if (rgb) {
-          glow.addColorStop(0.4, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.4)`);
-        }
-        glow.addColorStop(1, 'transparent');
-        ctx.fillStyle = glow;
+        // Simple filled circle (much cheaper than createRadialGradient per frame)
+        ctx.fillStyle = `rgba(${conduit.r},${conduit.g},${conduit.b},${isDark ? 0.8 : 0.5})`;
         ctx.beginPath();
-        ctx.arc(px, py, 5, 0, Math.PI * 2);
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
         ctx.fill();
 
         packet.progress += packet.speed;
         if (packet.progress > 1) packet.progress = 0;
       });
 
-      // Draw zones
+      // Draw zones (pre-computed RGB, cached dash pattern)
+      ctx.setLineDash(DASH_PATTERN as unknown as number[]);
       zones.forEach(zone => {
         const pulse = Math.sin(time + zone.pulsePhase) * 0.06 + 1;
         const r = zone.radius * pulse;
 
-        // Extract RGB from zone colors
-        const rgb = zone.borderColor.match(/\d+/g);
-
-        // Subtle fill with theme-aware opacity
-        if (rgb) {
-          ctx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${fillOpacity})`;
-        } else {
-          ctx.fillStyle = zone.color;
-        }
+        // Subtle fill
+        ctx.fillStyle = `rgba(${zone.r},${zone.g},${zone.b},${fillOpacity})`;
         ctx.beginPath();
         ctx.arc(zone.x, zone.y, r, 0, Math.PI * 2);
         ctx.fill();
 
-        // Dashed border with theme-aware opacity
-        if (rgb) {
-          ctx.strokeStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${borderOpacity})`;
-        } else {
-          ctx.strokeStyle = zone.borderColor;
-        }
+        // Dashed border
+        ctx.strokeStyle = `rgba(${zone.r},${zone.g},${zone.b},${borderOpacity})`;
         ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
         ctx.beginPath();
         ctx.arc(zone.x, zone.y, r, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.setLineDash([]);
 
         // Tiny center dot
-        if (rgb) {
-          ctx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${dotOpacity})`;
-        } else {
-          ctx.fillStyle = zone.borderColor.replace('0.2', '0.5');
-        }
+        ctx.fillStyle = `rgba(${zone.r},${zone.g},${zone.b},${dotOpacity})`;
         ctx.beginPath();
         ctx.arc(zone.x, zone.y, 2, 0, Math.PI * 2);
         ctx.fill();
       });
-
+      ctx.setLineDash(EMPTY_DASH);
     };
 
     animationRef.current = requestAnimationFrame(animate);
