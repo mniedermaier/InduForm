@@ -130,8 +130,7 @@ const RiskDashboard = memo(({ project, onClose }: RiskDashboardProps) => {
         const result = await api.assessRisk(project);
         setAssessment(result);
         setError(null);
-      } catch (err) {
-        console.error('Risk assessment error:', err);
+      } catch {
         setError('Failed to assess risk');
       } finally {
         setLoading(false);

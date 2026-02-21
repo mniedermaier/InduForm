@@ -279,8 +279,8 @@ export function useProjectTabs(): UseProjectTabsResult {
             ? { ...tab, validationResults: validation.results, policyViolations: violations }
             : tab
         ));
-      } catch (err) {
-        console.error('Validation error:', err);
+      } catch {
+        // Validation errors are displayed in the validation panel
       }
     };
 
@@ -302,8 +302,8 @@ export function useProjectTabs(): UseProjectTabsResult {
               : tab
           ));
           // Auto-save succeeded
-        } catch (err) {
-          console.error('Auto-save error:', err);
+        } catch {
+          // Auto-save failures are retried on next interval
         }
       }
     }, AUTO_SAVE_INTERVAL);
@@ -442,8 +442,7 @@ export function useProjectTabs(): UseProjectTabsResult {
     try {
       await api.saveProject(activeTab.project);
       updateActiveTab({ originalProject: activeTab.project });
-    } catch (err) {
-      console.error('Save error:', err);
+    } catch {
       alert('Failed to save project');
     } finally {
       setSaving(false);
@@ -469,8 +468,7 @@ export function useProjectTabs(): UseProjectTabsResult {
       setTabs(prev => [...prev, newTab]);
       setActiveTabId(newTab.id);
       addToRecentFiles(response.file_path);
-    } catch (err) {
-      console.error('Open file error:', err);
+    } catch {
       alert('Failed to open file');
     } finally {
       setLoading(false);
@@ -500,8 +498,7 @@ export function useProjectTabs(): UseProjectTabsResult {
       setTabs(prev => [...prev, newTab]);
       setActiveTabId(newTab.id);
       addToRecentFiles(response.file_path);
-    } catch (err) {
-      console.error('Open recent file error:', err);
+    } catch {
       alert('Failed to open file. It may have been moved or deleted.');
       setRecentFiles(prev => prev.filter(f => f !== filePath));
     } finally {
@@ -522,7 +519,6 @@ export function useProjectTabs(): UseProjectTabsResult {
       setTabs(prev => [...prev, newTab]);
       setActiveTabId(newTab.id);
     } catch (err: unknown) {
-      console.error('New file error:', err);
       alert(err instanceof Error ? err.message : 'Failed to create file');
     } finally {
       setLoading(false);
@@ -541,7 +537,6 @@ export function useProjectTabs(): UseProjectTabsResult {
         originalProject: activeTab.project,
       });
     } catch (err: unknown) {
-      console.error('Save as error:', err);
       alert(err instanceof Error ? err.message : 'Failed to save file');
     } finally {
       setSaving(false);

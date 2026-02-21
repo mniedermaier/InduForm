@@ -1,5 +1,7 @@
 """Team repository for database operations."""
 
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -59,7 +61,7 @@ class TeamRepository:
         )
         return list(result.scalars().unique().all())
 
-    async def update(self, team: Team, **kwargs) -> Team:
+    async def update(self, team: Team, **kwargs: Any) -> Team:
         """Update a team's attributes."""
         for key, value in kwargs.items():
             if hasattr(team, key) and key not in ("id", "created_by", "created_at"):

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '../contexts/ToastContext';
 import DialogShell from './DialogShell';
 
 interface AccessGrant {
@@ -31,6 +32,7 @@ interface ShareProjectDialogProps {
 }
 
 export default function ShareProjectDialog({ projectId, projectName, onClose }: ShareProjectDialogProps) {
+  const toast = useToast();
   const [accessList, setAccessList] = useState<AccessGrant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,9 +78,9 @@ export default function ShareProjectDialog({ projectId, projectName, onClose }: 
         setAllUsers(data);
       }
     } catch (err) {
-      console.error('Failed to load users:', err);
+      toast.error('Failed to load users');
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadAccess();
@@ -119,7 +121,7 @@ export default function ShareProjectDialog({ projectId, projectName, onClose }: 
         setSearchResults(data);
       }
     } catch (err) {
-      console.error('Search error:', err);
+      toast.error('Failed to search');
     }
   };
 

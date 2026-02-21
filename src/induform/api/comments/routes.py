@@ -14,7 +14,7 @@ from induform.api.comments.schemas import (
     CommentUpdate,
 )
 from induform.api.rate_limit import limiter
-from induform.db import User, get_db
+from induform.db import Comment, User, get_db
 from induform.db.repositories import CommentRepository, ProjectRepository
 from induform.security.permissions import Permission, check_project_permission
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/projects/{project_id}/comments", tags=["Comments"])
 
 
-def _comment_to_response(comment) -> CommentResponse:
+def _comment_to_response(comment: Comment) -> CommentResponse:
     """Convert a Comment model to CommentResponse."""
     return CommentResponse(
         id=comment.id,
@@ -166,9 +166,9 @@ async def create_comment(
         logger.warning("Failed to create comment notification: %s", e)
 
     # Reload to get author info
-    comment = await comment_repo.get_by_id(comment.id)
+    reloaded_comment = await comment_repo.get_by_id(comment.id)
 
-    return _comment_to_response(comment)
+    return _comment_to_response(reloaded_comment or comment)
 
 
 @router.get("/{comment_id}", response_model=CommentResponse)
@@ -241,9 +241,9 @@ async def update_comment(
     await comment_repo.update(comment, comment_data.text)
 
     # Reload
-    comment = await comment_repo.get_by_id(comment_id)
+    reloaded = await comment_repo.get_by_id(comment_id)
 
-    return _comment_to_response(comment)
+    return _comment_to_response(reloaded or comment)
 
 
 @router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -351,9 +351,9 @@ async def resolve_comment(
             logger.warning("Failed to create resolve notification: %s", e)
 
     # Reload
-    comment = await comment_repo.get_by_id(comment_id)
+    reloaded = await comment_repo.get_by_id(comment_id)
 
-    return _comment_to_response(comment)
+    return _comment_to_response(reloaded or comment)
 
 
 @router.post("/{comment_id}/unresolve", response_model=CommentResponse)
@@ -401,6 +401,6 @@ async def unresolve_comment(
     await comment_repo.unresolve(comment)
 
     # Reload
-    comment = await comment_repo.get_by_id(comment_id)
+    reloaded = await comment_repo.get_by_id(comment_id)
 
-    return _comment_to_response(comment)
+    return _comment_to_response(reloaded or comment)

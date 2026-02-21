@@ -64,7 +64,6 @@ const GenerateOutputDialog = memo(({
       const result = await api.generate(project, generator, options);
       setContent(result.content);
     } catch (err: unknown) {
-      console.error('Generate error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate output');
     } finally {
       setLoading(false);

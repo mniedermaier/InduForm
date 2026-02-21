@@ -78,7 +78,7 @@ def create_access_token(
     if is_admin:
         to_encode["is_admin"] = True
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return str(jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
 
 
 def create_refresh_token(
@@ -100,7 +100,7 @@ def create_refresh_token(
         "jti": jti,
     }
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return str(jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
 
 
 def create_password_reset_token(user_id: str) -> str:
@@ -116,7 +116,7 @@ def create_password_reset_token(user_id: str) -> str:
         "jti": jti,
     }
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return str(jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
 
 
 def decode_token(token: str) -> TokenData | None:

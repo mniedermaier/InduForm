@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '../contexts/ToastContext';
 
 interface ActivityEntry {
   id: string;
@@ -56,6 +57,7 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function ActivityLogPanel({ projectId, onClose }: ActivityLogPanelProps) {
+  const toast = useToast();
   const [activities, setActivities] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -78,11 +80,11 @@ export default function ActivityLogPanel({ projectId, onClose }: ActivityLogPane
         setTotal(data.total);
       }
     } catch (err) {
-      console.error('Failed to fetch activity:', err);
+      toast.error('Failed to fetch activity');
     } finally {
       setLoading(false);
     }
-  }, [projectId, page]);
+  }, [projectId, page, toast]);
 
   useEffect(() => {
     fetchActivities();
@@ -130,7 +132,7 @@ export default function ActivityLogPanel({ projectId, onClose }: ActivityLogPane
                     URL.revokeObjectURL(url);
                   }
                 } catch (err) {
-                  console.error('Failed to export activity:', err);
+                  toast.error('Failed to export activity');
                 }
               }}
               className="px-3 py-1 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"

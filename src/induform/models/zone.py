@@ -1,6 +1,7 @@
 """Zone model for IEC 62443 security zones."""
 
 from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -51,7 +52,7 @@ class Zone(BaseModel):
 
     @field_validator("security_level_capability")
     @classmethod
-    def capability_meets_target(cls, v: int | None, info) -> int | None:
+    def capability_meets_target(cls, v: int | None, info: Any) -> int | None:
         """Validate that SL-C meets or exceeds SL-T if both are set."""
         if v is not None:
             target = info.data.get("security_level_target")

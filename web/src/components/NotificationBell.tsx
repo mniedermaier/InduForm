@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useToast } from '../contexts/ToastContext';
 
 interface Notification {
   id: string;
@@ -16,6 +17,7 @@ interface NotificationBellProps {
 }
 
 export default function NotificationBell({ onNavigate }: NotificationBellProps) {
+  const toast = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -35,11 +37,11 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
         setUnreadCount(data.unread_count);
       }
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      toast.error('Failed to fetch notifications');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     fetchNotifications();
@@ -73,7 +75,7 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
       });
       fetchNotifications();
     } catch (err) {
-      console.error('Failed to mark as read:', err);
+      toast.error('Failed to mark notification as read');
     }
   };
 

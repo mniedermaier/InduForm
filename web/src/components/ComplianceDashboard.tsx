@@ -316,8 +316,8 @@ const ComplianceDashboard = memo(({
 
                 {/* Expanded controls table */}
                 {isExpanded && (
-                  <div className="border-t border-gray-200 dark:border-gray-600">
-                    <table className="w-full text-sm">
+                  <div className="border-t border-gray-200 dark:border-gray-600 overflow-x-auto">
+                    <table className="w-full text-sm" aria-label="Security requirement controls">
                       <thead>
                         <tr className="bg-gray-100 dark:bg-gray-600">
                           <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300 font-medium w-20">SR</th>
@@ -496,8 +496,8 @@ const ComplianceDashboard = memo(({
       {project.zones.length > 0 && (
         <div className="mt-6">
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">SL-T vs SL-C Gap Analysis</h3>
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-x-auto">
+            <table className="w-full text-sm" aria-label="SL-T vs SL-C gap analysis">
               <thead>
                 <tr className="bg-gray-100 dark:bg-gray-600">
                   <th className="text-left px-4 py-2 text-gray-600 dark:text-gray-300 font-medium">Zone</th>

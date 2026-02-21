@@ -1,6 +1,7 @@
 import { memo, useState, useMemo } from 'react';
 import type { Project, Zone, Asset, AssetType } from '../types/models';
 import { api } from '../api/client';
+import { useToast } from '../contexts/ToastContext';
 
 interface AssetTableProps {
   project: Project;
@@ -29,6 +30,7 @@ function CollapsibleSection({ title, defaultOpen = false, children }: { title: s
         type="button"
         onClick={() => setOpen(!open)}
         className="w-full px-3 py-2 flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md"
+        aria-expanded={open}
       >
         {title}
         <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -41,6 +43,7 @@ function CollapsibleSection({ title, defaultOpen = false, children }: { title: s
 }
 
 const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteAsset, onAddAsset }: AssetTableProps) => {
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterZone, setFilterZone] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('');
@@ -113,8 +116,8 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
       a.download = `${project.project.name.replace(/\s+/g, '_')}_assets.csv`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Failed to export CSV:', err);
+    } catch {
+      toast.error('Failed to export CSV');
     }
   };
 
@@ -190,7 +193,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
 
         {/* Table */}
         <div className="flex-1 overflow-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[800px]" aria-label="Asset inventory">
             <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
               <tr>
                 <th className="px-4 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Zone</th>
@@ -249,7 +252,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
                           <button
                             onClick={() => setEditingAsset({ zoneId: zone.id, asset })}
                             className="p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded"
-                            title="Edit"
+                            aria-label={`Edit asset ${asset.name}`}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -262,7 +265,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
                               }
                             }}
                             className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
-                            title="Delete"
+                            aria-label={`Delete asset ${asset.name}`}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

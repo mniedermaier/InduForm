@@ -1,5 +1,7 @@
 """User repository for database operations."""
 
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -52,7 +54,7 @@ class UserRepository:
         )
         return result.scalar_one_or_none()
 
-    async def update(self, user: User, **kwargs) -> User:
+    async def update(self, user: User, **kwargs: Any) -> User:
         """Update a user's attributes."""
         for key, value in kwargs.items():
             if hasattr(user, key):

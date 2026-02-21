@@ -30,8 +30,7 @@ const TemplateSelector = memo(({ onSelect, onCancel }: TemplateSelectorProps) =>
         if (result.length > 0) {
           setSelectedId(result[0].id);
         }
-      } catch (err) {
-        console.error('Failed to load templates:', err);
+      } catch {
         setError('Failed to load templates');
       } finally {
         setLoading(false);
@@ -48,8 +47,7 @@ const TemplateSelector = memo(({ onSelect, onCancel }: TemplateSelectorProps) =>
       setLoadingTemplate(true);
       const result = await api.getTemplate(selectedId);
       onSelect(result.project, result.name);
-    } catch (err) {
-      console.error('Failed to load template:', err);
+    } catch {
       setError('Failed to load template');
     } finally {
       setLoadingTemplate(false);

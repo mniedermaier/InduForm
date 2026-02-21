@@ -40,9 +40,8 @@ export default function CreateProjectDialog({ onClose, onCreate }: CreateProject
         setLoadingTemplates(true);
         const result = await api.listTemplates();
         setTemplates(result);
-      } catch (err) {
-        console.error('Failed to load templates:', err);
-        // Don't show error, just skip templates
+      } catch {
+        // Silently skip templates on load error
       } finally {
         setLoadingTemplates(false);
       }
@@ -93,8 +92,7 @@ export default function CreateProjectDialog({ onClose, onCreate }: CreateProject
         try {
           const result = await api.getTemplate(selectedTemplateId);
           templateProject = result.project;
-        } catch (err) {
-          console.error('Failed to load template:', err);
+        } catch {
           setError('Failed to load template. Creating blank project instead.');
         }
       }

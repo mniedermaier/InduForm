@@ -3,6 +3,7 @@
 import logging
 from typing import Annotated
 
+import sqlalchemy
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
@@ -101,7 +102,7 @@ async def search(
             or_(
                 ProjectDB.owner_id == current_user.id,
                 ProjectAccess.user_id == current_user.id,
-                ProjectAccess.team_id.in_(team_ids) if team_ids else False,
+                ProjectAccess.team_id.in_(team_ids) if team_ids else sqlalchemy.sql.false(),
             )
         )
         .where(ProjectDB.is_archived == False)  # noqa: E712

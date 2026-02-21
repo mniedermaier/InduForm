@@ -26,8 +26,8 @@ export default function CollaboratorIndicator({ projectId }: CollaboratorIndicat
         },
         body: JSON.stringify({ project_id: projectId }),
       });
-    } catch (err) {
-      console.error('Failed to send presence heartbeat:', err);
+    } catch {
+      // Heartbeat failures are expected during transient network issues
     }
   }, [projectId]);
 
@@ -41,8 +41,8 @@ export default function CollaboratorIndicator({ projectId }: CollaboratorIndicat
         const data = await response.json();
         setViewers(data.viewers);
       }
-    } catch (err) {
-      console.error('Failed to fetch presence:', err);
+    } catch {
+      // Presence fetch failures are non-critical
     }
   }, [projectId]);
 

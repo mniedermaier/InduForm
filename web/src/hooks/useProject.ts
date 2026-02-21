@@ -150,8 +150,8 @@ export function useProject(projectId: string | null, onSaved?: () => void): UseP
         const policies = await policiesRes.json();
         setPolicyViolations(policies || []);
       }
-    } catch (err) {
-      console.error('Validation error:', err);
+    } catch {
+      // Validation errors are displayed in the validation panel
     } finally {
       setIsValidating(false);
     }

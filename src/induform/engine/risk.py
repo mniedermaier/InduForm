@@ -398,10 +398,10 @@ def assess_risk(
         weighted_sum = 0.0
 
         for zone_id, risk in zone_risks.items():
-            zone = project.get_zone(zone_id)
-            if zone and zone.assets:
+            matched_zone = project.get_zone(zone_id)
+            if matched_zone and matched_zone.assets:
                 # Zone weight based on total asset criticality
-                zone_weight = sum(getattr(asset, "criticality", 3) for asset in zone.assets)
+                zone_weight = sum(getattr(asset, "criticality", 3) for asset in matched_zone.assets)
             else:
                 zone_weight = 1.0  # Default weight for empty zones
 

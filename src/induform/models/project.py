@@ -1,6 +1,7 @@
 """Project model - the root configuration object."""
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
@@ -29,7 +30,7 @@ class ProjectMetadata(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def migrate_standard(cls, data: dict) -> dict:
+    def migrate_standard(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Migrate old 'standard' field to 'compliance_standards'."""
         if isinstance(data, dict) and "standard" in data and "compliance_standards" not in data:
             data["compliance_standards"] = [data.pop("standard")]

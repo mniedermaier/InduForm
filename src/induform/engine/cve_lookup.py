@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import time
+from typing import Any
 
 import httpx
 
@@ -62,7 +63,7 @@ async def _throttled_get(url: str, params: dict[str, str]) -> httpx.Response | N
         return None
 
 
-async def lookup_cve(cve_id: str) -> dict | None:
+async def lookup_cve(cve_id: str) -> dict[str, Any] | None:
     """Look up a CVE by its ID using the NVD API v2.0.
 
     Args:
@@ -175,7 +176,7 @@ async def scan_asset_cves(
     vendor: str,
     model: str,
     firmware: str,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Scan for CVEs affecting a specific asset.
 
     Calls suggest_vulnerabilities() to find candidate CVE IDs, then
@@ -190,7 +191,7 @@ async def scan_asset_cves(
         List of enriched CVE dicts from lookup_cve().
     """
     cve_ids = await suggest_vulnerabilities(vendor, model, firmware)
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
     for cve_id in cve_ids:
         detail = await lookup_cve(cve_id)
         if detail:

@@ -175,7 +175,7 @@ const ExportDialog = memo(({
 
       setSuccess(`Diagram exported as ${diagramFormat.toUpperCase()}`);
     } catch (err) {
-      console.error('Export error:', err);
+      // Error shown in-dialog via setError below
       setError(`Failed to export diagram: ${err}`);
     } finally {
       setExporting(false);
@@ -231,7 +231,7 @@ const ExportDialog = memo(({
       downloadFile(content, filename, mimeType);
       setSuccess(`Data exported as ${dataFormat.toUpperCase()}`);
     } catch (err) {
-      console.error('Export error:', err);
+      // Error shown in-dialog via setError below
       setError(`Failed to export data: ${err}`);
     } finally {
       setExporting(false);
@@ -295,7 +295,7 @@ const ExportDialog = memo(({
       downloadFile(content, filename, mime);
       setSuccess(`Report exported successfully`);
     } catch (err) {
-      console.error('Export error:', err);
+      // Error shown in-dialog via setError below
       setError(`Failed to generate report: ${err}`);
     } finally {
       setExporting(false);

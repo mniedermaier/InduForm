@@ -106,7 +106,7 @@ class CsvImportResult(BaseModel):
 class ComparisonResult(BaseModel):
     """Result of comparing two projects."""
 
-    zones: dict[str, list[dict]] = {}
-    assets: dict[str, list[dict]] = {}
-    conduits: dict[str, list[dict]] = {}
+    zones: dict[str, list[dict[str, Any]]] = {}
+    assets: dict[str, list[dict[str, Any]]] = {}
+    conduits: dict[str, list[dict[str, Any]]] = {}
     summary: dict[str, int] = {}

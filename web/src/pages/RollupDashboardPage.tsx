@@ -135,11 +135,13 @@ export default function RollupDashboardPage({
     <th
       className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-200 select-none"
       onClick={() => handleSort(field)}
+      aria-label={`Sort by ${label}`}
+      aria-sort={sortField === field ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       <span className="inline-flex items-center gap-1">
         {label}
         {sortField === field && (
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
             {sortDir === 'asc'
               ? <path d="M5 10l5-5 5 5H5z" />
               : <path d="M5 10l5 5 5-5H5z" />
@@ -203,8 +205,8 @@ export default function RollupDashboardPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Loading */}
           {loading && (
-            <div className="p-16 text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2" />
+            <div className="p-16 text-center" role="status" aria-live="polite">
+              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2" aria-hidden="true" />
               <div className="text-gray-500 dark:text-slate-400">Loading dashboard...</div>
             </div>
           )}
@@ -362,7 +364,7 @@ export default function RollupDashboardPage({
               {/* Projects table */}
               <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full" aria-label="Projects compliance overview">
                     <thead className="bg-gray-50/50 dark:bg-slate-700/30">
                       <tr>
                         <SortHeader field="name" label="Project" />
