@@ -287,6 +287,25 @@ export const handlers = [
   http.get('/api/teams/', () => HttpResponse.json([
     { id: 'team-1', name: 'OT Security', members: DEMO_USERS.slice(0, 3).map(u => ({ user_id: u.id, username: u.username, display_name: u.display_name, role: 'member' })) },
   ])),
+  http.post('/api/teams/', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      id: `team-${Date.now()}`,
+      name: body.name || 'New Team',
+      members: [],
+      created_at: new Date().toISOString(),
+    }, { status: 201 });
+  }),
+  http.patch('/api/teams/:id', async ({ params, request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({ id: params.id, ...body, updated_at: new Date().toISOString() });
+  }),
+  http.delete('/api/teams/:id', () => new HttpResponse(null, { status: 204 })),
+  http.post('/api/teams/:id/members', async ({ params, request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({ team_id: params.id, user_id: body.user_id, role: body.role || 'member' }, { status: 201 });
+  }),
+  http.delete('/api/teams/:id/members/:userId', () => new HttpResponse(null, { status: 204 })),
 
   // ── Notifications ─────────────────────────────────────
   http.get('/api/notifications/', () => HttpResponse.json(DEMO_NOTIFICATIONS)),
@@ -658,4 +677,42 @@ export const handlers = [
   http.get('/api/dashboard/rollup', () =>
     HttpResponse.json(DEMO_ROLLUP_DASHBOARD),
   ),
+
+  // ── Generate Output ────────────────────────────────────
+  http.post('/api/generate', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    const generator = body.generator as string;
+    const options = body.options as Record<string, unknown> | undefined;
+
+    if (generator === 'firewall') {
+      const format = options?.format || 'json';
+      const rules = [
+        { id: 1, action: 'ALLOW', source: '10.10.1.0/24', destination: '10.10.2.0/24', protocol: 'Modbus/TCP', port: 502, description: 'Control → Field: Modbus polling' },
+        { id: 2, action: 'ALLOW', source: '10.10.1.0/24', destination: '10.10.2.0/24', protocol: 'EtherNet/IP', port: 44818, description: 'Control → Field: EtherNet/IP I/O' },
+        { id: 3, action: 'ALLOW', source: '10.10.3.0/24', destination: '10.10.1.0/24', protocol: 'OPC-UA', port: 4840, description: 'DMZ → Control: OPC-UA data collection' },
+        { id: 4, action: 'DENY', source: '10.0.0.0/24', destination: '10.10.2.0/24', protocol: 'ANY', port: null, description: 'Enterprise → Field: Block direct access' },
+      ];
+      if (format === 'iptables') {
+        return HttpResponse.json({ generator: 'firewall', content: rules.map(r =>
+          `${r.action === 'ALLOW' ? '-A FORWARD -s' : '-A FORWARD -j DROP -s'} ${r.source} -d ${r.destination} -p tcp --dport ${r.port || 0} -m comment --comment "${r.description}"`
+        ).join('\n') });
+      }
+      return HttpResponse.json({ generator: 'firewall', content: rules });
+    }
+
+    if (generator === 'vlan') {
+      return HttpResponse.json({ generator: 'vlan', content: [
+        { vlan_id: 10, name: 'Enterprise', subnet: '10.0.0.0/24', zone: 'Enterprise Network' },
+        { vlan_id: 20, name: 'DMZ', subnet: '10.10.3.0/24', zone: 'Industrial DMZ' },
+        { vlan_id: 30, name: 'Control', subnet: '10.10.1.0/24', zone: 'Control Network' },
+        { vlan_id: 40, name: 'Field', subnet: '10.10.2.0/24', zone: 'Field Device Network' },
+      ]});
+    }
+
+    if (generator === 'report') {
+      return HttpResponse.json({ generator: 'report', content: '# Security Assessment Report\n\n## Project: Water Treatment Facility\n\n### Zones: 6 | Assets: 18 | Conduits: 5\n\n### Compliance: IEC 62443\n\nOverall compliance score: 86%\n\n### Risk Assessment\n\nOverall risk: LOW (35/100)\n\n### Recommendations\n\n1. Upgrade Modbus/TCP connections to use TLS encryption\n2. Implement network segmentation for Safety Instrumented Systems\n3. Deploy intrusion detection on DMZ conduit\n' });
+    }
+
+    return HttpResponse.json({ generator, content: 'Unknown generator type' });
+  }),
 ];

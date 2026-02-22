@@ -6,7 +6,7 @@ import uuid
 from collections import Counter
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -67,6 +67,8 @@ async def list_vulnerabilities(
     severity: str | None = None,
     vuln_status: str | None = None,
     zone_id: str | None = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
 ) -> list[VulnerabilityResponse]:
     """List all vulnerabilities for a project, joined through zones -> assets."""
     has_access = await check_project_permission(
@@ -96,6 +98,8 @@ async def list_vulnerabilities(
         query = query.where(Vulnerability.status == vuln_status)
     if zone_id:
         query = query.where(ZoneDB.zone_id == zone_id)
+
+    query = query.offset(skip).limit(limit)
 
     result = await db.execute(query)
     vulns = result.scalars().all()

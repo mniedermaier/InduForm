@@ -3,7 +3,9 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+SUPPORTED_STANDARDS = {"IEC62443", "NERC-CIP", "ISA-99", "NIST-CSF", "ISO27001"}
 
 
 class ProjectCreate(BaseModel):
@@ -14,6 +16,14 @@ class ProjectCreate(BaseModel):
     standard: str = Field(default="IEC62443")
     compliance_standards: list[str] = Field(default=["IEC62443"])
     allowed_protocols: list[str] = Field(default=[])
+
+    @field_validator("compliance_standards")
+    @classmethod
+    def validate_standards(cls, v: list[str]) -> list[str]:
+        unknown = [s for s in v if s not in SUPPORTED_STANDARDS]
+        if unknown:
+            raise ValueError(f"Unsupported compliance standard(s): {', '.join(unknown)}")
+        return v
 
 
 class ProjectUpdate(BaseModel):
