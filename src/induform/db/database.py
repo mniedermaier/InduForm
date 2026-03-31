@@ -80,9 +80,16 @@ async def init_db(db_url: str | None = None) -> None:
     # covered by Alembic migration 004_columns for managed deployments.
     await _ensure_columns()
 
+    # Seed an admin user on first-ever startup (when the users table is empty)
+    await _ensure_seed_admin()
+
 
 async def _ensure_columns() -> None:
-    """Ensure columns added after the initial schema exist (idempotent)."""
+    """Ensure columns added after the initial schema exist (idempotent).
+
+    Logs a warning for each column or table added at startup so that
+    missing Alembic migrations are visible in production logs.
+    """
     if _engine is None:
         return
 
@@ -104,7 +111,9 @@ async def _ensure_columns() -> None:
 
         if "compliance_standards" not in proj_cols:
             await conn.execute(text("ALTER TABLE projects ADD COLUMN compliance_standards TEXT"))
-            logger.info("Added compliance_standards column to projects table")
+            logger.warning(
+                "Added missing column compliance_standards to projects — run Alembic migrations"
+            )
 
         await conn.execute(
             text(
@@ -115,7 +124,9 @@ async def _ensure_columns() -> None:
 
         if "allowed_protocols" not in proj_cols:
             await conn.execute(text("ALTER TABLE projects ADD COLUMN allowed_protocols TEXT"))
-            logger.info("Added allowed_protocols column to projects table")
+            logger.warning(
+                "Added missing column allowed_protocols to projects — run Alembic migrations"
+            )
 
         await conn.execute(
             text("UPDATE projects SET allowed_protocols = '[]' WHERE allowed_protocols IS NULL")
@@ -124,13 +135,15 @@ async def _ensure_columns() -> None:
         if "x_position" not in zone_cols:
             await conn.execute(text("ALTER TABLE zones ADD COLUMN x_position REAL"))
             await conn.execute(text("ALTER TABLE zones ADD COLUMN y_position REAL"))
-            logger.info("Added x_position, y_position columns to zones table")
+            logger.warning(
+                "Added missing columns x_position, y_position to zones — run Alembic migrations"
+            )
 
         if "is_admin" not in user_cols:
             await conn.execute(
                 text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0 NOT NULL")
             )
-            logger.info("Added is_admin column to users table")
+            logger.warning("Added missing column is_admin to users — run Alembic migrations")
 
         # Ensure extended asset columns exist
         new_asset_cols = {
@@ -157,7 +170,10 @@ async def _ensure_columns() -> None:
                 await conn.execute(text(f"ALTER TABLE assets ADD COLUMN {col_name} {col_type}"))
                 added_asset_cols.append(col_name)
         if added_asset_cols:
-            logger.info("Added columns to assets table: %s", ", ".join(added_asset_cols))
+            logger.warning(
+                "Added missing columns to assets: %s — run Alembic migrations",
+                ", ".join(added_asset_cols),
+            )
 
         # Ensure metrics_snapshots table exists (for environments not using Alembic)
         if "metrics_snapshots" not in tables:
@@ -189,15 +205,15 @@ async def _ensure_columns() -> None:
                     "ON metrics_snapshots(recorded_at)"
                 )
             )
-            logger.info("Created metrics_snapshots table")
+            logger.warning("Created missing table metrics_snapshots — run Alembic migrations")
 
         # Ensure User columns for login tracking / force logout
         if "last_login_at" not in user_cols:
             await conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME"))
-            logger.info("Added last_login_at column to users table")
+            logger.warning("Added missing column last_login_at to users — run Alembic migrations")
         if "force_logout_at" not in user_cols:
             await conn.execute(text("ALTER TABLE users ADD COLUMN force_logout_at DATETIME"))
-            logger.info("Added force_logout_at column to users table")
+            logger.warning("Added missing column force_logout_at to users — run Alembic migrations")
 
         # Ensure login_attempts table exists
         if "login_attempts" not in tables:
@@ -226,7 +242,7 @@ async def _ensure_columns() -> None:
                     "ON login_attempts(created_at)"
                 )
             )
-            logger.info("Created login_attempts table")
+            logger.warning("Created missing table login_attempts — run Alembic migrations")
 
         # Ensure vulnerabilities table exists (for environments not using Alembic)
         if "vulnerabilities" not in tables:
@@ -254,7 +270,54 @@ async def _ensure_columns() -> None:
                     "ON vulnerabilities(asset_db_id)"
                 )
             )
-            logger.info("Created vulnerabilities table")
+            logger.warning("Created missing table vulnerabilities — run Alembic migrations")
+
+
+async def _ensure_seed_admin() -> None:
+    """Create a default admin user if the users table is empty.
+
+    Credentials default to admin / admin@induform.local / admin
+    and can be overridden via INDUFORM_ADMIN_USERNAME, INDUFORM_ADMIN_EMAIL,
+    and INDUFORM_ADMIN_PASSWORD environment variables.
+
+    The user is created with is_admin=True so they can immediately access
+    admin features after first deployment.
+    """
+    if _async_session_factory is None:
+        return
+
+    from sqlalchemy import func, select
+
+    from induform.db.models import User
+
+    async with _async_session_factory() as session:
+        result = await session.execute(select(func.count(User.id)))
+        user_count = result.scalar() or 0
+        if user_count > 0:
+            return
+
+        # Import here to avoid circular deps at module level
+        from induform.security.password import hash_password
+
+        username = os.environ.get("INDUFORM_ADMIN_USERNAME", "admin")
+        email = os.environ.get("INDUFORM_ADMIN_EMAIL", "admin@induform.local")
+        password = os.environ.get("INDUFORM_ADMIN_PASSWORD", "admin")
+
+        admin = User(
+            email=email,
+            username=username,
+            password_hash=hash_password(password),
+            display_name="Administrator",
+            is_admin=True,
+        )
+        session.add(admin)
+        await session.commit()
+
+        logger.info(
+            "Seed admin user created: %s (%s) — change the password immediately!",
+            username,
+            email,
+        )
 
 
 async def close_db() -> None:

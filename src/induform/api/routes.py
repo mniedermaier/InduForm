@@ -1,5 +1,6 @@
 """API routes for InduForm."""
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,8 @@ from induform.models.project import Project, ProjectMetadata
 from induform.models.zone import Zone
 
 # Template imports moved to templates/routes.py
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -102,8 +105,9 @@ async def list_files(request: Request) -> list[FileInfo]:
         try:
             project = Project.from_yaml(yaml_file)
             project_name = project.project.name
-        except Exception:
+        except Exception as e:
             project_name = None
+            logger.debug("Could not parse project name from %s: %s", yaml_file, e)
 
         files.append(
             FileInfo(
@@ -117,8 +121,9 @@ async def list_files(request: Request) -> list[FileInfo]:
         try:
             project = Project.from_yaml(yml_file)
             project_name = project.project.name
-        except Exception:
+        except Exception as e:
             project_name = None
+            logger.debug("Could not parse project name from %s: %s", yml_file, e)
 
         files.append(
             FileInfo(
@@ -141,8 +146,9 @@ async def get_current_file(request: Request) -> FileInfo:
         try:
             project = Project.from_yaml(config_path)
             project_name = project.project.name
-        except Exception:
-            pass
+        except Exception as e:
+            project_name = None
+            logger.debug("Could not parse project name from %s: %s", config_path, e)
 
     return FileInfo(
         name=config_path.name,

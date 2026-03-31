@@ -74,9 +74,41 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(), payment=()"
+        )
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: blob:; "
+            "font-src 'self'; "
+            "connect-src 'self' ws: wss:; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
         if os.environ.get("INDUFORM_ENV") == "production":
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         return response
+
+
+# --- Request body size limit middleware ---
+# Default 10MB; override via INDUFORM_MAX_BODY_SIZE env var (bytes)
+_MAX_BODY_SIZE = int(os.environ.get("INDUFORM_MAX_BODY_SIZE", str(10 * 1024 * 1024)))
+
+
+class RequestBodyLimitMiddleware(BaseHTTPMiddleware):
+    """Reject requests with bodies exceeding the configured size limit."""
+
+    async def dispatch(self, request: Request, call_next):
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > _MAX_BODY_SIZE:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Request body too large"},
+            )
+        return await call_next(request)
 
 
 # --- Request logging middleware ---
@@ -129,6 +161,9 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # GZip compression for responses > 1KB
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Request body size limit
+app.add_middleware(RequestBodyLimitMiddleware)
 
 # Security headers
 app.add_middleware(SecurityHeadersMiddleware)

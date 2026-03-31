@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 InduForm: multi-user IEC 62443 zone/conduit security tool for OT networks. Python/FastAPI backend, React/TypeScript frontend.
 
 ## Commands
@@ -21,7 +23,9 @@ cd web && npm install && npm run dev                                    # Vite :
 ### Testing
 ```bash
 pytest tests/                              # Backend (needs INDUFORM_RATE_LIMIT_ENABLED=false)
+pytest tests/test_api_auth.py::TestAuthRegister::test_register_success  # Single test
 cd web && npm run test                     # Frontend (Vitest + jsdom)
+cd web && npm run test:watch               # Frontend watch mode
 ```
 
 ### Linting
@@ -77,6 +81,26 @@ The app supports a GitHub Pages demo at `/InduForm/demo/` using MSW (Mock Servic
 - **WebSocket**: `useWebSocket.ts` exports a no-op hook in demo mode (no server to connect to)
 - **Vite base path**: conditional `/InduForm/demo/` in `vite.config.ts` for demo builds
 - **New mock endpoint**: add handler to `mockHandlers.ts`; if it needs data, add to `mockData.ts`
+
+## Architecture
+
+### CLI → API
+Typer-based CLI (`induform.cli`). The `serve` command passes config to FastAPI via the `INDUFORM_CONFIG` env var (not file path args). Entry point defined in `pyproject.toml` as `induform.cli:app`.
+
+### Seed Admin
+On first startup (users table empty), `_ensure_seed_admin()` in `database.py` creates a default admin user. Override credentials via `INDUFORM_ADMIN_USERNAME`, `INDUFORM_ADMIN_EMAIL`, `INDUFORM_ADMIN_PASSWORD` env vars. Default: `admin` / `admin@induform.local` / `admin`.
+
+### Auth Flow
+JWT (HS256) with access (30min) + refresh (7d) tokens. Token revocation tracked via `RevokedToken` table (stores JTI). Admin force-logout uses timestamp comparison (`token_iat < user.force_logout_at`). FastAPI dependencies: `get_current_user` (401 if invalid) and `get_current_user_optional` (returns None). Type aliases `CurrentUser`/`OptionalUser` for route signatures.
+
+### WebSocket Collaboration
+Route `/ws/projects/{project_id}` with token as query param. Connection manager (singleton) stores active connections per project, broadcasts with self-exclusion, uses `asyncio.Lock` for thread safety. Message types: `cursor`, `selection`, `edit`, `ping`/`pong`. Token re-validated server-side every 5 minutes. WebSocket code 4001 triggers client-side token refresh before reconnect. Max message size 16KB.
+
+### Frontend Hook Composition
+`ProjectEditor.tsx` composes 5 hooks: `useProject` (undo/redo history capped at 50, auto-save debounce 1000ms, validation), `useProjectTabs` (multi-tab with per-tab history, auto-save every 30s), `useWebSocket` (real-time collab), `useKeyboardShortcuts`, `useDialogs`. Hooks use `useRef` to avoid stale closures in debounced operations.
+
+### Engine
+`validator.py` (schema + IEC 62443 validation → `ValidationReport`), `policy.py` (rule engine with severity levels + remediation), `risk.py` (risk scoring), `attack_path.py` (attack path analysis), `gap_analysis.py`, `cve_lookup.py`, `standards.py` (IEC 62443 definitions).
 
 ## Code Conventions
 

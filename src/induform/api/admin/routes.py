@@ -603,8 +603,9 @@ async def get_health(
         from sqlalchemy import text
 
         await db.execute(text("SELECT 1"))
-    except Exception:
+    except Exception as e:
         db_status = "error"
+        logger.warning("Database health check failed: %s", e)
 
     # Table row counts
     counts: dict[str, int] = {}

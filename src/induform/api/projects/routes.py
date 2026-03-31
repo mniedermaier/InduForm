@@ -153,9 +153,9 @@ async def list_projects(
 
                 # Asset count
                 asset_count = sum(len(zone.assets) for zone in project.zones)
-            except Exception:
+            except Exception as e:
                 # If calculation fails, leave as None
-                pass
+                logger.warning("Failed to calculate project metrics for %s: %s", project_db.id, e)
 
         result.append(
             ProjectSummary(
@@ -531,8 +531,8 @@ async def update_project_metadata(
             risk_assessment = assess_risk(project, vulnerability_data=vuln_data)
             risk_score = int(round(risk_assessment.overall_score))
             risk_level = risk_assessment.overall_level.value
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to calculate risk score: %s", e)
 
     return ProjectSummary(
         id=project_db.id,
@@ -642,8 +642,8 @@ async def duplicate_project(
             risk_assessment = assess_risk(project, vulnerability_data=vuln_data)
             risk_score = int(round(risk_assessment.overall_score))
             risk_level = risk_assessment.overall_level.value
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to calculate risk score: %s", e)
 
     return ProjectSummary(
         id=new_project.id,
@@ -956,8 +956,8 @@ async def import_project_yaml(
             risk_assessment = assess_risk(project, vulnerability_data=vuln_data)
             risk_score = int(round(risk_assessment.overall_score))
             risk_level = risk_assessment.overall_level.value
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to calculate risk score for imported project: %s", e)
 
     return ProjectSummary(
         id=project_db.id,
@@ -3256,8 +3256,8 @@ async def _record_metrics_snapshot(
                 else:
                     deduction += 3
             compliance_score = max(0.0, 100.0 - deduction)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to calculate compliance score: %s", e)
 
     # Risk score
     risk_score = 0.0
@@ -3265,8 +3265,8 @@ async def _record_metrics_snapshot(
         vuln_data = await _load_vulnerability_data(db, project_id)
         risk_assessment = assess_risk(project, vulnerability_data=vuln_data)
         risk_score = risk_assessment.overall_score
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to calculate risk score: %s", e)
 
     # Validation results
     error_count = 0
@@ -3275,8 +3275,8 @@ async def _record_metrics_snapshot(
         validation_report = validate_project(project)
         error_count = validation_report.error_count
         warning_count = validation_report.warning_count
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to calculate validation results: %s", e)
 
     snapshot = MetricsSnapshot(
         project_id=project_id,

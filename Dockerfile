@@ -40,11 +40,18 @@ COPY --from=frontend-builder /app/web/dist /app/static
 # Copy examples
 COPY examples/ ./examples/
 
-# Create directory for config
-RUN mkdir -p /config
+# Create non-root user
+RUN groupadd --gid 1000 induform && \
+    useradd --uid 1000 --gid induform --shell /bin/bash --create-home induform
+
+# Create directories and set ownership
+RUN mkdir -p /config /data && chown -R induform:induform /config /data /app
 
 # Default config location
 ENV INDUFORM_CONFIG=/config/induform.yaml
+
+# Switch to non-root user
+USER induform
 
 # Expose port
 EXPOSE 8080
