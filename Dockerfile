@@ -19,7 +19,7 @@ COPY web/ ./
 RUN ./node_modules/.bin/tsc && ./node_modules/.bin/vite build
 
 # Stage 2: Python application
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
