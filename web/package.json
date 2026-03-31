@@ -16,7 +16,7 @@
     "build:demo": "VITE_DEMO_MODE=true vite build"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^2.0.4",
+    "@dagrejs/dagre": "^3.0.0",
     "@react-three/drei": "^9.117.3",
     "@react-three/fiber": "^8.17.10",
     "@react-three/postprocessing": "^2.16.3",
