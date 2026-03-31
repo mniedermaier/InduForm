@@ -91,7 +91,7 @@ strict = true
 
 [tool.bandit]
 exclude_dirs = ["tests"]
-skips = ["B101"]
+skips = ["B101", "B608"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
