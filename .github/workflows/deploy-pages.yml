@@ -50,7 +50,7 @@ jobs:
           mkdir _site/demo
           cp -r web/dist/* _site/demo/
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
 
   deploy:
     needs: build
