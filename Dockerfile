@@ -2,7 +2,7 @@
 # Multi-stage build for Python backend and React frontend
 
 # Stage 1: Build React frontend
-FROM node:25-slim AS frontend-builder
+FROM node:20-slim AS frontend-builder
 
 WORKDIR /app/web
 
@@ -19,7 +19,7 @@ COPY web/ ./
 RUN ./node_modules/.bin/tsc && ./node_modules/.bin/vite build
 
 # Stage 2: Python application
-FROM python:3.14-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
