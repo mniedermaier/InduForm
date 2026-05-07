@@ -1,7 +1,7 @@
 # InduForm Development Dockerfile
 # Includes hot reload for both Python and React
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
