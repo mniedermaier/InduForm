@@ -25,7 +25,6 @@ class MockWebSocket {
     this.sent.push(data);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   close(code = 1000, _reason?: string) {
     this.readyState = MockWebSocket.CLOSED;
     this.onclose?.({ code });
