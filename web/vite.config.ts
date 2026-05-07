@@ -16,6 +16,19 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('three') || id.includes('@react-three')) return 'three-vendor';
+          if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('html-to-image')) return 'pdf-vendor';
+          if (id.includes('@xyflow') || id.includes('@dagrejs')) return 'flow-vendor';
+          if (id.includes('react-dom')) return 'react-vendor';
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
