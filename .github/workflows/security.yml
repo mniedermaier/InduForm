@@ -20,10 +20,13 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -e ".[dev]" pip-audit
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" pip-audit
 
       - name: Run pip-audit
-        run: pip-audit
+        # CVE-2026-3219: pip itself, no fix available upstream as of 2026-05-07
+        run: pip-audit --ignore-vuln CVE-2026-3219
 
   npm-audit:
     runs-on: ubuntu-latest
