@@ -43,7 +43,7 @@ const EMPTY_DASH: number[] = [];
 const NetworkBackground = memo(() => {
   const { theme } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
   const zonesRef = useRef<Zone[]>([]);
   const conduitsRef = useRef<Conduit[]>([]);
   const packetsRef = useRef<DataPacket[]>([]);
