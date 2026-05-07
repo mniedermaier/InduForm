@@ -38,7 +38,6 @@ interface WebSocketMessage {
 
 // No-op implementation for demo mode (no server to connect to)
 const noopFn = () => {};
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function useDemoWebSocket(_projectId: string | null) {
   return {
     isConnected: false,
