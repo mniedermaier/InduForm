@@ -67,13 +67,53 @@ export function useProject(projectId: string | null, onSaved?: () => void): UseP
 
   // Refs to avoid stale closures in debounced save
   const projectStateRef = useRef(projectState);
-  projectStateRef.current = projectState;
-
   const onSavedRef = useRef(onSaved);
-  onSavedRef.current = onSaved;
+  useEffect(() => {
+    projectStateRef.current = projectState;
+    onSavedRef.current = onSaved;
+  });
 
   // Get auth token
   const getToken = () => localStorage.getItem('induform_access_token');
+
+  // Validate project
+  const validateProject = async (project: Project) => {
+    try {
+      setIsValidating(true);
+      const [validationRes, policiesRes] = await Promise.all([
+        fetch('/api/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify(project),
+        }),
+        fetch('/api/policies', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify(project),
+        }),
+      ]);
+
+      if (validationRes.ok) {
+        const validation = await validationRes.json();
+        setValidationResults(validation.results || []);
+      }
+
+      if (policiesRes.ok) {
+        const policies = await policiesRes.json();
+        setPolicyViolations(policies || []);
+      }
+    } catch {
+      // Validation errors are displayed in the validation panel
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   // Load project
   const loadProject = useCallback(async () => {
@@ -117,45 +157,6 @@ export function useProject(projectId: string | null, onSaved?: () => void): UseP
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- validateProject is a plain function that uses only state setters and getToken; adding it would cause infinite reloads
   }, [projectId]);
-
-  // Validate project
-  const validateProject = async (project: Project) => {
-    try {
-      setIsValidating(true);
-      const [validationRes, policiesRes] = await Promise.all([
-        fetch('/api/validate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${getToken()}`,
-          },
-          body: JSON.stringify(project),
-        }),
-        fetch('/api/policies', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${getToken()}`,
-          },
-          body: JSON.stringify(project),
-        }),
-      ]);
-
-      if (validationRes.ok) {
-        const validation = await validationRes.json();
-        setValidationResults(validation.results || []);
-      }
-
-      if (policiesRes.ok) {
-        const policies = await policiesRes.json();
-        setPolicyViolations(policies || []);
-      }
-    } catch {
-      // Validation errors are displayed in the validation panel
-    } finally {
-      setIsValidating(false);
-    }
-  };
 
   // Save project to database — reads from ref to avoid stale closure
   const saveProject = useCallback(async () => {

@@ -112,6 +112,27 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
   const [loginHistory, setLoginHistory] = useState<AdminLoginAttempt[]>([]);
   const [systemLoading, setSystemLoading] = useState(false);
 
+  // --- Filtered users (client-side) ---
+  const filteredUsers = userSearchQuery
+    ? users.filter(u => {
+        const q = userSearchQuery.toLowerCase();
+        return u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+      })
+    : users;
+
+  // --- Filtered activity (client-side) ---
+  const filteredActivities = activitySearchQuery
+    ? activities.filter(a => {
+        const q = activitySearchQuery.toLowerCase();
+        return (
+          a.username.toLowerCase().includes(q) ||
+          a.action.toLowerCase().includes(q) ||
+          (a.entity_name || '').toLowerCase().includes(q) ||
+          (a.project_name || '').toLowerCase().includes(q)
+        );
+      })
+    : activities;
+
   // --- Fetch functions ---
   const fetchStats = useCallback(async () => {
     try {
@@ -375,27 +396,6 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
     }, 300);
     return () => clearTimeout(timer);
   }, [projectSearchQuery, activeTab, fetchProjects]);
-
-  // --- Filtered users (client-side) ---
-  const filteredUsers = userSearchQuery
-    ? users.filter(u => {
-        const q = userSearchQuery.toLowerCase();
-        return u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-      })
-    : users;
-
-  // --- Filtered activity (client-side) ---
-  const filteredActivities = activitySearchQuery
-    ? activities.filter(a => {
-        const q = activitySearchQuery.toLowerCase();
-        return (
-          a.username.toLowerCase().includes(q) ||
-          a.action.toLowerCase().includes(q) ||
-          (a.entity_name || '').toLowerCase().includes(q) ||
-          (a.project_name || '').toLowerCase().includes(q)
-        );
-      })
-    : activities;
 
   // --- 403 gate ---
   if (!user?.is_admin) {

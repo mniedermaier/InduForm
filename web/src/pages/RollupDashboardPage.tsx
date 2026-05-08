@@ -16,6 +16,37 @@ interface RollupDashboardPageProps {
 type SortField = 'name' | 'compliance' | 'risk' | 'zones' | 'assets' | 'conduits' | 'updated';
 type SortDir = 'asc' | 'desc';
 
+interface SortHeaderProps {
+  field: SortField;
+  label: string;
+  sortField: SortField;
+  sortDir: SortDir;
+  onSort: (field: SortField) => void;
+}
+
+function SortHeader({ field, label, sortField, sortDir, onSort }: SortHeaderProps) {
+  return (
+    <th
+      className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-200 select-none"
+      onClick={() => onSort(field)}
+      aria-label={`Sort by ${label}`}
+      aria-sort={sortField === field ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {sortField === field && (
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            {sortDir === 'asc'
+              ? <path d="M5 10l5-5 5 5H5z" />
+              : <path d="M5 10l5 5 5-5H5z" />
+            }
+          </svg>
+        )}
+      </span>
+    </th>
+  );
+}
+
 export default function RollupDashboardPage({
   onBackToProjects,
   onOpenProject,
@@ -130,27 +161,6 @@ export default function RollupDashboardPage({
     if (score >= 20) return 'text-blue-500';
     return 'text-green-500';
   };
-
-  const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
-    <th
-      className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-slate-200 select-none"
-      onClick={() => handleSort(field)}
-      aria-label={`Sort by ${label}`}
-      aria-sort={sortField === field ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-    >
-      <span className="inline-flex items-center gap-1">
-        {label}
-        {sortField === field && (
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-            {sortDir === 'asc'
-              ? <path d="M5 10l5-5 5 5H5z" />
-              : <path d="M5 10l5 5 5-5H5z" />
-            }
-          </svg>
-        )}
-      </span>
-    </th>
-  );
 
   return (
     <div className="h-screen relative bg-gray-50 dark:bg-slate-900 flex flex-col overflow-hidden">
@@ -367,13 +377,13 @@ export default function RollupDashboardPage({
                   <table className="w-full" aria-label="Projects compliance overview">
                     <thead className="bg-gray-50/50 dark:bg-slate-700/30">
                       <tr>
-                        <SortHeader field="name" label="Project" />
-                        <SortHeader field="compliance" label="Compliance" />
-                        <SortHeader field="risk" label="Risk" />
-                        <SortHeader field="zones" label="Zones" />
-                        <SortHeader field="assets" label="Assets" />
-                        <SortHeader field="conduits" label="Conduits" />
-                        <SortHeader field="updated" label="Updated" />
+                        <SortHeader field="name" label="Project" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                        <SortHeader field="compliance" label="Compliance" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                        <SortHeader field="risk" label="Risk" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                        <SortHeader field="zones" label="Zones" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                        <SortHeader field="assets" label="Assets" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                        <SortHeader field="conduits" label="Conduits" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                        <SortHeader field="updated" label="Updated" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-slate-700/50">

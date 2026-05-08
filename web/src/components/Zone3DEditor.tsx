@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect, memo } from 'react';
+import { useRef, useState, useMemo, useEffect, memo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Text, Billboard, QuadraticBezierLine, RoundedBox } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -124,8 +124,9 @@ function AmbientParticles({ dark }: { dark: boolean }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  const particles = useMemo(() => {
-    return Array.from({ length: count }, () => ({
+  // useState initializer guarantees single-run, unlike useMemo which may re-run.
+  const [particles] = useState(() =>
+    Array.from({ length: count }, () => ({
       pos: [
         (Math.random() - 0.5) * 40,
         Math.random() * 30 + 1,
@@ -133,8 +134,8 @@ function AmbientParticles({ dark }: { dark: boolean }) {
       ] as [number, number, number],
       speed: 0.1 + Math.random() * 0.3,
       offset: Math.random() * Math.PI * 2,
-    }));
-  }, []);
+    }))
+  );
 
   useFrame(({ clock }) => {
     if (!meshRef.current) return;

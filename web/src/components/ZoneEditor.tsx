@@ -393,9 +393,11 @@ function ZoneEditorInner({
   );
 
   // Track whether rearrange was just triggered (only true for the render where it changes)
-  const prevRearrangeKeyForLayout = useRef(rearrangeKey);
-  const rearrangeJustTriggered = prevRearrangeKeyForLayout.current !== rearrangeKey;
-  prevRearrangeKeyForLayout.current = rearrangeKey;
+  const [prevRearrangeKeyForLayout, setPrevRearrangeKeyForLayout] = useState(rearrangeKey);
+  const rearrangeJustTriggered = prevRearrangeKeyForLayout !== rearrangeKey;
+  if (rearrangeJustTriggered) {
+    setPrevRearrangeKeyForLayout(rearrangeKey);
+  }
 
   // Calculate positions - prefer stored positions, fall back to auto-layout
   const zonePositions = useMemo(
