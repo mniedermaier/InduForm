@@ -20,14 +20,10 @@ export default [
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      // eslint-plugin-react-hooks v7 added strict rules that surface real
-      // patterns in this codebase but require a focused refactor to fix.
-      // Tracked as follow-up — not in scope for the eslint 8 → 9 bump.
+      // 18 occurrences of useEffect → fetch → setLoading pattern. Properly
+      // fixing requires migrating to React 19's use() API or react-query —
+      // tracked as separate architectural follow-up.
       'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/static-components': 'off',
-      'react-hooks/purity': 'off',
-      'react-hooks/immutability': 'off',
-      'react-hooks/refs': 'off',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

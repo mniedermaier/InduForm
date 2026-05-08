@@ -108,6 +108,9 @@ function useRealWebSocket(projectId: string | null) {
               if (data?.access_token) {
                 localStorage.setItem('induform_access_token', data.access_token);
                 reconnectAttempts.current = 0;
+                // Self-reference is safe here — connect is defined by the time
+                // this onclose handler fires (after the WS open event).
+                // eslint-disable-next-line react-hooks/immutability
                 connect();
               }
             })
