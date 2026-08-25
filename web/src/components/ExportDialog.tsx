@@ -353,12 +353,12 @@ const ExportDialog = memo(({
         <div className="flex-1 overflow-auto p-6">
           {/* Status messages */}
           {error && (
-            <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded">
+            <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-sm">
               {error}
             </div>
           )}
           {success && (
-            <div className="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded">
+            <div className="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-sm">
               {success}
             </div>
           )}
@@ -398,7 +398,7 @@ const ExportDialog = memo(({
                       type="checkbox"
                       checked={options.includeBackground}
                       onChange={(e) => setOptions(prev => ({ ...prev, includeBackground: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 rounded"
+                      className="w-4 h-4 text-blue-600 rounded-sm"
                     />
                     <span className="text-sm text-gray-700 dark:text-gray-300">Include background</span>
                   </label>
@@ -411,13 +411,13 @@ const ExportDialog = memo(({
                           type="color"
                           value={options.backgroundColor}
                           onChange={(e) => setOptions(prev => ({ ...prev, backgroundColor: e.target.value }))}
-                          className="w-10 h-10 rounded cursor-pointer"
+                          className="w-10 h-10 rounded-sm cursor-pointer"
                         />
                         <input
                           type="text"
                           value={options.backgroundColor}
                           onChange={(e) => setOptions(prev => ({ ...prev, backgroundColor: e.target.value }))}
-                          className="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -445,7 +445,7 @@ const ExportDialog = memo(({
               </div>
 
               {!flowViewport && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded text-sm">
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded-sm text-sm">
                   Diagram export requires the editor to be visible. Make sure you have a project open.
                 </div>
               )}
@@ -492,7 +492,7 @@ const ExportDialog = memo(({
                     {dataPreview.truncated && ' (showing first 15)'}
                   </span>
                 </div>
-                <pre className="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-x-auto max-h-48 overflow-y-auto font-mono whitespace-pre">
+                <pre className="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 p-3 rounded-sm overflow-x-auto max-h-48 overflow-y-auto font-mono whitespace-pre">
                   {dataPreview.preview}
                 </pre>
                 {dataPreview.truncated && (
@@ -567,7 +567,7 @@ const ExportDialog = memo(({
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-gray-800 dark:text-gray-100">{rpt.label}</span>
-                        <span className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded">
+                        <span className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-sm">
                           {rpt.format}
                         </span>
                       </div>
@@ -581,12 +581,12 @@ const ExportDialog = memo(({
               </div>
 
               {reportFormat === 'compliance-pdf' && !projectId && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 px-4 py-3 rounded text-sm">
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 px-4 py-3 rounded-sm text-sm">
                   The PDF compliance report requires the project to be saved first. Please save your project before generating the PDF report.
                 </div>
               )}
 
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded text-sm">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-sm text-sm">
                 Reports are generated based on your current project configuration. Make sure to validate your project before generating compliance reports.
               </div>
             </div>

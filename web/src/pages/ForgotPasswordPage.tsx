@@ -107,19 +107,19 @@ export default function ForgotPasswordPage({ onSwitchToLogin }: ForgotPasswordPa
           </p>
         </div>
 
-        <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-2xl p-8">
+        <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xs rounded-lg shadow-2xl p-8">
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
             {view === 'request' ? 'Forgot Password' : 'Reset Password'}
           </h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-sm text-red-700 dark:text-red-300 text-sm">
               {error}
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-300 text-sm">
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-sm text-green-700 dark:text-green-300 text-sm">
               {successMessage}
             </div>
           )}

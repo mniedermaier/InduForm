@@ -252,7 +252,7 @@ const SearchBox = memo(({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder="Search zones, conduits, assets..."
-          className="w-64 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+          className="w-64 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
         />
       </div>
 
@@ -305,7 +305,7 @@ const SearchBox = memo(({
                 <button
                   key={type}
                   onClick={() => toggleTypeFilter(type)}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                  className={`px-2 py-1 text-xs rounded-sm transition-colors ${
                     filters.types.includes(type)
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -327,7 +327,7 @@ const SearchBox = memo(({
                 <button
                   key={level}
                   onClick={() => toggleSecurityLevel(level)}
-                  className={`w-8 h-8 text-xs rounded flex items-center justify-center font-medium transition-colors ${
+                  className={`w-8 h-8 text-xs rounded-sm flex items-center justify-center font-medium transition-colors ${
                     filters.securityLevels.includes(level)
                       ? level === 1 ? 'bg-green-600 text-white' :
                         level === 2 ? 'bg-yellow-500 text-white' :
@@ -349,7 +349,7 @@ const SearchBox = memo(({
                 type="checkbox"
                 checked={filters.showOnlyWithAssets}
                 onChange={(e) => setFilters(prev => ({ ...prev, showOnlyWithAssets: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded-sm border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700 dark:text-gray-300">Only zones with assets</span>
             </label>
@@ -370,7 +370,7 @@ const SearchBox = memo(({
                 index === selectedIndex ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              <span className={`px-1.5 py-0.5 text-xs rounded ${
+              <span className={`px-1.5 py-0.5 text-xs rounded-sm ${
                 result.type === 'zone'
                   ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                   : result.type === 'conduit'

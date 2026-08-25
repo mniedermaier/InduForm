@@ -72,7 +72,7 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
       <NetworkBackground />
 
       {/* Header */}
-      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-10">
+      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs border-b border-gray-200 dark:border-slate-700/50 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -97,7 +97,7 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
             <button
               onClick={() => setFilter('all')}
               className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                filter === 'all' ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                filter === 'all' ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-xs' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               All ({templates.length})
@@ -105,7 +105,7 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
             <button
               onClick={() => setFilter('builtin')}
               className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                filter === 'builtin' ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                filter === 'builtin' ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-xs' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Built-in ({builtinCount})
@@ -113,7 +113,7 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
             <button
               onClick={() => setFilter('mine')}
               className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                filter === 'mine' ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
+                filter === 'mine' ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-xs' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               My Templates ({userCount})
@@ -141,7 +141,7 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
             {filteredTemplates.map(template => (
               <div
                 key={template.id}
-                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50 p-4 hover:border-gray-400 dark:hover:border-slate-600 transition-colors"
+                className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50 p-4 hover:border-gray-400 dark:hover:border-slate-600 transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -152,12 +152,12 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
                       <h3 className="font-medium text-gray-800 dark:text-slate-100">{template.name}</h3>
                       <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                         {template.is_builtin ? (
-                          <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded">Built-in</span>
+                          <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-sm">Built-in</span>
                         ) : (
                           <span>by {template.owner_username}</span>
                         )}
                         {template.is_public && !template.is_builtin && (
-                          <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded">Public</span>
+                          <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-sm">Public</span>
                         )}
                       </div>
                     </div>
@@ -167,7 +167,7 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setEditTemplate(template)}
-                        className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded"
+                        className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-sm"
                         title="Edit"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,7 +176,7 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(template.id)}
-                        className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded"
+                        className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-sm"
                         title="Delete"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,7 +283,7 @@ export default function TemplatesPage({ onBack }: TemplatesPageProps) {
                   name="is_public"
                   id="is_public"
                   defaultChecked={editTemplate.is_public}
-                  className="w-4 h-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-blue-600"
+                  className="w-4 h-4 rounded-sm border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-blue-600"
                 />
                 <label htmlFor="is_public" className="text-sm text-gray-600 dark:text-slate-300">
                   Make template public

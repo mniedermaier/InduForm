@@ -153,7 +153,7 @@ const RiskDashboard = memo(({ project, onClose }: RiskDashboardProps) => {
   const overallColors = assessment ? RISK_COLORS[assessment.overall_level] : RISK_COLORS.minimal;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">

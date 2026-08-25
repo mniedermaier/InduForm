@@ -594,7 +594,7 @@ function HtmlOverlays({ zones, dark }: { zones: Zone[]; dark: boolean }) {
     <>
       {/* Legend */}
       <div
-        className={`absolute bottom-4 left-4 rounded-lg px-3 py-2 text-xs pointer-events-none select-none backdrop-blur-sm ${
+        className={`absolute bottom-4 left-4 rounded-lg px-3 py-2 text-xs pointer-events-none select-none backdrop-blur-xs ${
           dark
             ? 'bg-gray-900/70 text-gray-300 border border-gray-700/50'
             : 'bg-white/70 text-gray-600 border border-gray-300/50'
@@ -604,7 +604,7 @@ function HtmlOverlays({ zones, dark }: { zones: Zone[]; dark: boolean }) {
         {tiers.map(([key, cfg]) => (
           <div key={key} className="flex items-center gap-2 py-0.5">
             <div
-              className="w-3 h-3 rounded-sm shadow-sm"
+              className="w-3 h-3 rounded-xs shadow-xs"
               style={{ backgroundColor: cfg.color, boxShadow: dark ? `0 0 6px ${cfg.color}40` : 'none' }}
             />
             <span>{cfg.label} <span className="opacity-50">L{cfg.level}</span></span>
@@ -614,7 +614,7 @@ function HtmlOverlays({ zones, dark }: { zones: Zone[]; dark: boolean }) {
 
       {/* Controls tip */}
       <div
-        className={`absolute bottom-4 right-4 rounded-lg px-3 py-2 text-xs pointer-events-none select-none backdrop-blur-sm ${
+        className={`absolute bottom-4 right-4 rounded-lg px-3 py-2 text-xs pointer-events-none select-none backdrop-blur-xs ${
           dark
             ? 'bg-gray-900/70 text-gray-500 border border-gray-700/50'
             : 'bg-white/70 text-gray-400 border border-gray-300/50'
@@ -756,7 +756,7 @@ const Zone3DEditor = memo(function Zone3DEditor(props: Zone3DEditorProps) {
         <Scene {...props} dark={dark} bgColor={bgColor} />
       </Canvas>
       <HtmlOverlays zones={props.project.zones} dark={dark} />
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-gray-800/80 text-gray-300 text-xs px-3 py-1.5 rounded-full backdrop-blur-sm pointer-events-none">
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-gray-800/80 text-gray-300 text-xs px-3 py-1.5 rounded-full backdrop-blur-xs pointer-events-none">
         3D View — Read Only
       </div>
     </div>

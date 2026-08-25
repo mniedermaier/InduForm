@@ -175,7 +175,7 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
                           {notification.title}
                         </span>
                         {!notification.is_read && (
-                          <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
+                          <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0"></span>
                         )}
                       </div>
                       {notification.message && (

@@ -199,7 +199,7 @@ const GlobalSearchDialog = memo(({ onClose, onNavigateToProject }: GlobalSearchD
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search zones, assets, conduits, projects..."
-            className="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 text-base focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           {loading && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -315,7 +315,7 @@ const GlobalSearchDialog = memo(({ onClose, onNavigateToProject }: GlobalSearchD
                       }`}
                     >
                       {/* Type icon */}
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${colors.bg}`}>
+                      <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${colors.bg}`}>
                         <svg className={`w-4 h-4 ${colors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TYPE_ICONS[result.type]} />
                         </svg>
@@ -327,7 +327,7 @@ const GlobalSearchDialog = memo(({ onClose, onNavigateToProject }: GlobalSearchD
                           <span className="text-sm font-medium text-gray-800 dark:text-slate-100 truncate">
                             {result.name}
                           </span>
-                          <span className={`px-1.5 py-0.5 text-xs rounded ${colors.bg} ${colors.text}`}>
+                          <span className={`px-1.5 py-0.5 text-xs rounded-sm ${colors.bg} ${colors.text}`}>
                             {result.type}
                           </span>
                         </div>
@@ -353,7 +353,7 @@ const GlobalSearchDialog = memo(({ onClose, onNavigateToProject }: GlobalSearchD
 
                       {/* Navigate indicator */}
                       {isSelected && (
-                        <div className="flex-shrink-0 self-center">
+                        <div className="shrink-0 self-center">
                           <svg className="w-4 h-4 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
@@ -371,19 +371,19 @@ const GlobalSearchDialog = memo(({ onClose, onNavigateToProject }: GlobalSearchD
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between text-xs text-gray-400 dark:text-slate-500">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded text-xs">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-sm text-xs">
                 Up/Down
               </kbd>
               navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded text-xs">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-sm text-xs">
                 Enter
               </kbd>
               open
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded text-xs">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-sm text-xs">
                 Esc
               </kbd>
               close

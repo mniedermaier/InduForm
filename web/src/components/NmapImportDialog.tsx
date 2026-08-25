@@ -238,7 +238,7 @@ const NmapImportDialog = memo(
           <div className="max-h-[calc(85vh-4rem)] flex flex-col">
           <div className="flex-1 overflow-y-auto p-4">
             {error && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-sm text-red-700 dark:text-red-300 text-sm">
                 {error}
               </div>
             )}
@@ -281,7 +281,7 @@ const NmapImportDialog = memo(
                         <div
                           key={scan.id}
                           onClick={() => loadScanDetails(scan.id)}
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                         >
                           <div>
                             <div className="font-medium text-gray-800 dark:text-gray-100">
@@ -341,7 +341,7 @@ const NmapImportDialog = memo(
                       return (
                         <div
                           key={item.host_id}
-                          className={`p-3 rounded border ${
+                          className={`p-3 rounded-sm border ${
                             item.selected
                               ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                               : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
@@ -394,7 +394,7 @@ const NmapImportDialog = memo(
                                         onChange={(e) =>
                                           updateImportItem(item.host_id, 'zone_id', e.target.value)
                                         }
-                                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700"
                                       >
                                         {zones.map((zone) => (
                                           <option key={zone.id} value={zone.id}>
@@ -416,7 +416,7 @@ const NmapImportDialog = memo(
                                             e.target.value
                                           )
                                         }
-                                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700"
                                       >
                                         <option value="plc">PLC</option>
                                         <option value="hmi">HMI</option>
@@ -444,7 +444,7 @@ const NmapImportDialog = memo(
                                       onChange={(e) =>
                                         updateImportItem(item.host_id, 'asset_name', e.target.value)
                                       }
-                                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700"
                                     />
                                   </div>
                                 </div>

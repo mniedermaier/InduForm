@@ -111,7 +111,7 @@ const ShareDialog = memo(({ projectId, projectName, isOwner, onClose }: ShareDia
 
         <div className="p-4 space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-sm text-red-700 dark:text-red-300 text-sm">
               {error}
             </div>
           )}
@@ -209,7 +209,7 @@ const ShareDialog = memo(({ projectId, projectName, isOwner, onClose }: ShareDia
                     {accessList.map((access) => (
                       <div
                         key={access.id}
-                        className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded"
+                        className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-sm"
                       >
                         <div>
                           <div className="text-sm font-medium text-gray-800 dark:text-gray-100">

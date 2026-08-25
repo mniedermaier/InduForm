@@ -115,7 +115,7 @@ export default function VersionHistoryPanel({
         </div>
         <button
           onClick={onClose}
-          className="p-1 text-slate-400 hover:text-white rounded"
+          className="p-1 text-slate-400 hover:text-white rounded-sm"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -132,7 +132,7 @@ export default function VersionHistoryPanel({
               placeholder="Version description (optional)"
               value={newVersionDescription}
               onChange={(e) => setNewVersionDescription(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex gap-2">
               <button
@@ -221,12 +221,12 @@ export default function VersionHistoryPanel({
                         Version {version.version_number}
                       </span>
                       {selectedVersion === version.id && (
-                        <span className="px-1.5 py-0.5 text-xs bg-blue-600 text-white rounded">
+                        <span className="px-1.5 py-0.5 text-xs bg-blue-600 text-white rounded-sm">
                           Selected
                         </span>
                       )}
                       {compareVersion === version.id && (
-                        <span className="px-1.5 py-0.5 text-xs bg-purple-600 text-white rounded">
+                        <span className="px-1.5 py-0.5 text-xs bg-purple-600 text-white rounded-sm">
                           Compare
                         </span>
                       )}
@@ -247,7 +247,7 @@ export default function VersionHistoryPanel({
                       handleRestore(version.id);
                     }}
                     disabled={restoring}
-                    className="px-2 py-1 text-xs bg-slate-600 text-slate-200 rounded hover:bg-slate-500 disabled:opacity-50"
+                    className="px-2 py-1 text-xs bg-slate-600 text-slate-200 rounded-sm hover:bg-slate-500 disabled:opacity-50"
                     title="Restore to this version"
                   >
                     Restore

@@ -147,11 +147,11 @@ function ToastItem({
       className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-slide-in ${typeStyles[toast.type]}`}
       role="alert"
     >
-      <span className="flex-shrink-0">{icons[toast.type]}</span>
+      <span className="shrink-0">{icons[toast.type]}</span>
       <span className="flex-1 text-sm font-medium">{toast.message}</span>
       <button
         onClick={() => onRemove(toast.id)}
-        className="flex-shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
+        className="shrink-0 p-1 rounded-sm hover:bg-white/20 transition-colors"
         aria-label="Dismiss"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

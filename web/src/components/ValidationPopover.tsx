@@ -115,11 +115,11 @@ const ValidationPopover = memo(({
         <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate">
           Issues for {entityName}
         </span>
-        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+        <div className="flex items-center gap-1 shrink-0 ml-2">
           {onEdit && (
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); onClose(); }}
-              className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
+              className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-sm hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
             >
               Edit
             </button>
@@ -140,7 +140,7 @@ const ValidationPopover = memo(({
           return (
             <div key={`v-${idx}`} className={`border-l-2 ${styles.border} pl-2 py-1`}>
               <div className="flex items-center gap-1.5">
-                <span className={`px-1.5 py-0 text-[10px] font-medium rounded ${styles.badge}`}>
+                <span className={`px-1.5 py-0 text-[10px] font-medium rounded-sm ${styles.badge}`}>
                   {result.severity.toUpperCase()}
                 </span>
                 <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400">{result.code}</span>
@@ -163,7 +163,7 @@ const ValidationPopover = memo(({
           return (
             <div key={`p-${idx}`} className={`border-l-2 ${styles.border} pl-2 py-1`}>
               <div className="flex items-center gap-1.5">
-                <span className={`px-1.5 py-0 text-[10px] font-medium rounded ${styles.badge}`}>
+                <span className={`px-1.5 py-0 text-[10px] font-medium rounded-sm ${styles.badge}`}>
                   {violation.severity.toUpperCase()}
                 </span>
                 <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400">{violation.rule_id}</span>

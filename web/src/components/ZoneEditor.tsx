@@ -904,7 +904,7 @@ function ZoneEditorInner({
             {Object.entries(ZONE_TYPE_CONFIG).map(([type, config]) => (
               <div key={type} className="flex items-center gap-2">
                 <div
-                  className="w-3 h-3 rounded"
+                  className="w-3 h-3 rounded-sm"
                   style={{ backgroundColor: config.color }}
                 />
                 <span>{config.label}</span>
@@ -916,7 +916,7 @@ function ZoneEditorInner({
             {Object.entries(SECURITY_LEVEL_CONFIG).map(([level, config]) => (
               <div key={level} className="flex items-center gap-2">
                 <div
-                  className="w-3 h-3 rounded"
+                  className="w-3 h-3 rounded-sm"
                   style={{ backgroundColor: config.bgColor }}
                 />
                 <span>{config.label}</span>

@@ -37,7 +37,7 @@ function RiskBadge({ score }: { score: number | null }) {
   else if (score >= 40) color = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
   else if (score >= 20) color = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium ${color}`}>
       {score.toFixed(0)}
     </span>
   );
@@ -427,7 +427,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
     <div className="h-screen relative bg-gray-50 dark:bg-slate-900 flex flex-col overflow-hidden">
       <NetworkBackground />
       {/* Header */}
-      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-20">
+      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs border-b border-gray-200 dark:border-slate-700/50 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -461,14 +461,14 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
 
       <main className="flex-1 min-h-0 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Tab navigation */}
-        <div className="flex-none flex gap-1 mb-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50 p-1">
+        <div className="flex-none flex gap-1 mb-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50 p-1">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700/50'
               }`}
             >
@@ -482,27 +482,27 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
           <div className="flex-1 min-h-0 overflow-y-auto">
             {stats && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_users}</div>
                   <div className="text-sm text-gray-500 dark:text-slate-400">Total Users</div>
                 </div>
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
                   <div className="text-2xl font-bold text-green-500">{stats.active_users}</div>
                   <div className="text-sm text-gray-500 dark:text-slate-400">Active Users</div>
                 </div>
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
                   <div className="text-2xl font-bold text-blue-500">{stats.total_projects}</div>
                   <div className="text-sm text-gray-500 dark:text-slate-400">Projects</div>
                 </div>
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
                   <div className="text-2xl font-bold text-cyan-400">{stats.total_zones}</div>
                   <div className="text-sm text-gray-500 dark:text-slate-400">Zones</div>
                 </div>
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
                   <div className="text-2xl font-bold text-amber-400">{stats.total_assets}</div>
                   <div className="text-sm text-gray-500 dark:text-slate-400">Assets</div>
                 </div>
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
                   <div className="text-2xl font-bold text-purple-400">{stats.total_conduits}</div>
                   <div className="text-sm text-gray-500 dark:text-slate-400">Conduits</div>
                 </div>
@@ -510,7 +510,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
             )}
 
             {/* Recent activity feed */}
-            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50">
               <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
               </div>
@@ -522,7 +522,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                 <div className="divide-y divide-gray-100 dark:divide-slate-700/50 max-h-96 overflow-y-auto">
                   {activities.slice(0, 20).map(a => (
                     <div key={a.id} className="px-4 py-3 flex items-start gap-3 text-sm">
-                      <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0 mt-0.5">
+                      <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium shrink-0 mt-0.5">
                         {a.username.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -536,7 +536,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                           <span className="text-gray-400 dark:text-slate-500"> in {a.project_name}</span>
                         )}
                       </div>
-                      <span className="text-xs text-gray-400 dark:text-slate-500 flex-shrink-0">
+                      <span className="text-xs text-gray-400 dark:text-slate-500 shrink-0">
                         {formatDateTime(a.created_at)}
                       </span>
                     </div>
@@ -557,18 +557,18 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                 {/* Health cards */}
                 {health && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+                    <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
                       <div className="text-sm text-gray-500 dark:text-slate-400 mb-1">Database</div>
                       <div className={`text-lg font-bold ${health.db_status === 'ok' ? 'text-green-500' : 'text-red-500'}`}>
                         {health.db_status === 'ok' ? 'Connected' : 'Error'}
                       </div>
                     </div>
-                    <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+                    <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
                       <div className="text-sm text-gray-500 dark:text-slate-400 mb-1">Uptime</div>
                       <div className="text-lg font-bold text-gray-900 dark:text-white">{formatUptime(health.uptime_seconds)}</div>
                     </div>
                     {Object.entries(health.table_counts).map(([table, count]) => (
-                      <div key={table} className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+                      <div key={table} className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
                         <div className="text-sm text-gray-500 dark:text-slate-400 mb-1 capitalize">{table.replace('_', ' ')}</div>
                         <div className="text-lg font-bold text-gray-900 dark:text-white">{count.toLocaleString()}</div>
                       </div>
@@ -577,7 +577,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                 )}
 
                 {/* Active sessions */}
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50">
                   <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Active Sessions</h2>
                   </div>
@@ -599,7 +599,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                             <tr key={s.user_id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                                  <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium shrink-0">
                                     {(s.display_name || s.username).slice(0, 2).toUpperCase()}
                                   </div>
                                   <div>
@@ -612,7 +612,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                                 {s.last_login_at ? formatDateTime(s.last_login_at) : 'Never'}
                               </td>
                               <td className="px-4 py-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium ${
                                   s.is_active
                                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                                     : 'bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400'
@@ -624,7 +624,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                                 <button
                                   onClick={() => handleForceLogout(s.user_id, s.username)}
                                   disabled={s.user_id === user?.id}
-                                  className="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-sm disabled:opacity-40 disabled:cursor-not-allowed"
                                   title="Force logout"
                                 >
                                   Force Logout
@@ -639,7 +639,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                 </div>
 
                 {/* Login history */}
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50">
                   <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Login History</h2>
                   </div>
@@ -663,7 +663,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                               <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-slate-100">{attempt.username_attempted}</td>
                               <td className="px-4 py-3 text-sm text-gray-500 dark:text-slate-400 hidden sm:table-cell font-mono">{attempt.ip_address || '-'}</td>
                               <td className="px-4 py-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium ${
                                   attempt.success
                                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                                     : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
@@ -689,7 +689,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
 
         {/* Users tab */}
         {activeTab === 'users' && (
-          <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+          <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50">
             <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">User Management</h2>
@@ -702,28 +702,28 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                   <button
                     onClick={() => handleBulkUpdate({ is_active: true })}
                     disabled={bulkUpdating}
-                    className="px-2 py-1 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-50"
+                    className="px-2 py-1 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-sm hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-50"
                   >
                     Activate
                   </button>
                   <button
                     onClick={() => handleBulkUpdate({ is_active: false })}
                     disabled={bulkUpdating}
-                    className="px-2 py-1 text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50"
+                    className="px-2 py-1 text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-sm hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50"
                   >
                     Deactivate
                   </button>
                   <button
                     onClick={() => handleBulkUpdate({ is_admin: true })}
                     disabled={bulkUpdating}
-                    className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 disabled:opacity-50"
+                    className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-sm hover:bg-purple-200 dark:hover:bg-purple-900/50 disabled:opacity-50"
                   >
                     Make Admin
                   </button>
                   <button
                     onClick={() => handleBulkUpdate({ is_admin: false })}
                     disabled={bulkUpdating}
-                    className="px-2 py-1 text-xs bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300 rounded hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-50"
+                    className="px-2 py-1 text-xs bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300 rounded-sm hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-50"
                   >
                     Remove Admin
                   </button>
@@ -742,14 +742,14 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
             ) : (
               <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full">
-                  <thead className="sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm z-10">
+                  <thead className="sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs z-10">
                     <tr className="border-b border-gray-200 dark:border-slate-700/50">
                       <th className="px-4 py-3 text-center w-10">
                         <input
                           type="checkbox"
                           checked={selectedUsers.size > 0 && selectedUsers.size === filteredUsers.filter(u => u.id !== user?.id).length}
                           onChange={toggleSelectAll}
-                          className="rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                          className="rounded-sm border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
                           aria-label="Select all users"
                         />
                       </th>
@@ -781,13 +781,13 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                               checked={isSelected}
                               disabled={isSelf}
                               onChange={() => toggleUserSelection(u.id)}
-                              className="rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 disabled:opacity-40"
+                              className="rounded-sm border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 disabled:opacity-40"
                               aria-label={`Select ${u.username}`}
                             />
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium shrink-0">
                                 {(u.display_name || u.username).slice(0, 2).toUpperCase()}
                               </div>
                               <div>
@@ -866,7 +866,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
 
         {/* Projects tab */}
         {activeTab === 'projects' && (
-          <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+          <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50">
             <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">All Projects</h2>
@@ -879,7 +879,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
             ) : (
               <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full">
-                  <thead className="sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm z-10">
+                  <thead className="sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs z-10">
                     <tr className="border-b border-gray-200 dark:border-slate-700/50">
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Name</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider hidden md:table-cell">Owner</th>
@@ -903,7 +903,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                           <div className="text-sm font-medium text-gray-800 dark:text-slate-100">
                             {p.name}
                             {p.is_archived && (
-                              <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">Archived</span>
+                              <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-sm">Archived</span>
                             )}
                           </div>
                           {p.description && (
@@ -923,7 +923,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                                 <select
                                   value={transferTargetId}
                                   onChange={(e) => setTransferTargetId(e.target.value)}
-                                  className="text-xs border border-gray-300 dark:border-slate-600 rounded px-1 py-1 bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200"
+                                  className="text-xs border border-gray-300 dark:border-slate-600 rounded-sm px-1 py-1 bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200"
                                 >
                                   <option value="">Select user...</option>
                                   {users.filter(u => u.id !== p.owner_id && u.is_active).map(u => (
@@ -933,13 +933,13 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                                 <button
                                   onClick={() => handleTransferProject(p.id)}
                                   disabled={!transferTargetId}
-                                  className="px-2 py-1 text-xs text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:opacity-40"
+                                  className="px-2 py-1 text-xs text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-sm disabled:opacity-40"
                                 >
                                   Confirm
                                 </button>
                                 <button
                                   onClick={() => { setTransferringProject(null); setTransferTargetId(''); }}
-                                  className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 rounded"
+                                  className="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-sm"
                                 >
                                   Cancel
                                 </button>
@@ -948,21 +948,21 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                               <>
                                 <button
                                   onClick={() => setTransferringProject(p.id)}
-                                  className="px-2 py-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                                  className="px-2 py-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-sm"
                                   title="Transfer ownership"
                                 >
                                   Transfer
                                 </button>
                                 <button
                                   onClick={() => handleArchiveProject(p.id, !p.is_archived)}
-                                  className="px-2 py-1 text-xs text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded"
+                                  className="px-2 py-1 text-xs text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-sm"
                                   title={p.is_archived ? 'Unarchive' : 'Archive'}
                                 >
                                   {p.is_archived ? 'Unarchive' : 'Archive'}
                                 </button>
                                 <button
                                   onClick={() => handleDeleteProject(p.id, p.name)}
-                                  className="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                                  className="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-sm"
                                   title="Delete"
                                 >
                                   Delete
@@ -1004,13 +1004,13 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
 
         {/* Activity tab */}
         {activeTab === 'activity' && (
-          <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+          <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50">
             <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Activity Log</h2>
                   {activityUserFilter && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                       Filtered by user
                       <button
                         onClick={() => setActivityUserFilter('')}
@@ -1045,7 +1045,7 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
             ) : (
               <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full">
-                  <thead className="sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm z-10">
+                  <thead className="sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xs z-10">
                     <tr className="border-b border-gray-200 dark:border-slate-700/50">
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">User</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">Action</th>
@@ -1059,14 +1059,14 @@ const AdminPage = memo(({ onBackToProjects, onOpenTeamManagement }: AdminPagePro
                       <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-medium shrink-0">
                               {a.username.slice(0, 2).toUpperCase()}
                             </div>
                             <span className="text-sm font-medium text-gray-800 dark:text-slate-100">{a.username}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300">
                             {a.action}
                           </span>
                         </td>
@@ -1134,7 +1134,7 @@ function SearchInput({ value, onChange, placeholder }: { value: string; onChange
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-400 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
       />
       {value && (
         <button
@@ -1171,13 +1171,13 @@ function ToggleSwitch({ checked, disabled, color, ariaLabel, onChange }: {
     <button
       onClick={onChange}
       disabled={disabled}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
         checked ? activeColor : 'bg-gray-300 dark:bg-slate-600'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       aria-label={ariaLabel}
     >
       <span
-        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
           checked ? 'translate-x-5' : 'translate-x-0'
         }`}
       />

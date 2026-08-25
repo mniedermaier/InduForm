@@ -54,7 +54,7 @@ const TabBar = memo(({
             <button
               onClick={(e) => handleClose(e, tab.id)}
               className={`
-                p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors
+                p-1 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors
                 ${tab.hasChanges ? 'text-orange-500' : 'text-gray-400'}
                 opacity-0 group-hover:opacity-100
                 ${activeTabId === tab.id ? 'opacity-100' : ''}
@@ -72,7 +72,7 @@ const TabBar = memo(({
       {/* Add tab button */}
       <button
         onClick={onAddTab}
-        className="flex items-center justify-center w-8 h-8 mx-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+        className="flex items-center justify-center w-8 h-8 mx-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-sm transition-colors"
         title="Open project"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

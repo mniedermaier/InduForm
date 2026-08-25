@@ -67,7 +67,7 @@ function StandardBadge({ standardId }: { standardId: ComplianceStandard }) {
   if (!std) return null;
   return (
     <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded-sm"
       style={{ backgroundColor: std.color + '20', color: std.color }}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: std.color }} />
@@ -115,15 +115,15 @@ const ComplianceSettingsDialog = memo(({
             </h3>
             <div className="space-y-2">
               {activeChecks.map(check => (
-                <div key={check.code} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded ${severityColors[check.severity]}`}>
+                <div key={check.code} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-sm">
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-sm ${severityColors[check.severity]}`}>
                     {check.severity.toUpperCase()}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-gray-800 dark:text-gray-100">{check.name}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{check.description}</div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
+                  <div className="flex gap-1 shrink-0">
                     {check.standards.map(s => (
                       <StandardBadge key={s} standardId={s} />
                     ))}
@@ -140,8 +140,8 @@ const ComplianceSettingsDialog = memo(({
             </h3>
             <div className="space-y-2">
               {activeRules.map(rule => (
-                <div key={rule.id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded ${severityColors[rule.severity]}`}>
+                <div key={rule.id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-sm">
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-sm ${severityColors[rule.severity]}`}>
                     {rule.severity.toUpperCase()}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -151,7 +151,7 @@ const ComplianceSettingsDialog = memo(({
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{rule.description}</div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
+                  <div className="flex gap-1 shrink-0">
                     {rule.standards.map(s => (
                       <StandardBadge key={s} standardId={s} />
                     ))}
@@ -169,14 +169,14 @@ const ComplianceSettingsDialog = memo(({
               </h3>
               <div className="space-y-2 opacity-50">
                 {inactiveChecks.map(check => (
-                  <div key={check.code} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                    <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400">
+                  <div key={check.code} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-sm">
+                    <span className="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400">
                       {check.severity.toUpperCase()}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-gray-500 dark:text-gray-400">{check.name}</div>
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
+                    <div className="flex gap-1 shrink-0">
                       {check.standards.map(s => (
                         <StandardBadge key={s} standardId={s} />
                       ))}
@@ -184,8 +184,8 @@ const ComplianceSettingsDialog = memo(({
                   </div>
                 ))}
                 {inactiveRules.map(rule => (
-                  <div key={rule.id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                    <span className="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400">
+                  <div key={rule.id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-sm">
+                    <span className="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400">
                       {rule.severity.toUpperCase()}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -194,7 +194,7 @@ const ComplianceSettingsDialog = memo(({
                         {rule.name}
                       </div>
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
+                    <div className="flex gap-1 shrink-0">
                       {rule.standards.map(s => (
                         <StandardBadge key={s} standardId={s} />
                       ))}
@@ -213,7 +213,7 @@ const ComplianceSettingsDialog = memo(({
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600"
           >
             Close
           </button>
