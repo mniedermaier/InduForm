@@ -2,7 +2,7 @@
 # Multi-stage build for Python backend and React frontend
 
 # Stage 1: Build React frontend
-FROM node:25-slim AS frontend-builder
+FROM node:26-slim AS frontend-builder
 
 WORKDIR /app/web
 
