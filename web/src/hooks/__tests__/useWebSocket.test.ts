@@ -51,8 +51,9 @@ describe('useProjectWebSocket', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    // vitest 4 requires a `function`/`class` implementation for mocks invoked with `new`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).WebSocket = vi.fn((url: string) => {
+    (globalThis as any).WebSocket = vi.fn(function (url: string) {
       mockWs = new MockWebSocket(url);
       return mockWs;
     });
