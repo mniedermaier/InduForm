@@ -37,7 +37,7 @@
     "@types/dagre": "^0.7.54",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.169.0",
+    "@types/three": "^0.184.0",
     "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^4.1.6",
     "eslint": "^9.39.4",

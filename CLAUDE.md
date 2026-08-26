@@ -117,8 +117,9 @@ Route `/ws/projects/{project_id}` with token as query param. Connection manager 
 - **ReactFlow edges**: never set `loading=true` in `useProject.reload()` — unmounts ReactFlowProvider. Keep `selectionOnDrag={false}`.
 - **slowapi**: rate-limited endpoints need `request: Request` as first param; rename body to `body` if conflict
 - **Tests**: `conftest.py` sets `INDUFORM_RATE_LIMIT_ENABLED=false` before app import
-- **ESLint**: `.eslintrc.cjs` (ESLint 8); `--max-warnings 0` means warnings fail CI
+- **ESLint**: `web/eslint.config.js` (flat config, ESLint 9); `--max-warnings 0` means warnings fail CI
 - **mypy**: strict mode, `continue-on-error` in CI (pre-existing errors)
+- **Tailwind v4**: no `tailwind.config.js` — sources are auto-detected and `darkMode: 'class'` is `@custom-variant dark` in `web/src/index.css`. That file also holds a v3 compatibility layer (border colour, placeholder colour, button cursor, and an `@theme` block pinning the v3 line-heights); removing it changes rendering.
 - **Vite env types**: `web/src/vite-env.d.ts` must exist for `import.meta.env` to type-check
 - **Demo mode**: `VITE_DEMO_MODE` is build-time only; never check it at runtime outside `import.meta.env`
 - **Canvas animations**: `ParticleBackground` and `NetworkBackground` must skip frames when `document.hidden` (Page Visibility API). Never allocate per-frame (no regex, no `createRadialGradient`, no `new Array` in render loops). Pre-compute colors at init time.
