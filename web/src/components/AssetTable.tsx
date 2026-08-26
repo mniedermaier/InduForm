@@ -124,7 +124,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
   const canEdit = !!onUpdateAsset && !!onDeleteAsset && !!onAddAsset;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl mx-4 max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -146,12 +146,12 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
             placeholder="Search assets..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 w-64"
+            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-sm text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 w-64"
           />
           <select
             value={filterZone}
             onChange={(e) => setFilterZone(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-sm text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="">All Zones</option>
             {project.zones.map(zone => (
@@ -161,7 +161,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-sm text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="">All Types</option>
             {ASSET_TYPES.filter(t => stats.byType[t] > 0).map(type => (
@@ -172,7 +172,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
           {projectId && (
             <button
               onClick={handleExportCsv}
-              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-1"
+              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-sm text-sm hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center gap-1"
               aria-label="Export CSV"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +184,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
           {canEdit && (
             <button
               onClick={() => setShowAddForm(true)}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 flex items-center gap-1"
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-sm text-sm hover:bg-blue-700 flex items-center gap-1"
             >
               <span>+</span> Add Asset
             </button>
@@ -226,7 +226,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
                     <td className="px-4 py-2 font-mono text-xs text-gray-600 dark:text-gray-400">{asset.id}</td>
                     <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">{asset.name}</td>
                     <td className="px-4 py-2">
-                      <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-600 rounded text-xs text-gray-700 dark:text-gray-300">
+                      <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-600 rounded-sm text-xs text-gray-700 dark:text-gray-300">
                         {asset.type}
                       </span>
                     </td>
@@ -237,7 +237,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
                     <td className="px-4 py-2 text-gray-600 dark:text-gray-400">{asset.model || '-'}</td>
                     <td className="px-4 py-2 text-center">
                       {asset.criticality ? (
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${
                           asset.criticality >= 4 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
                           asset.criticality >= 3 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
                           'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-300'
@@ -251,7 +251,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => setEditingAsset({ zoneId: zone.id, asset })}
-                            className="p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded"
+                            className="p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-sm"
                             aria-label={`Edit asset ${asset.name}`}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,7 +264,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
                                 onDeleteAsset(zone.id, asset.id);
                               }
                             }}
-                            className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
+                            className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-sm"
                             aria-label={`Delete asset ${asset.name}`}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,7 +287,7 @@ const AssetTable = memo(({ project, projectId, onClose, onUpdateAsset, onDeleteA
         <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600"
           >
             Close
           </button>
@@ -336,11 +336,11 @@ const AssetEditModal = memo(({
     onSave(form);
   };
 
-  const inputClass = "w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
+  const inputClass = "w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-sm text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
   const labelClass = "block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Edit Asset</h3>
@@ -504,13 +504,13 @@ const AssetEditModal = memo(({
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+              className="px-4 py-2 text-white bg-blue-600 rounded-sm hover:bg-blue-700"
             >
               Save Changes
             </button>
@@ -594,18 +594,18 @@ const AssetAddModal = memo(({
     });
   };
 
-  const inputClass = "w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
+  const inputClass = "w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-sm text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
   const labelClass = "block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Add New Asset</h3>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-3 py-2 rounded text-sm">
+            <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-3 py-2 rounded-sm text-sm">
               {error}
             </div>
           )}
@@ -778,13 +778,13 @@ const AssetAddModal = memo(({
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+              className="px-4 py-2 text-white bg-blue-600 rounded-sm hover:bg-blue-700"
             >
               Add Asset
             </button>

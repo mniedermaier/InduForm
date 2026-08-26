@@ -399,7 +399,7 @@ export default function AnalyticsPanel({ projectId, onClose }: AnalyticsPanelPro
                 onClick={() => setTimeRange(days)}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
                   timeRange === days
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-xs'
                     : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >

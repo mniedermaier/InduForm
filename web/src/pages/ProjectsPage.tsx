@@ -506,7 +506,7 @@ export default function ProjectsPage({
     <div className="h-screen relative bg-gray-50 dark:bg-slate-900 flex flex-col overflow-hidden">
       <NetworkBackground />
       {/* Header */}
-      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-20">
+      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs border-b border-gray-200 dark:border-slate-700/50 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -553,27 +553,27 @@ export default function ProjectsPage({
       <main className="flex-1 min-h-0 flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
             <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalProjects}</div>
             <div className="text-sm text-gray-500 dark:text-slate-400">Projects</div>
           </div>
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
             <div className="text-2xl font-bold text-purple-400">{stats.ownedProjects}</div>
             <div className="text-sm text-gray-500 dark:text-slate-400">Owned</div>
           </div>
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
             <div className="text-2xl font-bold text-cyan-400">{stats.totalZones}</div>
             <div className="text-sm text-gray-500 dark:text-slate-400">Zones</div>
           </div>
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
             <div className="text-2xl font-bold text-blue-400">{stats.totalConduits}</div>
             <div className="text-sm text-gray-500 dark:text-slate-400">Conduits</div>
           </div>
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
             <div className="text-2xl font-bold text-amber-400">{stats.totalAssets}</div>
             <div className="text-sm text-gray-500 dark:text-slate-400">Assets</div>
           </div>
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
             <div className="flex items-center gap-2">
               <div className={`text-2xl font-bold ${
                 stats.avgCompliance === null ? 'text-gray-400 dark:text-slate-500' :
@@ -615,7 +615,7 @@ export default function ProjectsPage({
 
         {/* Risk Overview */}
         {hasRiskData && (
-          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50 mb-8">
+          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50 mb-8">
             <h3 className="text-sm font-medium text-gray-600 dark:text-slate-300 mb-3">Risk Overview</h3>
             <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
               {riskStats.critical > 0 && (
@@ -653,7 +653,7 @@ export default function ProjectsPage({
         )}
 
         {/* Projects Section */}
-        <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50">
+        <div className="flex-1 min-h-0 flex flex-col bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50">
           <div className="p-4 border-b border-gray-200 dark:border-slate-700/50">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-4 flex-wrap">
@@ -665,7 +665,7 @@ export default function ProjectsPage({
                     onClick={() => setFilter('all')}
                     className={`px-3 py-1 text-sm rounded-md transition-colors ${
                       filter === 'all'
-                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
+                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-xs'
                         : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
@@ -675,7 +675,7 @@ export default function ProjectsPage({
                     onClick={() => setFilter('owned')}
                     className={`px-3 py-1 text-sm rounded-md transition-colors ${
                       filter === 'owned'
-                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
+                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-xs'
                         : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
@@ -685,7 +685,7 @@ export default function ProjectsPage({
                     onClick={() => setFilter('shared')}
                     className={`px-3 py-1 text-sm rounded-md transition-colors ${
                       filter === 'shared'
-                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
+                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-xs'
                         : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
@@ -695,7 +695,7 @@ export default function ProjectsPage({
                     onClick={() => setFilter('archived')}
                     className={`px-3 py-1 text-sm rounded-md transition-colors ${
                       filter === 'archived'
-                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
+                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-xs'
                         : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
@@ -727,7 +727,7 @@ export default function ProjectsPage({
                   placeholder="Search projects..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-400 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />
                 {searchQuery && (
                   <button
@@ -752,7 +752,7 @@ export default function ProjectsPage({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <span className="hidden sm:inline">Search All</span>
-                  <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-gray-200 dark:bg-slate-600 border border-gray-300 dark:border-slate-500 rounded text-xs text-gray-500 dark:text-slate-400">
+                  <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-gray-200 dark:bg-slate-600 border border-gray-300 dark:border-slate-500 rounded-sm text-xs text-gray-500 dark:text-slate-400">
                     Ctrl+K
                   </kbd>
                 </button>
@@ -772,7 +772,7 @@ export default function ProjectsPage({
                 </svg>
                 Filters
                 {(riskFilter.length > 0 || complianceFilter !== 'all') && (
-                  <span className="px-1.5 py-0.5 bg-white/20 rounded text-xs">
+                  <span className="px-1.5 py-0.5 bg-white/20 rounded-sm text-xs">
                     {riskFilter.length + (complianceFilter !== 'all' ? 1 : 0)}
                   </span>
                 )}
@@ -811,7 +811,7 @@ export default function ProjectsPage({
                     <button
                       onClick={() => handleBulkOperation('archive')}
                       disabled={bulkLoading}
-                      className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded hover:bg-gray-300 dark:hover:bg-slate-600 disabled:opacity-50 flex items-center gap-1"
+                      className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-sm hover:bg-gray-300 dark:hover:bg-slate-600 disabled:opacity-50 flex items-center gap-1"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -822,7 +822,7 @@ export default function ProjectsPage({
                     <button
                       onClick={() => handleBulkOperation('restore')}
                       disabled={bulkLoading}
-                      className="px-3 py-1.5 text-sm bg-green-700 text-white rounded hover:bg-green-600 disabled:opacity-50 flex items-center gap-1"
+                      className="px-3 py-1.5 text-sm bg-green-700 text-white rounded-sm hover:bg-green-600 disabled:opacity-50 flex items-center gap-1"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -833,7 +833,7 @@ export default function ProjectsPage({
                   <button
                     onClick={() => handleBulkOperation('delete')}
                     disabled={bulkLoading}
-                    className="px-3 py-1.5 text-sm bg-red-700 text-white rounded hover:bg-red-600 disabled:opacity-50 flex items-center gap-1"
+                    className="px-3 py-1.5 text-sm bg-red-700 text-white rounded-sm hover:bg-red-600 disabled:opacity-50 flex items-center gap-1"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -980,7 +980,7 @@ export default function ProjectsPage({
                         }}
                         className="pt-0.5"
                       >
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                        <div className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center cursor-pointer transition-colors ${
                           selectedProjects.has(project.id)
                             ? 'bg-blue-600 border-blue-600'
                             : 'border-gray-300 dark:border-slate-500 hover:border-gray-400 dark:hover:border-slate-400'
@@ -1024,7 +1024,7 @@ export default function ProjectsPage({
                           <span>Owner: {project.owner_username}</span>
                         )}
                         {project.is_archived && (
-                          <span className="px-1.5 py-0.5 bg-gray-200 dark:bg-slate-600 text-gray-600 dark:text-slate-300 rounded text-xs">Archived</span>
+                          <span className="px-1.5 py-0.5 bg-gray-200 dark:bg-slate-600 text-gray-600 dark:text-slate-300 rounded-sm text-xs">Archived</span>
                         )}
                       </div>
                       </div>
@@ -1038,7 +1038,7 @@ export default function ProjectsPage({
                             e.stopPropagation();
                             setOpenMenuId(openMenuId === project.id ? null : project.id);
                           }}
-                          className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded"
+                          className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-600/50 rounded-sm"
                           title="Project options"
                         >
                           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -1318,7 +1318,7 @@ export default function ProjectsPage({
                   type="checkbox"
                   name="isPublic"
                   id="isPublic"
-                  className="w-4 h-4 rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded-sm border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-blue-600 focus:ring-blue-500"
                 />
                 <label htmlFor="isPublic" className="text-sm text-gray-600 dark:text-slate-300">
                   Make template public (visible to all users)

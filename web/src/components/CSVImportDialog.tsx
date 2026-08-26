@@ -354,7 +354,7 @@ const CSVImportDialog = memo(({
           </div>
 
           {/* Expected format */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded p-3">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-sm p-3">
             <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Expected CSV Format:</div>
             <code className="text-xs text-gray-500 dark:text-gray-400 block overflow-x-auto">
               {importType === 'zones' ? ZONE_CSV_HEADER : ASSET_CSV_HEADER}
@@ -362,7 +362,7 @@ const CSVImportDialog = memo(({
           </div>
 
           {/* Example */}
-          <details className="bg-blue-50 dark:bg-blue-900/20 rounded p-3">
+          <details className="bg-blue-50 dark:bg-blue-900/20 rounded-sm p-3">
             <summary className="text-xs font-medium text-blue-600 dark:text-blue-400 cursor-pointer">
               Show example CSV
             </summary>
@@ -382,7 +382,7 @@ const CSVImportDialog = memo(({
               onChange={handleFileUpload}
               className="block w-full text-sm text-gray-500 dark:text-gray-400
                 file:mr-4 file:py-2 file:px-4
-                file:rounded file:border-0
+                file:rounded-sm file:border-0
                 file:text-sm file:font-semibold
                 file:bg-blue-50 file:text-blue-700
                 dark:file:bg-blue-900 dark:file:text-blue-300
@@ -405,7 +405,7 @@ const CSVImportDialog = memo(({
               rows={6}
               placeholder={importType === 'zones' ? ZONE_EXAMPLE : ASSET_EXAMPLE}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md
-                focus:outline-none focus:ring-2 focus:ring-blue-500
+                focus:outline-hidden focus:ring-2 focus:ring-blue-500
                 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200
                 font-mono text-sm"
             />
@@ -415,14 +415,14 @@ const CSVImportDialog = memo(({
           <button
             onClick={validateAndPreview}
             disabled={!csvContent.trim()}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
           >
             Validate CSV
           </button>
 
           {/* Error display */}
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-3">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-sm p-3">
               <div className="font-medium text-red-800 dark:text-red-300 text-sm">Validation Errors</div>
               <pre className="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap mt-1">{error}</pre>
             </div>
@@ -430,7 +430,7 @@ const CSVImportDialog = memo(({
 
           {/* Preview */}
           {preview && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-3">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-sm p-3">
               <div className="font-medium text-green-800 dark:text-green-300 text-sm mb-2">
                 Ready to Import
               </div>
@@ -452,14 +452,14 @@ const CSVImportDialog = memo(({
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600"
           >
             Cancel
           </button>
           <button
             onClick={handleImport}
             disabled={!preview}
-            className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-white bg-blue-600 rounded-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Import
           </button>

@@ -61,7 +61,7 @@ const EditableField = memo(({
       <div>
         <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{label}</label>
         <div
-          className="text-sm text-gray-800 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded px-1 py-0.5 -mx-1 border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+          className="text-sm text-gray-800 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded-sm px-1 py-0.5 -mx-1 border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
           onClick={() => { setEditValue(value); setEditing(true); }}
           title="Click to edit"
         >
@@ -81,7 +81,7 @@ const EditableField = memo(({
           onChange={(e) => { setEditValue(e.target.value); onSave(e.target.value); setEditing(false); }}
           onBlur={handleCancel}
           onKeyDown={handleKeyDown}
-          className="w-full text-sm border border-blue-400 dark:border-blue-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full text-sm border border-blue-400 dark:border-blue-600 rounded-sm px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
         >
           {options.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -102,7 +102,7 @@ const EditableField = memo(({
           onBlur={handleSave}
           onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }}
           rows={2}
-          className="w-full text-sm border border-blue-400 dark:border-blue-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full text-sm border border-blue-400 dark:border-blue-600 rounded-sm px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
         />
       </div>
     );
@@ -118,7 +118,7 @@ const EditableField = memo(({
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
-        className="w-full text-sm border border-blue-400 dark:border-blue-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="w-full text-sm border border-blue-400 dark:border-blue-600 rounded-sm px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
       />
     </div>
   );
@@ -448,7 +448,7 @@ const PropertiesPanel = memo(({
                   <button
                     key={sl}
                     onClick={() => onBulkUpdateZones(multiSelectedZoneIds, { security_level_target: sl })}
-                    className="px-3 py-1 text-xs font-bold rounded"
+                    className="px-3 py-1 text-xs font-bold rounded-sm"
                     style={{
                       backgroundColor: SECURITY_LEVEL_CONFIG[sl]?.bgColor,
                       color: SECURITY_LEVEL_CONFIG[sl]?.color,
@@ -467,7 +467,7 @@ const PropertiesPanel = memo(({
                   onBulkDeleteZones(multiSelectedZoneIds);
                 }
               }}
-              className="w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
+              className="w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-sm hover:bg-red-100 dark:hover:bg-red-900/50"
             >
               Delete {multiSelectedZoneIds.length} Zones
             </button>
@@ -480,7 +480,7 @@ const PropertiesPanel = memo(({
         <div className="p-4 space-y-4">
           {/* Remote editor warning */}
           {remoteEditors?.has(selectedZone.id) && (
-            <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded p-2 text-xs text-purple-700 dark:text-purple-300">
+            <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-sm p-2 text-xs text-purple-700 dark:text-purple-300">
               {remoteEditors.get(selectedZone.id)} is also viewing this zone
             </div>
           )}
@@ -509,7 +509,7 @@ const PropertiesPanel = memo(({
             <div>
               <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Type</label>
               <span
-                className="inline-block px-2 py-1 rounded text-xs font-medium text-white"
+                className="inline-block px-2 py-1 rounded-sm text-xs font-medium text-white"
                 style={{ backgroundColor: ZONE_TYPE_CONFIG[selectedZone.type].color }}
               >
                 {ZONE_TYPE_CONFIG[selectedZone.type].label}
@@ -529,7 +529,7 @@ const PropertiesPanel = memo(({
             <div>
               <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Security Level Target</label>
               <span
-                className="inline-block px-2 py-1 rounded text-xs font-bold"
+                className="inline-block px-2 py-1 rounded-sm text-xs font-bold"
                 style={{
                   backgroundColor: SECURITY_LEVEL_CONFIG[selectedZone.security_level_target].bgColor,
                   color: SECURITY_LEVEL_CONFIG[selectedZone.security_level_target].color,
@@ -575,7 +575,7 @@ const PropertiesPanel = memo(({
                 {selectedZone.assets.map((asset) => (
                   <div
                     key={asset.id}
-                    className="bg-gray-50 dark:bg-gray-700 rounded p-2 text-sm group"
+                    className="bg-gray-50 dark:bg-gray-700 rounded-sm p-2 text-sm group"
                   >
                     <div className="flex items-start justify-between">
                       <div>
@@ -628,7 +628,7 @@ const PropertiesPanel = memo(({
               {onEditZone && (
                 <button
                   onClick={() => onEditZone(selectedZone)}
-                  className="w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                  className="w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-sm hover:bg-blue-100 dark:hover:bg-blue-900/50"
                 >
                   Edit Zone
                 </button>
@@ -640,7 +640,7 @@ const PropertiesPanel = memo(({
                       onDeleteZone(selectedZone.id);
                     }
                   }}
-                  className="w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
+                  className="w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-sm hover:bg-red-100 dark:hover:bg-red-900/50"
                 >
                   Delete Zone
                 </button>
@@ -675,7 +675,7 @@ const PropertiesPanel = memo(({
         <div className="p-4 space-y-4">
           {/* Remote editor warning */}
           {remoteEditors?.has(selectedConduit.id) && (
-            <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded p-2 text-xs text-purple-700 dark:text-purple-300">
+            <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-sm p-2 text-xs text-purple-700 dark:text-purple-300">
               {remoteEditors.get(selectedConduit.id)} is also viewing this conduit
             </div>
           )}
@@ -724,7 +724,7 @@ const PropertiesPanel = memo(({
             <div>
               <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Required Security Level</label>
               <span
-                className="inline-block px-2 py-1 rounded text-xs font-bold"
+                className="inline-block px-2 py-1 rounded-sm text-xs font-bold"
                 style={{
                   backgroundColor: SECURITY_LEVEL_CONFIG[selectedConduit.security_level_required].bgColor,
                   color: SECURITY_LEVEL_CONFIG[selectedConduit.security_level_required].color,
@@ -756,7 +756,7 @@ const PropertiesPanel = memo(({
                 {selectedConduit.flows.map((flow, index) => (
                   <div
                     key={index}
-                    className="bg-gray-50 dark:bg-gray-700 rounded p-2 text-sm"
+                    className="bg-gray-50 dark:bg-gray-700 rounded-sm p-2 text-sm"
                   >
                     <div className="font-medium text-gray-800 dark:text-gray-100">
                       {flow.protocol}
@@ -780,7 +780,7 @@ const PropertiesPanel = memo(({
               {onEditConduit && (
                 <button
                   onClick={() => onEditConduit(selectedConduit)}
-                  className="w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                  className="w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-sm hover:bg-blue-100 dark:hover:bg-blue-900/50"
                 >
                   Edit Conduit
                 </button>
@@ -792,7 +792,7 @@ const PropertiesPanel = memo(({
                       onDeleteConduit(selectedConduit.id);
                     }
                   }}
-                  className="w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
+                  className="w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-sm hover:bg-red-100 dark:hover:bg-red-900/50"
                 >
                   Delete Conduit
                 </button>
@@ -873,7 +873,7 @@ const RelatedIssues = memo(({
         {relatedValidation.map((result, index) => (
           <div
             key={`v-${index}`}
-            className={`text-xs p-2 rounded ${
+            className={`text-xs p-2 rounded-sm ${
               result.severity === 'error'
                 ? 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                 : result.severity === 'warning'
@@ -888,7 +888,7 @@ const RelatedIssues = memo(({
         {relatedViolations.map((violation, index) => (
           <div
             key={`p-${index}`}
-            className={`text-xs p-2 rounded ${
+            className={`text-xs p-2 rounded-sm ${
               violation.severity === 'critical'
                 ? 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                 : violation.severity === 'high'
@@ -931,11 +931,11 @@ const ValidationItem = memo(({
 
   return (
     <div
-      className={`text-xs p-2 rounded border cursor-pointer hover:opacity-80 transition-opacity ${severityStyles[result.severity]}`}
+      className={`text-xs p-2 rounded-sm border cursor-pointer hover:opacity-80 transition-opacity ${severityStyles[result.severity]}`}
       onClick={onClick}
     >
       <div className="flex items-start gap-2">
-        <span className="flex-shrink-0 mt-0.5">{severityIcons[result.severity]}</span>
+        <span className="shrink-0 mt-0.5">{severityIcons[result.severity]}</span>
         <div className="flex-1 min-w-0">
           <div className="font-medium">{result.code}</div>
           <div className="text-[11px] opacity-90 mt-0.5">{result.message}</div>
@@ -948,7 +948,7 @@ const ValidationItem = memo(({
                 e.stopPropagation();
                 quickFix.apply();
               }}
-              className="mt-2 px-2 py-1 text-[10px] font-medium bg-white dark:bg-gray-700 rounded border border-current hover:bg-gray-50 dark:hover:bg-gray-600"
+              className="mt-2 px-2 py-1 text-[10px] font-medium bg-white dark:bg-gray-700 rounded-sm border border-current hover:bg-gray-50 dark:hover:bg-gray-600"
               title={quickFix.description}
             >
               Quick Fix: {quickFix.label}
@@ -981,11 +981,11 @@ const PolicyItem = memo(({
 
   return (
     <div
-      className={`text-xs p-2 rounded border cursor-pointer hover:opacity-80 transition-opacity ${severityStyles[violation.severity]}`}
+      className={`text-xs p-2 rounded-sm border cursor-pointer hover:opacity-80 transition-opacity ${severityStyles[violation.severity]}`}
       onClick={onClick}
     >
       <div className="flex items-start gap-2">
-        <span className="flex-shrink-0 mt-0.5">⚡</span>
+        <span className="shrink-0 mt-0.5">⚡</span>
         <div className="flex-1 min-w-0">
           <div className="font-medium">{violation.rule_id}: {violation.rule_name}</div>
           <div className="text-[11px] opacity-90 mt-0.5">{violation.message}</div>
@@ -1005,7 +1005,7 @@ const PolicyItem = memo(({
                 e.stopPropagation();
                 quickFix.apply();
               }}
-              className="mt-2 px-2 py-1 text-[10px] font-medium bg-white dark:bg-gray-700 rounded border border-current hover:bg-gray-50 dark:hover:bg-gray-600"
+              className="mt-2 px-2 py-1 text-[10px] font-medium bg-white dark:bg-gray-700 rounded-sm border border-current hover:bg-gray-50 dark:hover:bg-gray-600"
               title={quickFix.description}
             >
               Quick Fix: {quickFix.label}

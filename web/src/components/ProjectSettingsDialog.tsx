@@ -63,14 +63,14 @@ const ProjectSettingsDialog = memo(({
     });
   };
 
-  const inputClass = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
+  const inputClass = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
   const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
 
   return (
     <DialogShell title="Project Settings" onClose={onCancel} maxWidth="max-w-lg">
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-3 py-2 rounded text-sm">
+            <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-3 py-2 rounded-sm text-sm">
               {error}
             </div>
           )}
@@ -150,12 +150,12 @@ const ProjectSettingsDialog = memo(({
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => toggleStandard(standard.id)}
-                      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-1 h-4 w-4 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span
-                          className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: standard.color }}
                         />
                         <span className="text-sm font-medium text-gray-800 dark:text-gray-100">

@@ -56,7 +56,7 @@ function StatusBadge({ status }: { status: ControlStatus }) {
   };
   const { label, cls } = cfg[status];
   return (
-    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${cls}`}>
+    <span className={`inline-block px-2 py-0.5 rounded-sm text-xs font-medium ${cls}`}>
       {label}
     </span>
   );
@@ -223,7 +223,7 @@ const ComplianceDashboard = memo(({
           <p className="text-sm text-red-600 dark:text-red-400 mb-4">{gapError}</p>
           <button
             onClick={fetchGapAnalysis}
-            className="px-4 py-2 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800/40 text-sm"
+            className="px-4 py-2 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-sm hover:bg-red-200 dark:hover:bg-red-800/40 text-sm"
           >
             Retry
           </button>
@@ -284,19 +284,19 @@ const ComplianceDashboard = memo(({
                   aria-expanded={isExpanded}
                   aria-label={`Toggle details for ${zone.zone_name}`}
                 >
-                  <span className="text-gray-400 dark:text-gray-500 text-xs w-4 flex-shrink-0">
+                  <span className="text-gray-400 dark:text-gray-500 text-xs w-4 shrink-0">
                     {isExpanded ? '\u25BC' : '\u25B6'}
                   </span>
                   <span
-                    className="inline-block px-2 py-0.5 rounded text-xs font-medium text-white flex-shrink-0"
+                    className="inline-block px-2 py-0.5 rounded-sm text-xs font-medium text-white shrink-0"
                     style={{ backgroundColor: ZONE_TYPE_CONFIG[zone.zone_type as keyof typeof ZONE_TYPE_CONFIG]?.color || '#888' }}
                   >
                     {ZONE_TYPE_CONFIG[zone.zone_type as keyof typeof ZONE_TYPE_CONFIG]?.label || zone.zone_type}
                   </span>
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-shrink-0">
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200 shrink-0">
                     {zone.zone_name}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
                     SL-{zone.security_level_target}
                   </span>
                   <div className="flex-1 mx-3">
@@ -306,10 +306,10 @@ const ComplianceDashboard = memo(({
                       unmet={zone.unmet_controls}
                     />
                   </div>
-                  <span className={`text-sm font-bold flex-shrink-0 ${getScoreColor(zone.compliance_percentage)}`}>
+                  <span className={`text-sm font-bold shrink-0 ${getScoreColor(zone.compliance_percentage)}`}>
                     {zone.compliance_percentage}%
                   </span>
-                  <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 w-24 text-right">
+                  <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 w-24 text-right">
                     {zone.met_controls}M / {zone.partial_controls}P / {zone.unmet_controls}U
                   </span>
                 </button>
@@ -461,7 +461,7 @@ const ComplianceDashboard = memo(({
               <div key={sl} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span
-                    className="px-2 py-0.5 rounded text-xs font-bold"
+                    className="px-2 py-0.5 rounded-sm text-xs font-bold"
                     style={{
                       backgroundColor: SECURITY_LEVEL_CONFIG[sl]?.bgColor,
                       color: SECURITY_LEVEL_CONFIG[sl]?.color,
@@ -528,14 +528,14 @@ const ComplianceDashboard = memo(({
                       <td className="px-4 py-2 text-gray-800 dark:text-gray-200 font-medium">{zone.name}</td>
                       <td className="px-4 py-2 text-center">
                         <span
-                          className="inline-block px-2 py-0.5 rounded text-xs font-medium text-white"
+                          className="inline-block px-2 py-0.5 rounded-sm text-xs font-medium text-white"
                           style={{ backgroundColor: ZONE_TYPE_CONFIG[zone.type]?.color || '#888' }}
                         >
                           {ZONE_TYPE_CONFIG[zone.type]?.label || zone.type}
                         </span>
                       </td>
                       <td className="px-4 py-2 text-center">
-                        <span className="inline-block px-2 py-0.5 rounded text-xs font-bold" style={{
+                        <span className="inline-block px-2 py-0.5 rounded-sm text-xs font-bold" style={{
                           backgroundColor: SECURITY_LEVEL_CONFIG[slT]?.bgColor,
                           color: SECURITY_LEVEL_CONFIG[slT]?.color,
                         }}>
@@ -544,7 +544,7 @@ const ComplianceDashboard = memo(({
                       </td>
                       <td className="px-4 py-2 text-center">
                         {slC != null ? (
-                          <span className="inline-block px-2 py-0.5 rounded text-xs font-bold" style={{
+                          <span className="inline-block px-2 py-0.5 rounded-sm text-xs font-bold" style={{
                             backgroundColor: SECURITY_LEVEL_CONFIG[slC]?.bgColor,
                             color: SECURITY_LEVEL_CONFIG[slC]?.color,
                           }}>
@@ -555,7 +555,7 @@ const ComplianceDashboard = memo(({
                         )}
                       </td>
                       <td className="px-4 py-2 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColor}`}>
+                        <span className={`inline-block px-2 py-0.5 rounded-sm text-xs font-medium ${statusColor}`}>
                           {statusLabel}
                         </span>
                       </td>
@@ -608,7 +608,7 @@ const ComplianceDashboard = memo(({
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Policy Violations</h3>
           <div className="space-y-2">
             {policyViolations.map((violation, index) => (
-              <div key={index} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-3">
+              <div key={index} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-sm p-3">
                 <div className="font-medium text-red-800 dark:text-red-300">{violation.rule_id}: {violation.rule_name}</div>
                 <div className="text-sm text-red-600 dark:text-red-400">{violation.message}</div>
               </div>
@@ -620,7 +620,7 @@ const ComplianceDashboard = memo(({
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -668,7 +668,7 @@ const ComplianceDashboard = memo(({
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600"
           >
             Close
           </button>

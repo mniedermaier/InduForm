@@ -152,7 +152,7 @@ const GenerateOutputDialog = memo(({
           )}
 
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-sm">
               <div className="font-medium">Generation Failed</div>
               <div className="text-sm">{error}</div>
             </div>
@@ -177,13 +177,13 @@ const GenerateOutputDialog = memo(({
               <>
                 <button
                   onClick={handleCopy}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600"
                 >
                   Copy to Clipboard
                 </button>
                 <button
                   onClick={handleDownload}
-                  className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+                  className="px-4 py-2 text-white bg-blue-600 rounded-sm hover:bg-blue-700"
                 >
                   Download
                 </button>
@@ -191,7 +191,7 @@ const GenerateOutputDialog = memo(({
             )}
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600"
             >
               Close
             </button>

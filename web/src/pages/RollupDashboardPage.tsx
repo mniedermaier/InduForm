@@ -167,7 +167,7 @@ export default function RollupDashboardPage({
       <NetworkBackground />
 
       {/* Header */}
-      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700/50 relative z-20">
+      <header className="flex-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs border-b border-gray-200 dark:border-slate-700/50 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -193,7 +193,7 @@ export default function RollupDashboardPage({
                     onClick={() => setDays(d)}
                     className={`px-3 py-1 text-sm rounded-md transition-colors ${
                       days === d
-                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
+                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-xs'
                         : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
@@ -248,7 +248,7 @@ export default function RollupDashboardPage({
               {/* Compliance + Risk sections */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Compliance */}
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50 p-6">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50 p-6">
                   <h2 className="text-sm font-medium text-gray-600 dark:text-slate-300 mb-4">Compliance</h2>
                   <div className="flex items-start gap-6 mb-4">
                     <div>
@@ -278,7 +278,7 @@ export default function RollupDashboardPage({
                       {data.worst_compliance.map(w => (
                         <div
                           key={w.id}
-                          className="flex items-center justify-between py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2"
+                          className="flex items-center justify-between py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-sm px-2 -mx-2"
                           onClick={() => onOpenProject(w.id)}
                         >
                           <span className="text-sm text-gray-700 dark:text-slate-200 truncate">{w.name}</span>
@@ -290,7 +290,7 @@ export default function RollupDashboardPage({
                 </div>
 
                 {/* Risk */}
-                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50 p-6">
+                <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50 p-6">
                   <h2 className="text-sm font-medium text-gray-600 dark:text-slate-300 mb-4">Risk</h2>
                   <div className="flex items-start gap-6 mb-4">
                     <div>
@@ -322,7 +322,7 @@ export default function RollupDashboardPage({
                       {data.worst_risk.map(w => (
                         <div
                           key={w.id}
-                          className="flex items-center justify-between py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded px-2 -mx-2"
+                          className="flex items-center justify-between py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-sm px-2 -mx-2"
                           onClick={() => onOpenProject(w.id)}
                         >
                           <span className="text-sm text-gray-700 dark:text-slate-200 truncate">{w.name}</span>
@@ -372,7 +372,7 @@ export default function RollupDashboardPage({
               </div>
 
               {/* Projects table */}
-              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-slate-700/50 overflow-hidden">
+              <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg border border-gray-200 dark:border-slate-700/50 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full" aria-label="Projects compliance overview">
                     <thead className="bg-gray-50/50 dark:bg-slate-700/30">
@@ -415,7 +415,7 @@ export default function RollupDashboardPage({
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
+    <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs rounded-lg p-4 border border-gray-200 dark:border-slate-700/50">
       <div className={`text-2xl font-bold ${color}`}>{value}</div>
       <div className="text-sm text-gray-500 dark:text-slate-400">{label}</div>
     </div>

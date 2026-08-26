@@ -40,7 +40,7 @@ const RemoteCursors = memo(({ cursors }: RemoteCursorsProps) => {
 
           {/* Username label */}
           <div
-            className="absolute top-4 left-3 px-1.5 py-0.5 rounded text-xs font-medium text-white whitespace-nowrap"
+            className="absolute top-4 left-3 px-1.5 py-0.5 rounded-sm text-xs font-medium text-white whitespace-nowrap"
             style={{
               backgroundColor: getUserColor(cursor.user_id),
               boxShadow: '0 1px 2px rgba(0,0,0,0.2)',

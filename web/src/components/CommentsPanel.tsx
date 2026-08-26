@@ -142,7 +142,7 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
       </div>
 
       {error && (
-        <div className="p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-xs">
+        <div className="p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-sm text-red-700 dark:text-red-300 text-xs">
           {error}
         </div>
       )}
@@ -154,13 +154,13 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Add a comment..."
           rows={2}
-          className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 resize-none"
+          className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 resize-none"
         />
         <div className="flex justify-end">
           <button
             onClick={handleAddComment}
             disabled={submitting || !newComment.trim()}
-            className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded"
+            className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-sm"
           >
             {submitting ? 'Adding...' : 'Add Comment'}
           </button>
@@ -179,7 +179,7 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
           {filteredComments.map((comment) => (
             <div
               key={comment.id}
-              className={`p-2 rounded text-xs ${
+              className={`p-2 rounded-sm text-xs ${
                 comment.is_resolved
                   ? 'bg-gray-100 dark:bg-gray-700/50 opacity-60'
                   : 'bg-gray-50 dark:bg-gray-700'
@@ -195,7 +195,7 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
                       {formatDate(comment.created_at)}
                     </span>
                     {comment.is_resolved && (
-                      <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded text-[10px]">
+                      <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-sm text-[10px]">
                         Resolved
                       </span>
                     )}
@@ -207,7 +207,7 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
                         rows={2}
-                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600"
+                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-600"
                       />
                       <div className="flex gap-2">
                         <button
@@ -234,7 +234,7 @@ const CommentsPanel = memo(({ projectId, entityType, entityId }: CommentsPanelPr
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => handleToggleResolve(comment.id, comment.is_resolved)}
                     className="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400"

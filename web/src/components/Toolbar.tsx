@@ -89,7 +89,7 @@ function DropdownMenu({ label, icon, items, isOpen, onToggle, onClose }: Dropdow
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className={`px-3 py-1 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-200 flex items-center gap-1.5 ${
+        className={`px-3 py-1 text-sm rounded-sm hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-200 flex items-center gap-1.5 ${
           isOpen ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
@@ -119,7 +119,7 @@ function DropdownMenu({ label, icon, items, isOpen, onToggle, onClose }: Dropdow
                   }`}
               >
                 <span className="flex items-center gap-2">
-                  {item.icon && <span className="w-4 h-4 opacity-60 flex-shrink-0">{item.icon}</span>}
+                  {item.icon && <span className="w-4 h-4 opacity-60 shrink-0">{item.icon}</span>}
                   {item.label}
                 </span>
                 {item.shortcut && (
@@ -318,7 +318,7 @@ const Toolbar = memo(({
       {/* Hamburger button — visible on <md */}
       <button
         onClick={() => setMobileMenuOpen(true)}
-        className="p-2 md:hidden text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+        className="p-2 md:hidden text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-sm"
         aria-label="Open menu"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -157,13 +157,13 @@ const UserSettingsDialog = memo(({ onClose }: UserSettingsDialogProps) => {
           {activeTab === 'profile' && (
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               {profileError && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+                <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-sm text-red-700 dark:text-red-300 text-sm">
                   {profileError}
                 </div>
               )}
 
               {profileSuccess && (
-                <div className="p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-300 text-sm">
+                <div className="p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-sm text-green-700 dark:text-green-300 text-sm">
                   Profile updated successfully
                 </div>
               )}
@@ -224,13 +224,13 @@ const UserSettingsDialog = memo(({ onClose }: UserSettingsDialogProps) => {
           {activeTab === 'password' && (
             <form onSubmit={handleChangePassword} className="space-y-4">
               {passwordError && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+                <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-sm text-red-700 dark:text-red-300 text-sm">
                   {passwordError}
                 </div>
               )}
 
               {passwordSuccess && (
-                <div className="p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-300 text-sm">
+                <div className="p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-sm text-green-700 dark:text-green-300 text-sm">
                   Password changed successfully
                 </div>
               )}

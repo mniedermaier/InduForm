@@ -580,7 +580,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <button
             onClick={onBackToProjects}
-            className="p-2 md:p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 flex-shrink-0"
+            className="p-2 md:p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 shrink-0"
             title="Back to Projects"
             aria-label="Back to Projects"
           >
@@ -588,13 +588,13 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="InduForm" className="w-7 h-7" />
             <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 hidden md:block">InduForm</h1>
           </div>
           <span className="text-sm text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{project.project.name}</span>
           {permission && (
-            <span className={`text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0 ${
+            <span className={`text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-sm shrink-0 ${
               permission === 'owner' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' :
               permission === 'editor' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
               'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
@@ -603,19 +603,19 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
             </span>
           )}
           {hasChanges && canEdit && (
-            <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0">
+            <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-sm shrink-0">
               <span className="hidden sm:inline">Unsaved Changes</span>
               <span className="sm:hidden">*</span>
             </span>
           )}
           {saving && (
-            <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex-shrink-0">
+            <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-sm shrink-0">
               Saving...
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {/* Search - full on md+, icon button on mobile */}
           <div className="hidden md:flex items-center gap-1">
             <SearchBox
@@ -627,7 +627,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
             {onOpenGlobalSearch && (
               <button
                 onClick={onOpenGlobalSearch}
-                className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm"
                 title="Search all projects (Ctrl+K)"
                 aria-label="Search all projects"
               >
@@ -639,7 +639,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
           </div>
           <button
             onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-            className="p-2 md:hidden text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="p-2 md:hidden text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm"
             aria-label="Search"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -676,7 +676,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
           {/* Properties panel toggle - visible on <lg */}
           <button
             onClick={() => setPropertiesPanelOpen(!propertiesPanelOpen)}
-            className="p-2 md:p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded lg:hidden"
+            className="p-2 md:p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm lg:hidden"
             title="Toggle properties panel"
             aria-label="Toggle properties panel"
           >
@@ -687,7 +687,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
 
           <button
             onClick={dialogActions.openKeyboardShortcuts}
-            className="p-2 md:p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded hidden sm:block"
+            className="p-2 md:p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm hidden sm:block"
             title="Keyboard shortcuts (press ?)"
             aria-label="Keyboard shortcuts"
           >
@@ -1074,7 +1074,7 @@ export default function ProjectEditor({ projectId, onBackToProjects, onOpenGloba
       )}
 
       {dialogs.showVulnerabilities && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[85vh] flex flex-col">
             <VulnerabilityPanel
               projectId={projectId}

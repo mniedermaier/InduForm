@@ -72,7 +72,7 @@ function KeyboardShortcutsDialog({ onClose }: KeyboardShortcutsDialogProps) {
                     <div className="flex items-center gap-1">
                       {shortcut.keys.map((key, keyIndex) => (
                         <span key={keyIndex}>
-                          <kbd className="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded border border-gray-300 dark:border-gray-600 shadow-sm">
+                          <kbd className="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-sm border border-gray-300 dark:border-gray-600 shadow-xs">
                             {key}
                           </kbd>
                           {keyIndex < shortcut.keys.length - 1 && (
@@ -90,7 +90,7 @@ function KeyboardShortcutsDialog({ onClose }: KeyboardShortcutsDialogProps) {
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            Press <kbd className="px-1.5 py-0.5 text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded border border-gray-300 dark:border-gray-600">?</kbd> to toggle this dialog
+            Press <kbd className="px-1.5 py-0.5 text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-sm border border-gray-300 dark:border-gray-600">?</kbd> to toggle this dialog
           </p>
         </div>
     </DialogShell>

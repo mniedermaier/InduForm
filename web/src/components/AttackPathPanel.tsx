@@ -29,10 +29,10 @@ function RiskBadge({ level, score }: { level: string; score: number }) {
 
 function WeaknessCard({ weakness }: { weakness: { weakness_type: string; description: string; remediation: string; severity_contribution: number } }) {
   return (
-    <div className="border border-gray-200 dark:border-gray-600 rounded p-2 text-xs">
+    <div className="border border-gray-200 dark:border-gray-600 rounded-sm p-2 text-xs">
       <div className="flex items-start justify-between gap-2 mb-1">
         <span className="font-medium text-gray-800 dark:text-gray-200">{weakness.description}</span>
-        <span className="text-gray-400 flex-shrink-0">
+        <span className="text-gray-400 shrink-0">
           {Math.round(weakness.severity_contribution * 100)}%
         </span>
       </div>
@@ -46,13 +46,13 @@ function WeaknessCard({ weakness }: { weakness: { weakness_type: string; descrip
 function StepDetail({ step, index }: { step: AttackPathStep; index: number }) {
   return (
     <div className="flex items-start gap-2 py-2">
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
+      <div className="shrink-0 w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
         {index + 1}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 text-sm">
           <span className="font-medium text-gray-800 dark:text-gray-200">{step.from_zone_name}</span>
-          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
           <span className="font-medium text-gray-800 dark:text-gray-200">{step.to_zone_name}</span>
@@ -95,7 +95,7 @@ function PathCard({ path, isHighlighted, onHighlight }: { path: AttackPath; isHi
             </div>
           </div>
           <svg
-            className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}
+            className={`w-5 h-5 text-gray-400 transition-transform shrink-0 ${expanded ? 'rotate-180' : ''}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -104,7 +104,7 @@ function PathCard({ path, isHighlighted, onHighlight }: { path: AttackPath; isHi
         {onHighlight && (
           <button
             onClick={(e) => { e.stopPropagation(); onHighlight(isHighlighted ? null : path); }}
-            className={`mr-3 p-1.5 rounded-lg transition-colors flex-shrink-0 ${
+            className={`mr-3 p-1.5 rounded-lg transition-colors shrink-0 ${
               isHighlighted
                 ? 'bg-blue-500 text-white hover:bg-blue-600'
                 : 'text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-600'
@@ -178,7 +178,7 @@ const AttackPathPanel = memo(({ project, onClose, onHighlightPath }: AttackPathP
             <div className="text-red-600 dark:text-red-400 mb-2">{error}</div>
             <button
               onClick={fetchAnalysis}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-sm hover:bg-blue-700"
             >
               Retry
             </button>
@@ -222,7 +222,7 @@ const AttackPathPanel = memo(({ project, onClose, onHighlightPath }: AttackPathP
                 <div>
                   <span className="font-medium text-gray-500 dark:text-gray-400 mr-1">Entry points:</span>
                   {analysis.entry_points.map((name) => (
-                    <span key={name} className="inline-block px-2 py-0.5 mr-1 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                    <span key={name} className="inline-block px-2 py-0.5 mr-1 rounded-sm bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
                       {name}
                     </span>
                   ))}
@@ -232,7 +232,7 @@ const AttackPathPanel = memo(({ project, onClose, onHighlightPath }: AttackPathP
                 <div>
                   <span className="font-medium text-gray-500 dark:text-gray-400 mr-1">Targets:</span>
                   {analysis.high_value_targets.map((name) => (
-                    <span key={name} className="inline-block px-2 py-0.5 mr-1 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                    <span key={name} className="inline-block px-2 py-0.5 mr-1 rounded-sm bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
                       {name}
                     </span>
                   ))}

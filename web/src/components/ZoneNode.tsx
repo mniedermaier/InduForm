@@ -92,7 +92,7 @@ const ZoneNode = memo(({ data, selected }: NodeProps<ZoneNodeType>) => {
       {hasIssues && (
         <div
           ref={badgeRef}
-          className={`absolute -top-2 -right-2 w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center shadow cursor-pointer hover:scale-110 transition-transform ${
+          className={`absolute -top-2 -right-2 w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center shadow-sm cursor-pointer hover:scale-110 transition-transform ${
             errorCount > 0 ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-400 hover:bg-orange-500'
           }`}
           title={`Click to view ${errorCount > 0 ? `${errorCount} error${errorCount !== 1 ? 's' : ''}` : `${warningCount} warning${warningCount !== 1 ? 's' : ''}`}`}
@@ -116,7 +116,7 @@ const ZoneNode = memo(({ data, selected }: NodeProps<ZoneNodeType>) => {
       {/* Risk score badge */}
       {riskOverlay && riskScore != null && riskLevel && (
         <div
-          className="absolute -top-2 -left-2 px-1.5 py-0.5 rounded-full text-white text-[10px] font-bold shadow"
+          className="absolute -top-2 -left-2 px-1.5 py-0.5 rounded-full text-white text-[10px] font-bold shadow-sm"
           style={{ backgroundColor: RISK_BORDER_COLORS[riskLevel] || '#888' }}
           title={`Risk: ${riskScore} (${riskLevel})`}
         >
@@ -126,7 +126,7 @@ const ZoneNode = memo(({ data, selected }: NodeProps<ZoneNodeType>) => {
 
       {/* Remote user selection indicator */}
       {remoteUser && (
-        <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[9px] font-medium whitespace-nowrap shadow">
+        <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-purple-500 text-white text-[9px] font-medium whitespace-nowrap shadow-sm">
           {remoteUser}
         </div>
       )}
@@ -142,7 +142,7 @@ const ZoneNode = memo(({ data, selected }: NodeProps<ZoneNodeType>) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <span
-          className="text-xs font-semibold px-2 py-0.5 rounded"
+          className="text-xs font-semibold px-2 py-0.5 rounded-sm"
           style={{
             backgroundColor: typeConfig.color,
             color: 'white',
@@ -151,7 +151,7 @@ const ZoneNode = memo(({ data, selected }: NodeProps<ZoneNodeType>) => {
           {typeConfig.label}
         </span>
         <span
-          className="text-xs font-bold px-2 py-0.5 rounded"
+          className="text-xs font-bold px-2 py-0.5 rounded-sm"
           style={{
             backgroundColor: slConfig.bgColor,
             color: slConfig.color,

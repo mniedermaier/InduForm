@@ -210,7 +210,7 @@ const TeamManagementDialog = memo(({ onClose }: TeamManagementDialogProps) => {
 
         <div className="flex-1 overflow-y-auto p-4">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-sm">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-sm text-red-700 dark:text-red-300 text-sm">
               {error}
               <button onClick={() => setError(null)} className="ml-2 underline">
                 Dismiss
@@ -242,19 +242,19 @@ const TeamManagementDialog = memo(({ onClose }: TeamManagementDialogProps) => {
               </div>
 
               {showAddMember && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded space-y-3">
+                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-sm space-y-3">
                   <input
                     type="text"
                     value={newMemberId}
                     onChange={(e) => setNewMemberId(e.target.value)}
                     placeholder="Enter user ID"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
                   />
                   <div className="flex gap-3">
                     <select
                       value={newMemberRole}
                       onChange={(e) => setNewMemberRole(e.target.value as 'member' | 'admin')}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800"
                     >
                       <option value="member">Member</option>
                       <option value="admin">Admin</option>
@@ -262,13 +262,13 @@ const TeamManagementDialog = memo(({ onClose }: TeamManagementDialogProps) => {
                     <button
                       onClick={handleAddMember}
                       disabled={adding}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700 disabled:bg-blue-400"
                     >
                       {adding ? 'Adding...' : 'Add'}
                     </button>
                     <button
                       onClick={() => setShowAddMember(false)}
-                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded"
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-sm"
                     >
                       Cancel
                     </button>
@@ -280,7 +280,7 @@ const TeamManagementDialog = memo(({ onClose }: TeamManagementDialogProps) => {
                 {(selectedTeam.members || []).map((member) => (
                   <div
                     key={member.user_id}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded"
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-sm"
                   >
                     <div>
                       <div className="font-medium text-gray-800 dark:text-gray-100">
@@ -318,32 +318,32 @@ const TeamManagementDialog = memo(({ onClose }: TeamManagementDialogProps) => {
               </div>
 
               {showCreateForm && (
-                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded space-y-3">
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm space-y-3">
                   <input
                     type="text"
                     value={newTeamName}
                     onChange={(e) => setNewTeamName(e.target.value)}
                     placeholder="Team name"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
                   />
                   <input
                     type="text"
                     value={newTeamDescription}
                     onChange={(e) => setNewTeamDescription(e.target.value)}
                     placeholder="Description (optional)"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
                   />
                   <div className="flex gap-3">
                     <button
                       onClick={handleCreateTeam}
                       disabled={creating}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700 disabled:bg-blue-400"
                     >
                       {creating ? 'Creating...' : 'Create'}
                     </button>
                     <button
                       onClick={() => setShowCreateForm(false)}
-                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded"
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-sm"
                     >
                       Cancel
                     </button>
@@ -360,7 +360,7 @@ const TeamManagementDialog = memo(({ onClose }: TeamManagementDialogProps) => {
                   {teams.map((team) => (
                     <div
                       key={team.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
+                      className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
                       onClick={() => loadTeamDetails(team.id)}
                     >
                       <div>

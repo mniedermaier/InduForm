@@ -135,14 +135,14 @@ export default function ActivityLogPanel({ projectId, onClose }: ActivityLogPane
                   toast.error('Failed to export activity');
                 }
               }}
-              className="px-3 py-1 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
+              className="px-3 py-1 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-sm hover:bg-blue-100 dark:hover:bg-blue-900/50"
               title="Export as CSV"
             >
               Export CSV
             </button>
             <button
               onClick={onClose}
-              className="p-1 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded"
+              className="p-1 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-sm"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -169,7 +169,7 @@ export default function ActivityLogPanel({ projectId, onClose }: ActivityLogPane
                   key={activity.id}
                   className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-slate-700/30 rounded-lg"
                 >
-                  <span className="text-xl flex-shrink-0">
+                  <span className="text-xl shrink-0">
                     {ACTION_ICONS[activity.action] || '📌'}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -199,7 +199,7 @@ export default function ActivityLogPanel({ projectId, onClose }: ActivityLogPane
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 text-sm text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1 text-sm text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-sm hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
@@ -209,7 +209,7 @@ export default function ActivityLogPanel({ projectId, onClose }: ActivityLogPane
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1 text-sm text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1 text-sm text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 rounded-sm hover:bg-gray-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>

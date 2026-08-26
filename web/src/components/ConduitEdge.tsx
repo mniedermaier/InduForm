@@ -159,8 +159,8 @@ const ConduitEdge = memo(({
             backgroundColor: theme === 'dark' ? '#1f2937' : 'white',
           }}
           className={`
-            px-2 py-1 rounded text-xs font-medium
-            border shadow-sm cursor-pointer
+            px-2 py-1 rounded-sm text-xs font-medium
+            border shadow-xs cursor-pointer
             hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
             ${selected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-300 dark:border-gray-600'}
           `}

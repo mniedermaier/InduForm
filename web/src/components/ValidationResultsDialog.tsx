@@ -240,11 +240,11 @@ const ValidationResultsDialog = memo(({
         {/* Status badge */}
         <div className="px-6 pb-2 -mt-2">
           {isValid ? (
-            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium rounded">
+            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium rounded-sm">
               PASSED
             </span>
           ) : (
-            <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs font-medium rounded">
+            <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs font-medium rounded-sm">
               FAILED
             </span>
           )}
@@ -316,7 +316,7 @@ const ValidationResultsDialog = memo(({
             {(project.project.compliance_standards || ['IEC62443']).map(stdId => {
               const std = COMPLIANCE_STANDARDS.find(s => s.id === stdId);
               return std ? (
-                <span key={stdId} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ backgroundColor: std.color + '20', color: std.color }}>
+                <span key={stdId} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm" style={{ backgroundColor: std.color + '20', color: std.color }}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: std.color }} />
                   {std.name}
                 </span>
@@ -325,7 +325,7 @@ const ValidationResultsDialog = memo(({
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600"
           >
             Close
           </button>
@@ -375,21 +375,21 @@ const SummaryTab = memo(({
     <div>
       <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">Project Overview</h3>
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gray-50 dark:bg-gray-700 rounded p-3">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-sm p-3">
           <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">{project.zones.length}</div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Zones defined</div>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700 rounded p-3">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-sm p-3">
           <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">{project.conduits.length}</div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Conduits defined</div>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700 rounded p-3">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-sm p-3">
           <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
             {project.zones.reduce((sum, z) => sum + z.assets.length, 0)}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Assets registered</div>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700 rounded p-3">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-sm p-3">
           <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
             {project.conduits.reduce((sum, c) => sum + c.flows.length, 0)}
           </div>
@@ -402,27 +402,27 @@ const SummaryTab = memo(({
     <div>
       <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">Issue Summary</h3>
       <div className="space-y-2">
-        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-sm">
           <span className="text-sm text-gray-700 dark:text-gray-300">Validation Errors</span>
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${errors.length > 0 ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'}`}>
+          <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${errors.length > 0 ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'}`}>
             {errors.length}
           </span>
         </div>
-        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-sm">
           <span className="text-sm text-gray-700 dark:text-gray-300">Validation Warnings</span>
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${warnings.length > 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'}`}>
+          <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${warnings.length > 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'}`}>
             {warnings.length}
           </span>
         </div>
-        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-sm">
           <span className="text-sm text-gray-700 dark:text-gray-300">Info Messages</span>
-          <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+          <span className="px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
             {infos.length}
           </span>
         </div>
-        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-sm">
           <span className="text-sm text-gray-700 dark:text-gray-300">Policy Violations</span>
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${policyViolations.length > 0 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'}`}>
+          <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${policyViolations.length > 0 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'}`}>
             {policyViolations.length}
           </span>
         </div>
@@ -481,7 +481,7 @@ const ChecksTab = memo(({
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-gray-800 dark:text-gray-100">{check.name}</span>
-                <span className={`px-2 py-0.5 text-xs rounded ${
+                <span className={`px-2 py-0.5 text-xs rounded-sm ${
                   status === 'passed' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
                   status === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
                   status === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
@@ -496,7 +496,7 @@ const ChecksTab = memo(({
             <div className="border-t dark:border-gray-700 bg-white dark:bg-gray-800 p-3 space-y-2">
               {issues.map((issue, idx) => (
                 <div key={idx} className="text-sm">
-                  <span className={`font-mono text-xs px-1 rounded ${
+                  <span className={`font-mono text-xs px-1 rounded-sm ${
                     issue.severity === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
                     issue.severity === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                   }`}>
@@ -547,7 +547,7 @@ const PoliciesTab = memo(({
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{rule.id}</span>
                 <span className="font-medium text-gray-800 dark:text-gray-100">{rule.name}</span>
-                <span className={`px-2 py-0.5 text-xs rounded ${
+                <span className={`px-2 py-0.5 text-xs rounded-sm ${
                   status === 'passed' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
                   status === 'critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
                   status === 'high' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
@@ -641,9 +641,9 @@ const ResultCard = memo(({ result }: { result: ValidationResult }) => {
   };
 
   return (
-    <div className={`border dark:border-gray-700 border-l-4 rounded p-3 ${severityStyles[result.severity]}`}>
+    <div className={`border dark:border-gray-700 border-l-4 rounded-sm p-3 ${severityStyles[result.severity]}`}>
       <div className="flex items-center gap-2 mb-1">
-        <span className={`px-2 py-0.5 text-xs font-medium rounded ${severityBadge[result.severity]}`}>
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-sm ${severityBadge[result.severity]}`}>
           {result.severity.toUpperCase()}
         </span>
         <span className="text-xs font-mono text-gray-500 dark:text-gray-400">{result.code}</span>
@@ -654,7 +654,7 @@ const ResultCard = memo(({ result }: { result: ValidationResult }) => {
         <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-1">{result.location}</div>
       )}
       {result.recommendation && (
-        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-white dark:bg-gray-700 rounded">
+        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-white dark:bg-gray-700 rounded-sm">
           <span className="font-medium">Recommendation:</span> {result.recommendation}
         </div>
       )}
@@ -680,9 +680,9 @@ const ViolationCard = memo(({ violation }: { violation: PolicyViolation }) => {
   };
 
   return (
-    <div className={`border dark:border-gray-700 border-l-4 rounded p-3 ${severityStyles[violation.severity]}`}>
+    <div className={`border dark:border-gray-700 border-l-4 rounded-sm p-3 ${severityStyles[violation.severity]}`}>
       <div className="flex items-center gap-2 mb-1">
-        <span className={`px-2 py-0.5 text-xs font-medium rounded ${severityBadge[violation.severity]}`}>
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-sm ${severityBadge[violation.severity]}`}>
           {violation.severity.toUpperCase()}
         </span>
         <span className="text-xs font-mono text-gray-500 dark:text-gray-400">{violation.rule_id}</span>
@@ -696,7 +696,7 @@ const ViolationCard = memo(({ violation }: { violation: PolicyViolation }) => {
         </div>
       )}
       {violation.remediation && (
-        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-white dark:bg-gray-700 rounded">
+        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-white dark:bg-gray-700 rounded-sm">
           <span className="font-medium">Remediation:</span> {violation.remediation}
         </div>
       )}
